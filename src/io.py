@@ -22,6 +22,8 @@ def load_project_json(file_path: str) -> pd.DataFrame:
                 "dbh": float(attributes.get("dbh", 0.0)),  # DBH je float
                 "height": float(attributes.get("height", 0.0)),  # Výška je float
                 "status": str(attributes.get("status", "Unknown")),  # Status je string
+                "x": float(attributes.get("position", [0.0, 0.0, 0.0])[0])/10000,  # X pozice
+                "y": float(attributes.get("position", [0.0, 0.0, 0,0])[1])/10000,  # Y pozice
             }
             tree_attributes.append(selected_attributes)
 

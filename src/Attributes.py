@@ -20,7 +20,7 @@ with col3:
 
 # Konfigurace tabulky
 gb = GridOptionsBuilder.from_dataframe(st.session_state.trees)
-gb.configure_selection("multiple", use_checkbox=True)  # Povolit výběr více řádků
+gb.configure_selection("multiple", use_checkbox=False)  # Povolit výběr více řádků
 gb.configure_grid_options(domLayout="normal")  # Standardní rozložení
 gb.configure_columns(["status"], editable=True)
 gb.configure_side_bar(filters_panel=True, defaultToolPanel='filters')
@@ -62,4 +62,3 @@ if selected_rows is not None and not selected_rows.empty:  # Zkontrolujeme, zda 
         ] = "Unselect"
         st.success(f"Status byl aktualizován na 'Unselect' pro ID: {selected_ids}")
 
-response.set
