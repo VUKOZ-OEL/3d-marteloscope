@@ -1,7 +1,7 @@
 import streamlit as st
 #from streamlit_multipage import MultiPage
 
-st.set_page_config(page_title="3D-Marteloscope", page_icon=":material/forest:")
+st.set_page_config(page_title="3D-Marteloscope", page_icon=":material/forest:",layout="wide")
 
 dash_page = st.Page("src/Dashboard.py", title="Dashboard", icon=":material/home:")
 map_page = st.Page("src/Map.py", title="Map", icon=":material/map:")

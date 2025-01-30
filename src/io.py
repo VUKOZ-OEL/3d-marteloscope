@@ -24,6 +24,8 @@ def load_project_json(file_path: str) -> pd.DataFrame:
                 "status": str(attributes.get("status", "Unknown")),  # Status je string
                 "x": float(attributes.get("position", [0.0, 0.0, 0.0])[0])/10000,  # X pozice
                 "y": float(attributes.get("position", [0.0, 0.0, 0,0])[1])/10000,  # Y pozice
+                "lat": float(attributes.get("latlon", [0.0, 0.0])[1]),  # lat pozice
+                "lon": float(attributes.get("latlon", [0.0, 0.0])[0]),  # lon pozice
             }
             tree_attributes.append(selected_attributes)
 

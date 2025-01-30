@@ -6,7 +6,7 @@ from src.io import *
 
 
 if "trees" not in st.session_state:
-    file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/LS-Krivoklat/3df_project/Krivoklat.json"
+    file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/LS-Krivoklat/3df_project/Krivoklat_test.json"
     st.session_state.trees = load_project_json(file_path)
 
 
