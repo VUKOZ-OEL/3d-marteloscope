@@ -7,6 +7,7 @@ dash_page = st.Page("src/Dashboard.py", title="Dashboard", icon=":material/home:
 map_page = st.Page("src/Map.py", title="Map", icon=":material/map:")
 att_page = st.Page("src/Attributes.py", title="Attribute table", icon=":material/data_table:")
 analytics_page = st.Page("src/Analytics.py", title="Analytics", icon=":material/monitoring:")
+test_page = st.Page("src/sandbox.py", title="_TESTs_", icon=":material/monitoring:")
 
 #pg = st.navigation([dash_page, map_page,att_page,analytics_page,])
 
@@ -20,6 +21,7 @@ pages = {
     ],
     "Explore": [
         analytics_page,
+        test_page,
     ],
 }
 

@@ -3,6 +3,8 @@ from src.io import *
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
+from folium.plugins import Draw
+from folium.raster_layers import TileLayer
 
 st.markdown(
     """
@@ -84,6 +86,16 @@ with col2:
     # Inicializace mapy **bez podkladu**
     m = folium.Map(location=[df["lat"].mean(), df["lon"].mean()], zoom_start=6, tiles=None)
 
+        # Přidání prázdné bílé dlaždicové vrstvy
+    TileLayer(
+        tiles="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/ak6bgAAAABJRU5ErkJggg==",
+        attr="map",
+        name="map",
+        overlay=True,
+        control=False
+    ).add_to(m)
+
+
     # Přidání bodů do mapy
     for idx, row in df.iterrows():
         folium.CircleMarker(
@@ -99,4 +111,3 @@ with col2:
     # Vykreslení mapy v kontejneru s celou výškou
     st_folium(m, use_container_width=True)
 
-    #st.markdown('</div>', unsafe_allow_html=True)
