@@ -2,38 +2,7 @@ import json
 import pandas as pd
 from typing import List, Dict, Union
 
-__all__ = ["load_project_json","save_project_json"]
-"""
-def load_project_json(file_path: str) -> pd.DataFrame:
-
-    print(file_path)
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        data: Dict[str, Union[Dict, List]] = json.load(f)
-
-    # Extrakce "segments > treeAttributes"
-    segments: List[Dict[str, Union[int, str]]] = data.get("segments", [])
-    tree_attributes: List[Dict[str, Union[float, int, str]]] = []
-
-    for segment in segments:
-        if "treeAttributes" in segment:
-            attributes = segment["treeAttributes"]
-            selected_attributes = {
-                "id": int(segment.get("id", 0)),  # ID je vždy int
-                "label": str(segment.get("label", "")),  # Label je string
-                "dbh": float(attributes.get("dbh", 0.0))/100,  # DBH je float
-                "height": float(attributes.get("height", 0.0))/10000,  # Výška je float
-                "status": str(attributes.get("status", "Unknown")),  # Status je string
-                "x": float(attributes.get("position", [0.0, 0.0, 0.0])[0])/10000,  # X pozice
-                "y": float(attributes.get("position", [0.0, 0.0, 0,0])[1])/10000,  # Y pozice
-                "lat": float(attributes.get("latlon", [0.0, 0.0])[1]),  # lat pozice
-                "lon": float(attributes.get("latlon", [0.0, 0.0])[0]),  # lon pozice
-            }
-            tree_attributes.append(selected_attributes)
-
-    # Vytvoření pandas DataFrame
-    return pd.DataFrame(tree_attributes)
-"""
+__all__ = ["load_project_json","save_project_json","load_colormaps"]
 
 import json
 import pandas as pd
@@ -129,3 +98,27 @@ def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = N
     output_path = output_path or original_path
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def load_colormaps(json_path: str) -> dict:
+    def rgb_to_hex(rgb):
+        return "#{:02x}{:02x}{:02x}".format(*rgb)
+
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    colormap = data.get("colormaps", {})
+    result = {}
+
+    for category, mapping in colormaps.items():  # opraveno zde!
+        if isinstance(mapping, dict):
+            inner = {}
+            for k, v in mapping.items():
+                try:
+                    inner[k] = rgb_to_hex(v)
+                except Exception as e:
+                    print(f"⚠️ chyba při převodu {category} → {k} = {v}: {e}")
+            result[category] = inner
+
+
+    return result

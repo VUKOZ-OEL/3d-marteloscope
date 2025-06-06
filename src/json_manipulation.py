@@ -1,12 +1,8 @@
 import pandas as pd
 import json
-from src.io import *
-
 import src.io as io
 import src.data_prep.species as spp
 
-print(dir(io))
-print(dir(spp))
 
 
 file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/LS-Krivoklat/3df_project/Krivoklat_test_SAVE.json"
@@ -22,16 +18,9 @@ trees["volume"] = 0
 
 io.save_project_json(file_path,trees,"c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/LS-Krivoklat/3df_project/Krivoklat_test_SAVE.json")
 
-#io.save_project_json(file_path,trees,"c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/LS-Krivoklat/3df_project/Krivoklat_test_SAVE.json")
 
 
-%view trees
-trees.plot.scatter("x","y")
-trees.plot.scatter("dbh","height")
+colors = io.load_colormap(file_path)
+colors.keys()
+colors["management"]
 
-
-print(trees.label)
-
-
-selected_rows = []
-len(selected_rows)
