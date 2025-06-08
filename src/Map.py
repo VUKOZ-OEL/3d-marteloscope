@@ -1,139 +1,175 @@
 import streamlit as st
 import pandas as pd
 import json
-from streamlit.components.v1 import html
-from src.io import load_project_json
+from shapely.geometry import Point, Polygon
+from bokeh.plotting import figure
+from bokeh.models import ColumnDataSource, BoxSelectTool, TapTool, HoverTool, LabelSet
+from bokeh.models.tools import BoxZoomTool, ResetTool, WheelZoomTool, PanTool
+from streamlit_bokeh3_events import streamlit_bokeh3_events
+import src.io as io
 
 # --- Načtení a inicializace ---
 if "trees" not in st.session_state:
-    file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/LS-Krivoklat/3df_project/Krivoklat_test_SAVE.json"
-    st.session_state.trees = load_project_json(file_path)
+    file_path = (
+        "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/LS-Krivoklat/3df_project/Krivoklat_test_SAVE.json"
+    )
+    st.session_state.trees = io.load_project_json(file_path)
+    st.session_state.colormap = io.load_colormap(file_path)
 
-df = st.session_state.trees
+df = st.session_state.trees.copy()
 
-# Přidáme sloupec management_status, pokud neexistuje
-if "management_status" not in df.columns:
-    df["management_status"] = [""] * len(df)
+species_colormap = st.session_state.colormap.get("species", {})
+management_colormap = st.session_state.colormap.get("management", {})
+
+df["color"] = df["species"].map(species_colormap).fillna("#aaaaaa")
+
+def resolve_line_color(row):
+    status = row.get("management_status")
+    if status in ["target", "remove"]:
+        return management_colormap.get(status, "#000000")
+    return None
+
+def resolve_line_width(row):
+    status = row.get("management_status")
+    if status in ["target", "remove"]:
+        return 2
+    return 0
+
+df["line_color"] = df.apply(resolve_line_color, axis=1)
+df["line_width"] = df.apply(resolve_line_width, axis=1)
 
 # Inicializace výběru
 if "selected_points" not in st.session_state:
     st.session_state.selected_points = set()
 
-# --- Výpočet středu a zoomu mapy ---
+# --- Výpočet rozsahu ---
 min_x, max_x = df["x"].min(), df["x"].max()
 min_y, max_y = df["y"].min(), df["y"].max()
-center_x = (min_x + max_x) / 2
-center_y = (min_y + max_y) / 2
-max_range = max(max_x - min_x, max_y - min_y)
-zoom_level = 8 if max_range < 10 else (5 if max_range < 50 else 3)
+x_range = (min_x - 10, max_x + 10)
+y_range = (min_y - 10, max_y + 10)
 
-# --- Rozložení: levý panel na ovládací tlačítka, pravý panel na mapu ---
+# --- Obarvení podle species ---
+species_colormap = st.session_state.colormap.get("species", {})
+management_colormap = st.session_state.colormap.get("management", {})
+
+df["color"] = df["species"].map(species_colormap).fillna("#aaaaaa")
+
+# Výstraha pro chybějící barvy
+missing_species = df[~df["species"].isin(species_colormap.keys())]["species"].unique()
+if len(missing_species):
+    st.warning(f"Následující druhy nemají definovanou barvu: {missing_species}")
+
+# --- Obrys a tloušťka čáry podle management_status ---
+def resolve_line_color(row):
+    status = row.get("management_status")
+    if status in ["target", "remove"]:
+        return management_colormap.get(status, "#000000")
+    return None  # bez obrysu
+
+def resolve_line_width(row):
+    status = row.get("management_status")
+    if status in ["target", "remove"]:
+        return 2
+    return 0
+
+df["line_color"] = df.apply(resolve_line_color, axis=1)
+df["line_width"] = df.apply(resolve_line_width, axis=1)
+
+# --- Převod df do ColumnDataSource ---
+df["id"] = df.index
+df["alpha"] = 0.8
+df["size"] = 8
+df["label"] = df["tree_id"].astype(str) if "tree_id" in df.columns else df.index.astype(str)
+source = ColumnDataSource(df)
+
+# --- Rozložení layoutu ---
 col_buttons, col_map = st.columns([1, 5], gap="small")
 
 with col_buttons:
-    st.markdown("## Akce")
-    target_tree_btn = st.button("Target tree")
-    remove_btn      = st.button("Remove")
-    unselect_btn    = st.button("Unselect")
-    st.markdown("---")
-    export_btn      = st.button("Exportovat změny")
+    st.markdown("__Select management__")
 
-    if st.session_state.selected_points:
-        if target_tree_btn:
+    if st.button("Target tree"):
+        if st.session_state.selected_points:
             for idx in st.session_state.selected_points:
                 df.at[idx, "management_status"] = "target"
-            st.session_state.selected_points.clear()
             st.experimental_rerun()
 
-        if remove_btn:
+    if st.button("Remove"):
+        if st.session_state.selected_points:
             for idx in st.session_state.selected_points:
                 df.at[idx, "management_status"] = "remove"
-            st.session_state.selected_points.clear()
             st.experimental_rerun()
 
-        if unselect_btn:
-            for idx in st.session_state.selected_points:
-                df.at[idx, "management_status"] = ""
-            st.session_state.selected_points.clear()
-            st.experimental_rerun()
+    if st.button("Unselect"):
+        st.session_state.selected_points.clear()
+        st.experimental_rerun()
+
+    st.markdown("---")
+    st.button("Exportovat změny")
 
 with col_map:
-    # Připravíme GeoJSON
-    features = []
-    for idx, row in df.iterrows():
-        features.append({
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [row["x"], row["y"]]},
-            "properties": {
-                "index": idx,
-                "management_status": row["management_status"]
-            }
-        })
-    geojson = {"type": "FeatureCollection", "features": features}
-
-    # Iframe má 800px výšku, vnitřní div stejně 800px
-    html(
-        f"""
-        <div id="deck-map" style="width:100%; height:800px; max-width:100vw;"></div>
-        <script src="https://unpkg.com/deck.gl@8.7.0/dist.min.js"></script>
-        <script>
-        const geojson = {json.dumps(geojson)};
-        window.addEventListener("message", event => {{
-            try {{
-                const data = JSON.parse(event.data);
-                if (data.type === "select") {{
-                    const url = new URL(window.location);
-                    url.searchParams.set("selected", data.index);
-                    window.location.href = url.toString();
-                }}
-            }} catch (e) {{ console.error(e); }}
-        }});
-
-        new deck.DeckGL({{
-            container: 'deck-map',
-            views: [new deck.OrthographicView()],
-            initialViewState: {{ target: [{center_x}, {center_y}, 0], zoom: {zoom_level} }},
-            controller: true,
-            layers: [ new deck.GeoJsonLayer({{
-                id: 'geojson-layer',
-                data: geojson,
-                pickable: true,
-                filled: true,
-                stroked: false,
-                getRadius: f => 1,
-                pointRadiusScale: 1,
-                getFillColor: f => {{
-                    switch(f.properties.management_status) {{
-                        case "target": return [0, 128, 0];
-                        case "remove": return [255, 0, 0];
-                        default:       return [200, 200, 200];
-                    }}
-                }},
-                onClick: info => {{
-                    if (info.object) {{
-                        window.parent.postMessage(
-                            JSON.stringify({{type:'select', index: info.object.properties.index}}),
-                            '*'
-                        );
-                    }}
-                }}
-            }}) ]
-        }});
-        </script>
-        """,
+    # --- Vytvoření Bokeh figury ---
+    p = figure(
+        title="Pick trees on map",
+        x_range=x_range,
+        y_range=y_range,
+        sizing_mode="stretch_width",
         height=800,
+        tools="",
+        toolbar_location="above"
+    )
+    p.add_tools(
+        BoxSelectTool(),
+        TapTool(),
+        HoverTool(tooltips=[("Tree", "@label")]),
+        BoxZoomTool(),
+        ResetTool(),
+        WheelZoomTool(),
+        PanTool()
     )
 
-# --- Zpracování výběru bodu ---
-params = st.experimental_get_query_params()
-if "selected" in params:
-    try:
-        idx = int(params["selected"][0])
+    # --- Body stromů ---
+    renderer = p.circle(
+        x='x',
+        y='y',
+        size='size',
+        fill_color='color',
+        fill_alpha='alpha',
+        line_color='line_color',
+        line_width='line_width',
+        source=source,
+        name="tree_points"
+    )
+
+    # --- Labely stromů ---
+    labels = LabelSet(
+        x='x',
+        y='y',
+        text='label',
+        x_offset=5,
+        y_offset=5,
+        source=source,
+        text_font_size="8pt"
+    )
+    p.add_layout(labels)
+
+    # --- Event catcher ---
+    result = streamlit_bokeh3_events(
+        events="tap",
+        bokeh_plot=p,
+        key="map_events",
+        debounce_time=0,
+        override_height=600
+    )
+
+    # --- Zpracování kliknutí ---
+    if result and "tap" in result:
+        tap_x = result["tap"]["x"]
+        tap_y = result["tap"]["y"]
+        d2 = (df["x"] - tap_x) ** 2 + (df["y"] - tap_y) ** 2
+        idx = int(d2.idxmin())
         if idx in st.session_state.selected_points:
             st.session_state.selected_points.remove(idx)
         else:
             st.session_state.selected_points.add(idx)
-    except ValueError:
-        pass
-    st.experimental_set_query_params()
-    st.experimental_rerun()
+        st.experimental_rerun()

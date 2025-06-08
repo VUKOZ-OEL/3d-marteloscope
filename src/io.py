@@ -2,7 +2,7 @@ import json
 import pandas as pd
 from typing import List, Dict, Union
 
-__all__ = ["load_project_json","save_project_json","load_colormaps"]
+__all__ = ["load_project_json","save_project_json","load_colormap"]
 
 import json
 import pandas as pd
@@ -53,7 +53,6 @@ def load_project_json(file_path: str) -> pd.DataFrame:
 
     return pd.DataFrame(tree_attributes)
 
-
 def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
     import json
 
@@ -99,18 +98,17 @@ def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = N
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-
-def load_colormaps(json_path: str) -> dict:
+def load_colormap(json_path: str) -> dict:
     def rgb_to_hex(rgb):
         return "#{:02x}{:02x}{:02x}".format(*rgb)
 
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    colormap = data.get("colormaps", {})
+    colormap = data.get("colormap", {})
     result = {}
 
-    for category, mapping in colormaps.items():  # opraveno zde!
+    for category, mapping in colormap.items():  # opraveno zde!
         if isinstance(mapping, dict):
             inner = {}
             for k, v in mapping.items():
