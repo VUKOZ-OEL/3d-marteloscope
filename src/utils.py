@@ -43,3 +43,24 @@ def prepare_tree_dataframe(df: pd.DataFrame, colormap: dict) -> pd.DataFrame:
     df["label"] = df["tree_id"].astype(str) if "tree_id" in df.columns else df.index.astype(str)
 
     return df
+
+def update_trees(trees_json, updates):
+    """
+    Aplikuje změny management_status do seznamu stromů (JSON struktury).
+
+    Args:
+        trees_json (list[dict]): Původní seznam stromů, každý strom jako slovník.
+        updates (dict[int, str]): Mapa indexů stromů na nový management_status.
+
+    Returns:
+        list[dict]: Nový seznam stromů s aplikovanými aktualizacemi.
+    """
+    # Pokud chcete zachovat původní, odkomentujte následující řádek:
+    # trees_json = [tree.copy() for tree in trees_json]
+
+    for idx, status in updates.items():
+        if not isinstance(idx, int):
+            continue
+        if 0 <= idx < len(trees_json):
+            trees_json[idx]['management_status'] = status
+    return trees_json
