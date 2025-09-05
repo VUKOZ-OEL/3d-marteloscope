@@ -2,102 +2,86 @@ import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, DataReturnMode, GridUpdateMode
 from src.io import load_project_json
+import numpy as np
 
-# Načti data do session_state
+# stránka na šířku
+st.set_page_config(layout="wide")
+
+# --- Načtení dat do session_state ---
 if "trees" not in st.session_state:
-    file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/LS-Krivoklat/3df_project/Krivoklat_test_SAVE.json"
+    file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v11.json"
     st.session_state.trees = load_project_json(file_path)
 
-if "universal_app_key" not in st.session_state:
-    st.session_state.universal_app_key = "jnkqb34o78qy3rhef "
-
-if "grid_counter" not in st.session_state:
-    st.session_state.grid_counter = 0
-
-grid_key = f"{st.session_state.universal_app_key}_grid_{st.session_state.grid_counter}"
-
-
-# Přidej sloupec management_status, pokud chybí
+# Přidej management_status, pokud chybí
 if "management_status" not in st.session_state.trees.columns:
     st.session_state.trees["management_status"] = "none"
 
-st.title("Tabulka stromů")
+df = st.session_state.trees
 
-# Definuj sloupce
-visible_columns = ["id", "label", "species", "management_status", "dbh", "height"]
-hidden_columns = ["x", "y", "latlon", "status", "position", "dbhPosition", "lat", "lon"]
+# --- Vyber jen "ploché" sloupce (žádné list/dict/tuple/set) ---
+def is_nested(val):
+    return isinstance(val, (list, dict, tuple, set))
 
-# Najdi neznámé sloupce a přidej je na konec
-all_columns = list(st.session_state.trees.columns)
-additional_columns = [col for col in all_columns if col not in visible_columns + hidden_columns]
-display_columns = visible_columns + additional_columns
+flat_columns = []
+for col in df.columns:
+    # bezpečně přeskoč NaN/None
+    has_nested = df[col].dropna().apply(is_nested).any() if col in df else False
+    if not has_nested:
+        flat_columns.append(col)
 
-# Konfigurace AgGrid
-gb = GridOptionsBuilder.from_dataframe(st.session_state.trees[display_columns])
-gb.configure_selection("multiple", use_checkbox=False)
-gb.configure_grid_options(domLayout="normal")
-gb.configure_columns(["management_status"], editable=True)
-gb.configure_side_bar(filters_panel=True, defaultToolPanel='filters')
+# zajisti přítomnost id a management_status
+must_have = [c for c in ["id", "management_status"] if c in df.columns and c not in flat_columns]
+display_columns = flat_columns + must_have
+
+# --- Kopie pro zobrazení + zaokrouhlení numerických hodnot na 1 desetinné místo ---
+df_display = df[display_columns].copy()
+
+# zaokrouhlení všech numerických sloupců (vč. int -> float s 1 des. místem)
+num_cols = df_display.select_dtypes(include=[np.number]).columns
+if len(num_cols) > 0:
+    df_display[num_cols] = df_display[num_cols].round(1)
+
+# --- Konfigurace AgGrid (needitovatelná, bez výběru/checkboxů) ---
+gb = GridOptionsBuilder.from_dataframe(df_display)
+
+# žádné checkboxy, žádný výběr
+# (když nena-konfigurujeme selection, ag-Grid výběr neumožní a nevkládá checkboxový sloupec)
+gb.configure_grid_options(
+    domLayout="normal",
+    suppressRowClickSelection=True,    # jistota, že nepůjde vybírat klikem
+    suppressHorizontalScroll=False,
+)
+
+# širší defaultní sloupce + resizable
+# (nastavíme v defaultColDef; minWidth zajistí větší výchozí šířku)
 grid_options = gb.build()
+grid_options.setdefault("defaultColDef", {})
+grid_options["defaultColDef"].update({
+    "resizable": True,
+    "minWidth": 100,     # zvětšená minimální šířka sloupců
+})
 
-# Tlačítka
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    target_tree_btn = st.button("Target tree")
-with col2:
-    remove_btn = st.button("Remove")
-with col3:
-    unselect_btn = st.button("Unselect")
-with col4:
-    export_btn = st.button("💾 Exportovat změny")
+# zapnout sidebar s filtry
+grid_options["sideBar"] = {
+    "toolPanels": [
+        {"id": "filters", "labelDefault": "Filters", "labelKey": "filters", "iconKey": "filter", "toolPanel": "agFiltersToolPanel"},
+    ],
+    "defaultToolPanel": "filters",
+}
 
-# Zobraz AgGrid - přímo session_state data
-response = AgGrid(
-    st.session_state.trees[display_columns],
+# nechceme auto-fit sloupců (ať zůstanou širší a jde scrollovat)
+# fit_columns_on_grid_load=False -> zachovává šířky a nechává horizontální posuvník
+GRID_HEIGHT = 600  # dostatečně vysoké, aby bylo maximum v rámci „wide“ layoutu; posuvník řeší zbytek
+
+# --- Zobrazení AgGrid ---
+AgGrid(
+    df_display,
     gridOptions=grid_options,
-    update_mode=GridUpdateMode.SELECTION_CHANGED,
+    update_mode=GridUpdateMode.NO_UPDATE,              # nic needitujeme, tak není třeba update eventů
     data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
     theme="streamlit",
     enable_enterprise_modules=False,
-    fit_columns_on_grid_load=True,
-    reload_data=True,                                # ← přidáno
-    key=grid_key + "_grid", # ← přidáno
+    fit_columns_on_grid_load=False,                    # důležité: nezmenšuj sloupce na šířku containeru
+    height=GRID_HEIGHT,                                # velké, ale s vertikálním scrollbarem, takže nepřetéká stránku
+    key="trees_grid",
 )
-
-
-selected_rows = response.get("selected_rows")
-
-# pokud je tlačítko stisknuto a máme vybrané pozice, aktualizujeme status
-if target_tree_btn and selected_rows is not None:
-    
-    raw_indices = selected_rows.iloc[:,0].tolist()
-    col_idx = st.session_state.trees.columns.get_loc("management_status")
-    st.session_state.trees.iloc[raw_indices, col_idx] = "Target tree"
-    st.session_state.grid_counter += 1
-    st.rerun()
-
-if remove_btn and selected_rows is not None:
-    
-    raw_indices = selected_rows.iloc[:,0].tolist()
-    col_idx = st.session_state.trees.columns.get_loc("management_status")
-    st.session_state.trees.iloc[raw_indices, col_idx] = "Remove"
-    st.session_state.grid_counter += 1
-    st.rerun()
-
-if unselect_btn and selected_rows is not None:
-
-    raw_indices = selected_rows.iloc[:,0].tolist()
-    col_idx = st.session_state.trees.columns.get_loc("management_status")
-    st.session_state.trees.iloc[raw_indices, col_idx] = "Untouched"
-    st.session_state.grid_counter += 1
-    st.rerun()
-
-
-
-
-
-# Export změněného DataFrame do JSON
-if export_btn:
-    export_path = "exported_trees.json"
-    st.session_state.trees.to_json(export_path, orient="records", force_ascii=False, indent=2)
-    st.success(f"Data byla exportována do souboru `{export_path}`")

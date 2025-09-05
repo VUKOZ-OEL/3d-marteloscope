@@ -1,175 +1,142 @@
 import streamlit as st
 import pandas as pd
 import json
-from shapely.geometry import Point, Polygon
-from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource, BoxSelectTool, TapTool, HoverTool, LabelSet
-from bokeh.models.tools import BoxZoomTool, ResetTool, WheelZoomTool, PanTool
-from streamlit_bokeh3_events import streamlit_bokeh3_events
 import src.io as io
+import numpy as np
+import plotly.graph_objects as go
 
 # --- Načtení a inicializace ---
 if "trees" not in st.session_state:
-    file_path = (
-        "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/LS-Krivoklat/3df_project/Krivoklat_test_SAVE.json"
-    )
+    file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v11.json")
     st.session_state.trees = io.load_project_json(file_path)
-    st.session_state.colormap = io.load_colormap(file_path)
 
-df = st.session_state.trees.copy()
+df: pd.DataFrame = st.session_state.trees.copy()
 
-species_colormap = st.session_state.colormap.get("species", {})
-management_colormap = st.session_state.colormap.get("management", {})
+# Požadované sloupce
+required = {"x", "y", "dbh", "label", "speciesColorHex", "managementColorHex"}
+missing = required - set(df.columns)
+if missing:
+    st.error(f"Chybí sloupce: {', '.join(sorted(missing))}")
+    st.stop()
 
-df["color"] = df["species"].map(species_colormap).fillna("#aaaaaa")
-
-def resolve_line_color(row):
-    status = row.get("management_status")
-    if status in ["target", "remove"]:
-        return management_colormap.get(status, "#000000")
-    return None
-
-def resolve_line_width(row):
-    status = row.get("management_status")
-    if status in ["target", "remove"]:
-        return 2
-    return 0
-
-df["line_color"] = df.apply(resolve_line_color, axis=1)
-df["line_width"] = df.apply(resolve_line_width, axis=1)
-
-# Inicializace výběru
-if "selected_points" not in st.session_state:
-    st.session_state.selected_points = set()
-
-# --- Výpočet rozsahu ---
-min_x, max_x = df["x"].min(), df["x"].max()
-min_y, max_y = df["y"].min(), df["y"].max()
-x_range = (min_x - 10, max_x + 10)
-y_range = (min_y - 10, max_y + 10)
-
-# --- Obarvení podle species ---
-species_colormap = st.session_state.colormap.get("species", {})
-management_colormap = st.session_state.colormap.get("management", {})
-
-df["color"] = df["species"].map(species_colormap).fillna("#aaaaaa")
-
-# Výstraha pro chybějící barvy
-missing_species = df[~df["species"].isin(species_colormap.keys())]["species"].unique()
-if len(missing_species):
-    st.warning(f"Následující druhy nemají definovanou barvu: {missing_species}")
-
-# --- Obrys a tloušťka čáry podle management_status ---
-def resolve_line_color(row):
-    status = row.get("management_status")
-    if status in ["target", "remove"]:
-        return management_colormap.get(status, "#000000")
-    return None  # bez obrysu
-
-def resolve_line_width(row):
-    status = row.get("management_status")
-    if status in ["target", "remove"]:
-        return 2
-    return 0
-
-df["line_color"] = df.apply(resolve_line_color, axis=1)
-df["line_width"] = df.apply(resolve_line_width, axis=1)
-
-# --- Převod df do ColumnDataSource ---
-df["id"] = df.index
-df["alpha"] = 0.8
-df["size"] = 8
-df["label"] = df["tree_id"].astype(str) if "tree_id" in df.columns else df.index.astype(str)
-source = ColumnDataSource(df)
-
-# --- Rozložení layoutu ---
-col_buttons, col_map = st.columns([1, 5], gap="small")
-
-with col_buttons:
-    st.markdown("__Select management__")
-
-    if st.button("Target tree"):
-        if st.session_state.selected_points:
-            for idx in st.session_state.selected_points:
-                df.at[idx, "management_status"] = "target"
-            st.experimental_rerun()
-
-    if st.button("Remove"):
-        if st.session_state.selected_points:
-            for idx in st.session_state.selected_points:
-                df.at[idx, "management_status"] = "remove"
-            st.experimental_rerun()
-
-    if st.button("Unselect"):
-        st.session_state.selected_points.clear()
-        st.experimental_rerun()
-
-    st.markdown("---")
-    st.button("Exportovat změny")
-
-with col_map:
-    # --- Vytvoření Bokeh figury ---
-    p = figure(
-        title="Pick trees on map",
-        x_range=x_range,
-        y_range=y_range,
-        sizing_mode="stretch_width",
-        height=800,
-        tools="",
-        toolbar_location="above"
+# ---------------- UI ----------------
+c1, c2, c3, c4 = st.columns([1.4, 1, 1, 1.2])
+with c1:
+    color_mode = st.radio(
+        "Color by",
+        options=["Species", "Management"],
+        horizontal=True,
+        index=0
     )
-    p.add_tools(
-        BoxSelectTool(),
-        TapTool(),
-        HoverTool(tooltips=[("Tree", "@label")]),
-        BoxZoomTool(),
-        ResetTool(),
-        WheelZoomTool(),
-        PanTool()
-    )
+with c2:
+    size_min = st.slider("Min Point Size (px)", 1, 20, 6, 1)
+with c3:
+    size_max = st.slider("Max Point Size (px)", 20, 60, 28, 1)
+with c4:
+    show_text = st.checkbox("Show Tree ID", value=False)
 
-    # --- Body stromů ---
-    renderer = p.circle(
-        x='x',
-        y='y',
-        size='size',
-        fill_color='color',
-        fill_alpha='alpha',
-        line_color='line_color',
-        line_width='line_width',
-        source=source,
-        name="tree_points"
+# ---------------- Data prep ----------------
+color_col = "speciesColorHex" if color_mode == "Species" else "managementColorHex"
+
+def sanitize_hex(s):
+    if isinstance(s, str) and s.startswith("#") and len(s) == 7:
+        return s.upper()
+    return "#AAAAAA"
+
+colors = df[color_col].astype(str).apply(sanitize_hex)
+
+# Velikosti dle DBH
+dbh = pd.to_numeric(df["dbh"], errors="coerce")
+dbh = dbh.fillna(dbh.median() if not np.isnan(dbh.median()) else 1.0)
+if dbh.min() == dbh.max():
+    sizes = np.full(len(df), (size_min + size_max) / 2.0)
+else:
+    sizes = np.interp(dbh, (dbh.min(), dbh.max()), (size_min, size_max))
+
+# --- customdata: drž konzistentní pořadí: label, dbh, species, management_status
+cd_parts = [df["label"].astype(str), dbh.astype(float)]
+if "species" in df.columns:
+    cd_parts.append(df["species"].astype(str))
+if "management_status" in df.columns:
+    cd_parts.append(df["management_status"].astype(str))
+
+customdata = np.column_stack(cd_parts)
+
+# Hover template přesně podle pořadí v customdata
+hover_lines = [
+    "label: %{customdata[0]}",
+    "DBH: %{customdata[1]} cm",
+]
+idx = 2
+if "species" in df.columns:
+    hover_lines.append("Species: %{customdata[" + str(idx) + "]}")
+    idx += 1
+if "management_status" in df.columns:
+    hover_lines.append("Management: %{customdata[" + str(idx) + "]}")
+
+hovertemplate = "<br>".join(hover_lines) + "<br><extra></extra>"
+
+# ---------------- Plot ----------------
+# Příprava grupování pro legendu
+if color_mode == "Species":
+    group_col = "species" if "species" in df.columns else None
+else:
+    group_col = "management_status" if "management_status" in df.columns else None
+
+scatter_cls = go.Scatter if show_text else go.Scattergl
+mode = "markers+text" if show_text else "markers"
+
+fig = go.Figure()
+
+# Klíč ke skupinám (název do legendy) a barva z příslušného hex sloupce
+group_keys = df[group_col] if group_col else df[color_col]
+group_colors = colors  # z dřívějška
+
+# Vytvoř mapu: (legend_key, hex_color) -> indexy řádků
+# (kombinace zajistí, že druh se stejným názvem ale jinou barvou skončí odděleně)
+from collections import defaultdict
+buckets = defaultdict(list)
+for i, (gk, col) in enumerate(zip(group_keys, group_colors)):
+    buckets[(str(gk), col)].append(i)
+
+for (legend_name, hex_color), idxs in buckets.items():
+    # vyber subset
+    xs = df["x"].iloc[idxs]
+    ys = df["y"].iloc[idxs]
+    txt = df["label"].iloc[idxs] if show_text else None
+    subset_sizes = sizes[idxs]
+    subset_custom = customdata[idxs, :] if customdata.ndim == 2 else customdata
+
+    fig.add_trace(
+        scatter_cls(
+            x=xs,
+            y=ys,
+            mode=mode,
+            name=legend_name,          # ← položka do legendy
+            showlegend=True,
+            text=txt,
+            textposition="top center",
+            marker=dict(
+                size=subset_sizes,
+                color=hex_color,       # jedna barva na trace (pro legendu)
+                line=dict(width=0),
+                sizemode="diameter",
+            ),
+            customdata=subset_custom,
+            hovertemplate=hovertemplate,
+        )
     )
 
-    # --- Labely stromů ---
-    labels = LabelSet(
-        x='x',
-        y='y',
-        text='label',
-        x_offset=5,
-        y_offset=5,
-        source=source,
-        text_font_size="8pt"
-    )
-    p.add_layout(labels)
+# Mapový poměr stran 1:1 (případně odkomentuj autoreversed pokud máš y obráceně)
+fig.update_yaxes(scaleanchor="x", scaleratio=1)
+# fig.update_yaxes(autorange="reversed")
 
-    # --- Event catcher ---
-    result = streamlit_bokeh3_events(
-        events="tap",
-        bokeh_plot=p,
-        key="map_events",
-        debounce_time=0,
-        override_height=600
-    )
+fig.update_layout(
+    height=600,
+    dragmode="pan",
+    margin=dict(l=10, r=10, t=30, b=10),
+    legend_title_text=color_mode,  # "Species" nebo "Management"
+    legend=dict(itemsizing="trace", title_font=dict(size=12)),
+)
 
-    # --- Zpracování kliknutí ---
-    if result and "tap" in result:
-        tap_x = result["tap"]["x"]
-        tap_y = result["tap"]["y"]
-        d2 = (df["x"] - tap_x) ** 2 + (df["y"] - tap_y) ** 2
-        idx = int(d2.idxmin())
-        if idx in st.session_state.selected_points:
-            st.session_state.selected_points.remove(idx)
-        else:
-            st.session_state.selected_points.add(idx)
-        st.experimental_rerun()
+st.plotly_chart(fig, use_container_width=True)

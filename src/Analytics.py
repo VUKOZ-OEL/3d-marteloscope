@@ -1,26 +1,36 @@
-from pygwalker.api.streamlit import StreamlitRenderer
-import pandas as pd
 import streamlit as st
-from src.io import load_project_json
+import pandas as pd
+import src.io as io
+from pygwalker.api.streamlit import StreamlitRenderer
+ 
+# Adjust the width of the Streamlit page
+st.set_page_config(
+    page_title="Use Pygwalker In Streamlit",
+)
+# Import your data
 
-st.set_page_config(page_title="PyGWalker + Streamlit", layout="wide")
+if "trees" not in st.session_state:
+    file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v11.json")
+    st.session_state.trees = io.load_project_json(file_path)
 
-@st.cache_data
-def load_data(path: str) -> pd.DataFrame:
-    data = load_project_json(path)
-    df = pd.json_normalize(data) if not isinstance(data, pd.DataFrame) else data
-    # Najdeme sloupce obsahující seznamy a převedeme je na tuple
-    for col in df.columns:
-        if df[col].apply(lambda x: isinstance(x, list)).any():
-            df[col] = df[col].apply(lambda x: tuple(x) if isinstance(x, list) else x)
-    return df
+df: pd.DataFrame = st.session_state.trees.copy()
 
-@st.cache_resource
-def get_renderer(df: pd.DataFrame) -> StreamlitRenderer:
-    return StreamlitRenderer(df, spec_io_mode="rw", spec="./pyg_spec.json")
+# --- Vyber jen "ploché" sloupce (žádné list/dict/tuple/set) ---
+def is_nested(val):
+    return isinstance(val, (list, dict, tuple, set))
 
-file_path = r"C:\Users\krucek\OneDrive - vukoz.cz\DATA\_GS-LCR\LS-Krivoklat\3df_project\Krivoklat_test_SAVE.json"
-df = load_data(file_path)
+flat_columns = []
+for col in df.columns:
+    # bezpečně přeskoč NaN/None
+    has_nested = df[col].dropna().apply(is_nested).any() if col in df else False
+    if not has_nested:
+        flat_columns.append(col)
 
-renderer = get_renderer(df)
-renderer.explorer()
+# zajisti přítomnost id a management_status
+must_have = [c for c in ["id", "management_status"] if c in df.columns and c not in flat_columns]
+display_columns = flat_columns + must_have
+df_display = df[display_columns].copy()
+ 
+pyg_app = StreamlitRenderer(df_display,appearance="light")
+ 
+pyg_app.explorer()
