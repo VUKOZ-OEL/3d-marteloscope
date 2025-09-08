@@ -18,6 +18,9 @@ test_page = st.Page("src/sandbox.py", title="_SANDBOX_")
 
 #pg = st.navigation([dash_page, map_page,att_page,analytics_page,])
 
+if "trees" not in st.session_state:
+    st.session_state.trees = iou.load_project_json("data/test_project.json")
+
 pages = {
     "Summary": [
         dash_page,
