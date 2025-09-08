@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, DataReturnMode, GridUpdateMode
-from src.io import load_project_json
+import src.io_utils as iou
 import numpy as np
 
 # stránka na šířku
@@ -10,7 +10,7 @@ st.set_page_config(layout="wide")
 # --- Načtení dat do session_state ---
 if "trees" not in st.session_state:
     file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v11.json"
-    st.session_state.trees = load_project_json(file_path)
+    st.session_state.trees = iou.load_project_json(file_path)
 
 # Přidej management_status, pokud chybí
 if "management_status" not in st.session_state.trees.columns:

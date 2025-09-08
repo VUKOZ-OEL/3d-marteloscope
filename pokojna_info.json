@@ -1,0 +1,17 @@
+{
+  "plot_info": [
+    {
+      "name": "Pokojná hora",
+      "forest_type": "Submontane beech – silver fir stand",
+      "no_trees": 574,
+      "volume": 338.3,
+      "state": "Czech Republic/South Moravia",
+      "owner": "Mendel University Brno",
+      "size_ha": 1,
+      "established": 2023,
+      "altitude": 490,
+      "precipitation": 660,
+      "temperature": 6.6
+    }
+  ]
+}

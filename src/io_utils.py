@@ -3,14 +3,13 @@ import pandas as pd
 import numpy as np
 import unicodedata
 from typing import Dict, List, Union, Any, Optional
+import streamlit as st
+from pathlib import Path
+import sqlite3
 
-__all__ = ["load_project_json","save_project_json","load_colormap"]
+__all__ = ["load_project_json","save_project_json","load_colormap","load_plot_info","load_simulation_results", "heading_centered"]
 
 
-
-import json
-from typing import Any, Dict, List, Union
-import pandas as pd
 
 # --- Pomocné funkce (samostatné a robustní) ----------------------------------
 
@@ -68,6 +67,35 @@ def _to_hex(value: Any) -> str | None:
         return value.upper()
     c01 = _to_color01(value)
     return _rgb_to_hex01(c01) if c01 else None
+
+import html
+import streamlit as st
+
+def heading_centered(text: str, color: str = "#2E7D32", level: int = 5):
+    """
+    Render a centered heading in Streamlit with custom color and level (h1–h6).
+
+    Parameters
+    ----------
+    text : str
+        Heading text.
+    color : str, optional
+        CSS color (e.g., '#2E7D32' or 'darkgreen'). Default '#2E7D32'.
+    level : int, optional
+        Heading level 1–6 (maps to <h1>..</h6>). Default 5.
+    """
+    # clamp level to 1..6
+    try:
+        lvl = int(level)
+    except Exception:
+        lvl = 5
+    lvl = min(max(lvl, 1), 6)
+
+    safe_text = html.escape(str(text))
+    st.markdown(
+        f"<h{lvl} style='text-align:center; color:{color}; margin:0;'>{safe_text}</h{lvl}>",
+        unsafe_allow_html=True
+    )
 
 # --- Hlavní funkce ------------------------------------------------------------
 
@@ -146,8 +174,38 @@ def load_project_json(file_path: str) -> pd.DataFrame:
 
     return df
 
+def load_plot_info(file_path: str) -> pd.DataFrame:
+    with open(file_path, "r", encoding="utf-8") as f:
+        data: Dict[str, Union[Dict, List]] = json.load(f)
 
+    pi = data.get("plot_info") or []
 
+    return(pd.DataFrame(pi))
+
+from pathlib import Path
+import sqlite3
+import pandas as pd
+
+def load_simulation_results(db_path: str | Path, table: str = "tree") -> pd.DataFrame:
+    """
+    Load a table (default: 'tree') from a SQLite database into a pandas DataFrame.
+    """
+    db_path = Path(db_path)
+    if not db_path.exists():
+        raise FileNotFoundError(f"Database not found: {db_path}")
+
+    with sqlite3.connect(db_path) as con:
+        # check table exists
+        cur = con.cursor()
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;", (table,))
+        if cur.fetchone() is None:
+            raise ValueError(f"Table '{table}' not found in {db_path}")
+
+        # load via pandas
+        df = pd.read_sql_query(f"SELECT * FROM {table};", con)
+
+    st.session_state.simulation = df
+    return df
 
 
 def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
