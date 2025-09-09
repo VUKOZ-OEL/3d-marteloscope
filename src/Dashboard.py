@@ -16,13 +16,8 @@ def load_plot_info(file_path: str) -> pd.DataFrame:
     pi = data.get("plot_info") or []
     return pd.DataFrame(pi)
 
-file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v12.json")
-plot_info = iou.load_plot_info(file_path)
-
-# --- Data ---
-if "trees" not in st.session_state:
-    st.session_state.trees = iou.load_project_json(file_path)
-
+#file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v12.json")
+plot_info = st.session_state.plot_info
 df: pd.DataFrame = st.session_state.trees.copy()
 
 # ---------- HLAVIČKA ----------

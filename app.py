@@ -23,8 +23,9 @@ test_page = st.Page("src/sandbox.py", title="_SANDBOX_")
 
 
 
-if "trees" not in st.session_state:
-    st.session_state.trees = iou.load_project_json("data/test_project.json")
+file_path = "data/test_project.json"
+st.session_state.trees = iou.load_project_json(file_path)
+st.session_state.plot_info = iou.load_plot_info(file_path)
 
 pages = {
     "Summary": [
