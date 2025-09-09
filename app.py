@@ -18,7 +18,7 @@ att_page = st.Page("src/Attributes.py", title="Attribute Table", icon=":material
 analytics_page = st.Page("src/Analytics.py", title="Analytics", icon=":material/addchart:")
 
 # Simulation results 
-results_page = st.Page("src/Results.py", title="Future Outlook", icon=":material/clock_arrow_up:")
+results_page = st.Page("src/Simulation.py", title="Future Outlook", icon=":material/clock_arrow_up:")
 test_page = st.Page("src/sandbox.py", title="_SANDBOX_")
 
 

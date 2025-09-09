@@ -211,21 +211,29 @@ def render_three_panel_with_shared_legend(df_all: pd.DataFrame, df_sub: pd.DataF
 
 # ---------- UI: volba pro PIE (zůstává pod figurou, můžeš přesunout nad) ----------
 # vykreslit figurku (3 panely + 1 legenda)
-render_three_panel_with_shared_legend(
-    df_all=df,
-    df_sub=df_sel,
-    by_volume=(st.session_state.get("pie_metric", "Volume (m³)") == "Volume (m³)")
-)
+c_left2, c_right2 = st.columns([1,10])
 
-pie_metric = st.radio(
-    "Percentage by:",
-    options=["Volume (m³)", "Tree count"],
-    index=0 if st.session_state.get("pie_metric", "Volume (m³)") == "Volume (m³)" else 1,
-    horizontal=True,
-    key="pie_metric"
-)
+with c_left2:
+    st.markdown("###")
+    st.markdown("###")
+    pie_metric = st.radio(
+        "Percentage by:",
+        options=["Volume (m³)", "Tree count"],
+        index=0 if st.session_state.get("pie_metric", "Volume (m³)") == "Volume (m³)" else 1,
+        horizontal=False,
+        key="pie_metric"
+    )
 
-with st.expander("Plot Details"):
+with c_right2:
+    render_three_panel_with_shared_legend(
+        df_all=df,
+        df_sub=df_sel,
+        by_volume=(st.session_state.get("pie_metric", "Volume (m³)") == "Volume (m³)")
+    )
+
+
+
+with st.expander("### Plot Details"):
     st.markdown(f"""
 - **Forest type:** {plot_info['forest_type'].iloc[0]}
 - **Number of trees:** {plot_info['no_trees'].iloc[0]}
