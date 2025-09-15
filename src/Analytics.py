@@ -2,15 +2,11 @@ import streamlit as st
 import pandas as pd
 import src.io_utils as iou
 from pygwalker.api.streamlit import StreamlitRenderer
- 
-# Adjust the width of the Streamlit page
-st.set_page_config(
-    page_title="Use Pygwalker In Streamlit",
-)
+
 # Import your data
 
 if "trees" not in st.session_state:
-    file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v11.json")
+    file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json")
     st.session_state.trees = iou.load_project_json(file_path)
 
 df: pd.DataFrame = st.session_state.trees.copy()

@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 
 # --- Načtení a inicializace ---
 if "trees" not in st.session_state:
-    file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v11.json")
+    file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json")
     st.session_state.trees = iou.load_project_json(file_path)
 
 df: pd.DataFrame = st.session_state.trees.copy()
@@ -22,18 +22,18 @@ if missing:
 # ---------------- UI ----------------
 c1, c2, c3, c4 = st.columns([1.4, 1, 1, 1.2])
 with c1:
-    color_mode = st.radio(
-        "Color by",
+    color_mode = st.segmented_control(
+        "**Color by**",
         options=["Species", "Management"],
-        horizontal=True,
-        index=0
+        default="Species",
+        width = "stretch"
     )
 with c2:
-    size_min = st.slider("Min Point Size (px)", 1, 20, 6, 1)
+    size_min = st.slider("**Min Point Size (px)**", 1, 20, 6, 1)
 with c3:
-    size_max = st.slider("Max Point Size (px)", 20, 60, 28, 1)
+    size_max = st.slider("**Max Point Size (px)**", 20, 60, 28, 1)
 with c4:
-    show_text = st.checkbox("Show Tree ID", value=False)
+    show_text = st.checkbox("**Show Tree ID**", value=False)
 
 # ---------------- Data prep ----------------
 color_col = "speciesColorHex" if color_mode == "Species" else "managementColorHex"

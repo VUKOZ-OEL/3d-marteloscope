@@ -11,6 +11,7 @@ dash_page = st.Page("src/Dashboard.py", title="Plot Info", icon=":material/dashb
 # Tree & Crown stats
 tree_page = st.Page("src/Tree_stats.py", title="Tree Statistics", icon=":material/monitoring:")
 canopy_page = st.Page("src/Canopy_stats.py", title="Canopy Space", icon=":material/forest:")
+heatmap_page = st.Page("src/Heatmaps.py", title="Heatmap", icon=":material/blur_on:")
 
 # Map, Att tab, pygpage
 map_page = st.Page("src/Map.py", title="Plot Map", icon=":material/map:")
@@ -18,7 +19,8 @@ att_page = st.Page("src/Attributes.py", title="Attribute Table", icon=":material
 analytics_page = st.Page("src/Analytics.py", title="Analytics", icon=":material/addchart:")
 
 # Simulation results 
-results_page = st.Page("src/Simulation.py", title="Future Outlook", icon=":material/clock_arrow_up:")
+simul_page = st.Page("src/Simulation.py", title="Simulation", icon=":material/clock_arrow_up:")
+simul_detail_page = st.Page("src/Simulation_detail.py", title="Deatiled view", icon=":material/frame_inspect:")
 test_page = st.Page("src/sandbox.py", title="_SANDBOX_")
 
 
@@ -27,6 +29,15 @@ file_path = "data/test_project.json"
 st.session_state.trees = iou.load_project_json(file_path)
 st.session_state.plot_info = iou.load_plot_info(file_path)
 
+
+# Define common labels:
+st.session_state.Before = "Original Stand"
+st.session_state.After = "Managed Stand"
+st.session_state.Removed = "Removed from Stand"
+
+
+st.session_state.plot_title_font = dict(size=18, color="#33343f", weight="bold")
+
 pages = {
     "Summary": [
         dash_page,
@@ -34,12 +45,14 @@ pages = {
     "Results:": [
         tree_page,
         canopy_page,
+        heatmap_page,
         map_page,
         att_page,
         analytics_page,
     ],
-    "Simulation": [
-        results_page,
+    "Future Outlook": [
+        simul_page,
+        simul_detail_page,
         test_page,
     ],
 }

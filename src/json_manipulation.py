@@ -1,6 +1,6 @@
 import pandas as pd
 import json
-import src.io as io
+import src.io_utils as iou
 import src.data_prep.species as spp
 import src.colors2json as c2j
 
@@ -41,16 +41,16 @@ def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) ->
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v4.json"
+file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json"
 out_file = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v10.json"
 settings_file = "C:/Users/krucek/Documents/GitHub/3d-marteloscope/settings_with_colors.json"
 
 
 
 
-trees = io.load_project_json(file_path)
+trees = iou.load_project_json(file_path)
 
-trees
+trees.to_feather("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora.json.trees.feather")
 
 
 trees["dbh"] = trees["dbh_raycl"] * 100

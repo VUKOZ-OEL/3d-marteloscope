@@ -14,9 +14,11 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import src.io_utils as iou
 
+st.markdown("### Explore canopy statistics:")
+
 # --- Data ---
 if "trees" not in st.session_state:
-    file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v11.json")
+    file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json")
     st.session_state.trees = iou.load_project_json(file_path)
 
 df: pd.DataFrame = st.session_state.trees.copy()
@@ -187,6 +189,21 @@ def render_crown_volume_profiles(df_all: pd.DataFrame):
         rows=1, cols=3, shared_yaxes=True,
         subplot_titles=(Before, After, Removed),
         horizontal_spacing=0.06
+    )
+
+    fig.update_layout(
+        annotations=[
+            dict(
+                text=ann.text,
+                x=ann.x,
+                y=ann.y,
+                xref=ann.xref,
+                yref=ann.yref,
+                showarrow=False,
+                font=st.session_state.plot_title_font,
+            )
+            for ann in fig.layout.annotations
+        ]
     )
 
     def add_panel(prof_df: pd.DataFrame, col: int, show_legend: bool):
@@ -383,6 +400,22 @@ def render_crown_volume_heatmaps(df_all: pd.DataFrame, nbins: int = HEATMAP_NBIN
         specs=[[{"type": "heatmap"}, {"type": "heatmap"}, {"type": "heatmap"}]],
         horizontal_spacing=0.06
     )
+
+    fig.update_layout(
+        annotations=[
+            dict(
+                text=ann.text,
+                x=ann.x,
+                y=ann.y,
+                xref=ann.xref,
+                yref=ann.yref,
+                showarrow=False,
+                font=st.session_state.plot_title_font,
+            )
+            for ann in fig.layout.annotations
+        ]
+    )
+
     def add_heatmap(Z, Htxt, col):
         fig.add_trace(go.Heatmap(x=x_centers, y=y_centers, z=Z, text=Htxt, hoverinfo="text", coloraxis="coloraxis"),
                       row=1, col=col)

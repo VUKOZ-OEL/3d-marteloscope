@@ -7,7 +7,7 @@ import streamlit as st
 from pathlib import Path
 import sqlite3
 
-__all__ = ["load_project_json","save_project_json","load_colormap","load_plot_info","load_simulation_results", "heading_centered"]
+__all__ = ["load_project_json","save_project_json","load_color_pallete","load_plot_info","load_simulation_results", "heading_centered"]
 
 
 
@@ -98,6 +98,25 @@ def heading_centered(text: str, color: str = "#2E7D32", level: int = 5):
     )
 
 # --- Hlavní funkce ------------------------------------------------------------
+def load_color_pallete(file_path: str) -> pd.DataFrame:
+    with open(file_path, "r", encoding="utf-8") as f:
+        data: Dict[str, Union[Dict, List]] = json.load(f)
+
+    # --- 1) Lookupy pro barvy ---
+    # species_colors: {latin_name: color}
+    species_colors = data.get("species_colors") or []
+    sp_map: Dict[str, str] = {}  # norm(latin) -> '#RRGGBB'
+    if isinstance(species_colors, list):
+        for item in species_colors:
+            if not isinstance(item, dict):
+                continue
+            lat = item.get("latin")
+            col = item.get("color")
+            hexc = _to_hex(col)
+            if lat and hexc:
+                sp_map[norm(str(lat))] = hexc
+
+    return sp_map
 
 def load_project_json(file_path: str) -> pd.DataFrame:
     with open(file_path, "r", encoding="utf-8") as f:
@@ -182,10 +201,6 @@ def load_plot_info(file_path: str) -> pd.DataFrame:
 
     return(pd.DataFrame(pi))
 
-from pathlib import Path
-import sqlite3
-import pandas as pd
-
 def load_simulation_results(db_path: str | Path, table: str = "tree") -> pd.DataFrame:
     """
     Load a table (default: 'tree') from a SQLite database into a pandas DataFrame.
@@ -244,25 +259,4 @@ def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = N
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-def load_colormap(json_path: str) -> dict:
-    def rgb_to_hex(rgb):
-        return "#{:02x}{:02x}{:02x}".format(*rgb)
 
-    with open(json_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    colormap = data.get("colormap", {})
-    result = {}
-
-    for category, mapping in colormap.items():  # opraveno zde!
-        if isinstance(mapping, dict):
-            inner = {}
-            for k, v in mapping.items():
-                try:
-                    inner[k] = rgb_to_hex(v)
-                except Exception as e:
-                    print(f"⚠️ chyba při převodu {category} → {k} = {v}: {e}")
-            result[category] = inner
-
-
-    return result

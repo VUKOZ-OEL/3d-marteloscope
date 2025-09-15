@@ -16,12 +16,12 @@ def load_plot_info(file_path: str) -> pd.DataFrame:
     pi = data.get("plot_info") or []
     return pd.DataFrame(pi)
 
-#file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v12.json")
+# file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json")
 plot_info = st.session_state.plot_info
 df: pd.DataFrame = st.session_state.trees.copy()
 
 # ---------- HLAVIČKA ----------
-st.markdown(f"#### **{plot_info['name'].iloc[0]}**")
+st.markdown(f"### Summary for plot: :green-background[**{plot_info['name'].iloc[0]}**]", help="For more details about Marteloscope site see bottom of this page.")
 
 # ---------- SPOLEČNÉ ----------
 CHART_HEIGHT = 360
@@ -29,12 +29,27 @@ Before = "Original Stand"
 After = "Managed Stand"
 Removed = "Removed from Stand"
 
+colorBySpp = "Species"
+colorByMgmt = "Management"
+
 df = df.copy()
-df["volume"] = df["Volume_m3"]
+
+# bezpečné vytvoření 'volume'
+if "Volume_m3" in df.columns:
+    df["volume"] = df["Volume_m3"]
+else:
+    df["volume"] = np.nan
+
+# standardizace typů
 if "species" in df.columns:
     df["species"] = df["species"].astype(str)
 if "speciesColorHex" in df.columns:
     df["speciesColorHex"] = df["speciesColorHex"].astype(str)
+
+if "management_status" in df.columns:
+    df["management_status"] = df["management_status"].astype(str)
+if "managementColorHex" in df.columns:
+    df["managementColorHex"] = df["managementColorHex"].astype(str)
 
 def _make_masks(d: pd.DataFrame):
     keep_status = {"Target tree", "Untouched"}
@@ -48,6 +63,23 @@ def _species_colors(d: pd.DataFrame) -> dict:
         return {}
     return (d.assign(species=lambda x: x["species"].astype(str))
               .groupby("species")["speciesColorHex"].first().to_dict())
+
+def _management_colors(d: pd.DataFrame) -> dict:
+    """
+    Převezme barvy přímo ze sloupce managementColorHex pro všechny hodnoty management_status.
+    Pokud u některé kategorie barva chybí/prázdná, použije se šedá.
+    """
+    if "management_status" not in d.columns or "managementColorHex" not in d.columns:
+        return {}
+    t = d.assign(
+        management_status=lambda x: x["management_status"].astype(str),
+        managementColorHex=lambda x: x["managementColorHex"].astype(str),
+    )
+    cmap = t.groupby("management_status")["managementColorHex"].first().to_dict()
+    for k, v in list(cmap.items()):
+        if not isinstance(v, str) or not v.strip():
+            cmap[k] = "#AAAAAA"
+    return cmap
 
 def _make_bins_labels(df_all: pd.DataFrame, value_col: str, bin_size: float, unit_label: str):
     vals = pd.to_numeric(df_all.get(value_col), errors="coerce").dropna()
@@ -69,40 +101,65 @@ def _y_upper_for(df_all: pd.DataFrame, value_col: str, bins: np.ndarray, labels:
         return 10
     return int(max(10, np.ceil(vc.max() / 10.0) * 10))
 
-# ---------- OVLÁDÁNÍ (nahrazeno: Before/After/Removed) ----------
-c_left, c_mid, c_right = st.columns([3, 4, 3])
+# ---------- OVLÁDÁNÍ ----------
+c_left, cl, c_mid,cr, c_right = st.columns([2,1, 4,1, 3])
 
 with c_mid:
-    dist_mode = st.segmented_control("", options=[Before, After, Removed], default=Before)
+    dist_mode = st.segmented_control("**Show Data for:**", options=[Before, After, Removed], default=Before, width = "stretch",)
 
+with c_right:
+    color_mode = st.segmented_control("**Color by:**", options=[colorBySpp, colorByMgmt], default=colorBySpp, width = "stretch",)
 
 masks = _make_masks(df)
 mask = masks.get(dist_mode, pd.Series(True, index=df.index))
 df_sel = df[mask].copy()
 
+# ---------- 1) PIE + DBH + HEIGHT (sdílená legenda) ----------
+def render_three_panel_with_shared_legend(df_all: pd.DataFrame, df_sub: pd.DataFrame, by_volume: bool, color_mode: str):
+    # --- Nastavení hue / kategorií / barev
+    if color_mode == colorByMgmt:
+        hue_col = "management_status"
+        if hue_col in df_all.columns:
+            # pořadí kategorií: první výskyt v df_all
+            categories = pd.Index(df_all[hue_col].astype(str).dropna().unique()).tolist()
+        else:
+            categories = []
+        color_map = _management_colors(df_all)
+        # doplnit default barvu, kdyby některé kategorii chyběla barva
+        color_map = {c: color_map.get(c, "#AAAAAA") for c in categories}
+        title_suffix = "(by Management)"
+    else:
+        hue_col = "species"
+        categories = sorted(df_all.get("species", pd.Series([], dtype=str)).astype(str).dropna().unique().tolist())
+        color_map = _species_colors(df_all)
+        color_map = {c: color_map.get(c, "#AAAAAA") for c in categories}
+        title_suffix = "(by Species)"
 
-# ---------- 1) PIE – Species composition ----------
-# ---------- SPOLEČNÁ FIGURA: 1 řádek, 3 panely, jedna legenda dole ----------
-def render_three_panel_with_shared_legend(df_all: pd.DataFrame, df_sub: pd.DataFrame, by_volume: bool):
-    # --- Příprava barev/species
-    color_map = _species_colors(df_all)
-    species_all = sorted(df_all["species"].astype(str).unique().tolist())
-
-    # --- PIE data (species -> value)
     d = df_sub.copy()
-    d["species"] = d["species"].astype(str).str.strip()
+    if hue_col not in d.columns:
+        st.warning(f"Chybí sloupec '{hue_col}' – nelze vykreslit grafy.")
+        return
+    d[hue_col] = d[hue_col].astype(str).str.strip()
+
+    # --- PIE agregace
     if by_volume:
         if "volume" not in d.columns:
             st.warning("Chybí sloupec 'volume' – nelze spočítat koláč podle objemu.")
             return
-        pie_agg = (d.groupby("species", as_index=False)
-                     .agg(value=("volume", "sum")))
+        pie_agg = (d.groupby(hue_col, as_index=False).agg(value=("volume", "sum")))
         pie_value_label = "Volume (m³)"
     else:
-        pie_agg = (d.groupby("species", as_index=False)
-                     .agg(value=("species", "size")))
+        pie_agg = (d.groupby(hue_col, as_index=False).agg(value=(hue_col, "size")))
         pie_value_label = "Trees"
-    pie_agg = pie_agg.sort_values("value", ascending=False)
+
+    # respektuj pořadí kategorií a přidej 0 pro chybějící
+    if categories:
+        pie_agg = (pie_agg.set_index(hue_col)
+                           .reindex(categories)
+                           .fillna(0)
+                           .reset_index())
+    else:
+        categories = pie_agg[hue_col].tolist()
 
     # --- DBH biny (podle celé populace pro stabilní osu)
     dbh_bins, dbh_labels = _make_bins_labels(df_all, "dbh", 10, "cm")
@@ -119,69 +176,86 @@ def render_three_panel_with_shared_legend(df_all: pd.DataFrame, df_sub: pd.DataF
     else:
         h_bins, h_labels, h_y_upper = np.array([0, 5]), ["0–5 m"], 10
 
-    # --- Převody na long pro DBH / HEIGHT (jen pro vybraný subset df_sub)
-    def long_binned(df_in: pd.DataFrame, value_col: str, bins: np.ndarray, labels: list[str]) -> pd.DataFrame:
+    # --- Převod na long pro DBH / HEIGHT (podle hue)
+    def long_binned(df_in: pd.DataFrame, value_col: str, bins: np.ndarray, labels: list[str], hue: str) -> pd.DataFrame:
         t = df_in.copy()
-        t["species"] = t["species"].astype(str)
+        t[hue] = t[hue].astype(str)
         cats = pd.Categorical(pd.cut(pd.to_numeric(t[value_col], errors="coerce"),
                                      bins=bins, labels=labels,
                                      include_lowest=True, right=False, ordered=True),
                               categories=labels, ordered=True)
         t = t.assign(bin=cats).dropna(subset=["bin"])
-        pv = t.pivot_table(index="bin", columns="species", aggfunc="size", fill_value=0)
+        if t.empty:
+            return pd.DataFrame(columns=["bin", hue, "count"])
+        pv = t.pivot_table(index="bin", columns=hue, aggfunc="size", fill_value=0)
         long = pv.stack().rename("count").reset_index()
         long["bin"] = long["bin"].astype(str)
         return long
 
-    dbh_long = long_binned(df_sub, "dbh", dbh_bins, dbh_labels)
-    height_long = long_binned(df_sub, "height", h_bins, h_labels) if "height" in df_sub.columns else pd.DataFrame(columns=["bin","species","count"])
+    dbh_long = long_binned(df_sub, "dbh", dbh_bins, dbh_labels, hue_col)
+    height_long = long_binned(df_sub, "height", h_bins, h_labels, hue_col) if "height" in df_sub.columns else pd.DataFrame(columns=["bin", hue_col, "count"])
 
     # --- Subplots: pie | dbh | height
     fig = make_subplots(
         rows=1, cols=3,
         specs=[[{"type": "domain"}, {"type": "xy"}, {"type": "xy"}]],
-        subplot_titles=("Species Composition", "DBH Distribution", "Height Distribution"),
+        subplot_titles=("Composition", "DBH Distribution", "Height Distribution"),
         horizontal_spacing=0.06
     )
 
-    # --- 1) PIE (bez legendy, ať se nezdvojuje)
+    fig.update_layout(
+        annotations=[
+            dict(
+                text=ann.text,
+                x=ann.x,
+                y=ann.y,
+                xref=ann.xref,
+                yref=ann.yref,
+                showarrow=False,
+                font=st.session_state.plot_title_font,
+            )
+            for ann in fig.layout.annotations
+        ]
+    )
+
+    # --- 1) PIE (bez legendy – bude sdílená u DBH)
     fig.add_trace(
         go.Pie(
-            labels=pie_agg["species"],
+            labels=pie_agg[hue_col],
             values=pie_agg["value"],
             hole=0.35,
-            marker=dict(colors=[color_map.get(s, "#AAAAAA") for s in pie_agg["species"]]),
-            hovertemplate=f"Species: %{{label}}<br>{pie_value_label}: %{{value}}<br>%: %{{percent}}<extra></extra>",
+            marker=dict(colors=[color_map.get(c, "#AAAAAA") for c in pie_agg[hue_col]]),
+            hovertemplate=f"{hue_col}: %{{label}}<br>{pie_value_label}: %{{value}}<br>%: %{{percent}}<extra></extra>",
             showlegend=False
         ),
         row=1, col=1
     )
 
-    # --- 2) DBH (stack podle druhu) – JEN TADY zapneme legendu pro každý druh
-    for sp in species_all:
-        y_vals = (dbh_long[dbh_long["species"] == sp]
+    # --- 2) DBH (stack podle hue) – tady zapneme legendu
+    for cat in categories:
+        y_vals = (dbh_long[dbh_long[hue_col] == cat]
                   .set_index("bin").reindex(dbh_labels)["count"].fillna(0).tolist())
         fig.add_trace(
             go.Bar(
-                x=dbh_labels, y=y_vals, name=sp,
-                marker_color=color_map.get(sp, "#AAAAAA"),
-                legendgroup=sp, showlegend=True,
-                hovertemplate=f"%{{x}}<br>Species: {sp}<br>Trees: %{{y}}<extra></extra>"
+                x=dbh_labels, y=y_vals, name=cat,
+                marker_color=color_map.get(cat, "#AAAAAA"),
+                legendgroup=cat, showlegend=True,
+                hovertemplate=f"%{{x}}<br>{hue_col}: {cat}<br>Trees: %{{y}}<extra></extra>"
             ),
             row=1, col=2
         )
 
-    # --- 3) HEIGHT (stack) – legendu VYPNEME, ale necháme stejné legendgroup
+    # --- 3) HEIGHT (stack) – legendu vypneme, ale sdílíme legendgroup
     if not height_long.empty:
-        for sp in species_all:
-            y_vals = (height_long[height_long["species"] == sp]
+        for cat in categories:
+            y_vals = (height_long[height_long[hue_col] == cat]
                       .set_index("bin").reindex(h_labels)["count"].fillna(0).tolist())
             fig.add_trace(
                 go.Bar(
-                    x=h_labels, y=y_vals, name=sp,
-                    marker_color=color_map.get(sp, "#AAAAAA"),
-                    legendgroup=sp, showlegend=False,
-                    hovertemplate=f"%{{x}}<br>Species: {sp}<br>Trees: %{{y}}<extra></extra>"
+                    x=h_labels, y=y_vals, name=cat,
+                    marker_color=color_map.get(cat, "#AAAAAA"),
+                    legendgroup=cat, showlegend=False,
+                    hovertemplate=f"%{{x}}<br>{hue_col}: {cat}<br>Trees: %{{y}}<extra></extra>"
                 ),
                 row=1, col=3
             )
@@ -208,16 +282,14 @@ def render_three_panel_with_shared_legend(df_all: pd.DataFrame, df_sub: pd.DataF
 
     st.plotly_chart(fig, use_container_width=True)
 
-
-# ---------- UI: volba pro PIE (zůstává pod figurou, můžeš přesunout nad) ----------
-# vykreslit figurku (3 panely + 1 legenda)
+# ---------- UI: volba pro PIE ----------
 c_left2, c_right2 = st.columns([1,10])
 
 with c_left2:
     st.markdown("###")
     st.markdown("###")
     pie_metric = st.radio(
-        "Percentage by:",
+        "**Percentage by:**",
         options=["Volume (m³)", "Tree count"],
         index=0 if st.session_state.get("pie_metric", "Volume (m³)") == "Volume (m³)" else 1,
         horizontal=False,
@@ -228,11 +300,11 @@ with c_right2:
     render_three_panel_with_shared_legend(
         df_all=df,
         df_sub=df_sel,
-        by_volume=(st.session_state.get("pie_metric", "Volume (m³)") == "Volume (m³)")
+        by_volume=(st.session_state.get("pie_metric", "Volume (m³)") == "Volume (m³)"),
+        color_mode=color_mode,
     )
 
-
-
+# ---------- DETAIL PLOCHY ----------
 with st.expander("### Plot Details"):
     st.markdown(f"""
 - **Forest type:** {plot_info['forest_type'].iloc[0]}
