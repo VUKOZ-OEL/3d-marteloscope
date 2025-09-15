@@ -99,7 +99,7 @@ remove_opts = remove_opts or ["(none)"]
 exclude = {"x","y","species","speciesColorHex","management_status","managementColorHex","managementStatusColorHex"}
 z_candidates = [c for c in df.columns if c not in exclude]
 
-c1, c2, c3,c4 = st.columns([4,2,1.2, 0])
+c1, c2, c3,c4,c5 = st.columns([4,0.5,2,1.5,0.5])
 with c1:
     species_sel = st.segmented_control(
         "**Species**",
@@ -108,7 +108,7 @@ with c1:
         selection_mode="multi",
         help="Pick one or more species to include. If none selected, all species are used."
     )
-with c2:
+with c3:
     mgmt_keep = st.segmented_control(
         "**Management – Retain in Stand**",
         options=retain_opts,
@@ -116,14 +116,14 @@ with c2:
         selection_mode="multi",
         help="Retained trees (e.g., Untouched, Target Tree). Empty selection means 'all retained'."
     )
-with c3:
+with c4:
     show_targets = st.toggle(
     "Show position of **Target Trees** in map",
     value=False,
     help="Add positions of all 'Target trees' as points over each heatmap. "
     )
 
-c11, c12, c13 = st.columns([3,1,4])
+c11, c12, c13 = st.columns([3,1.5,4])
 
 with c11:
     z_col = st.selectbox(
