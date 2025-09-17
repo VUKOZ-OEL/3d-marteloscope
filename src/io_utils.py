@@ -6,8 +6,9 @@ from typing import Dict, List, Union, Any, Optional
 import streamlit as st
 from pathlib import Path
 import sqlite3
+import html
 
-__all__ = ["load_project_json","save_project_json","load_color_pallete","load_plot_info","load_simulation_results", "heading_centered"]
+__all__ = ["load_project_json","save_project_json","load_color_pallete","load_plot_info","load_simulation_results", "heading_centered","_unique_sorted"]
 
 
 
@@ -68,8 +69,8 @@ def _to_hex(value: Any) -> str | None:
     c01 = _to_color01(value)
     return _rgb_to_hex01(c01) if c01 else None
 
-import html
-import streamlit as st
+def _unique_sorted(series: pd.Series) -> list[str]:
+    return sorted(series.dropna().astype(str).unique().tolist())
 
 def heading_centered(text: str, color: str = "#2E7D32", level: int = 5):
     """

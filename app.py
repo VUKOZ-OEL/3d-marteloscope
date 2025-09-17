@@ -9,9 +9,11 @@ st.set_page_config(page_title="3D-Marteloscope", page_icon=":material/nature_peo
 dash_page = st.Page("src/Dashboard.py", title="Plot Info", icon=":material/dashboard:")
 
 # Tree & Crown stats
-tree_page = st.Page("src/Tree_stats.py", title="Tree Statistics", icon=":material/monitoring:")
-canopy_page = st.Page("src/Canopy_stats.py", title="Canopy Space", icon=":material/forest:")
-heatmap_page = st.Page("src/Heatmaps.py", title="Heatmap", icon=":material/blur_on:")
+tree_page = st.Page("src/Tree_stats.py", title="Tree Statistics", icon=":material/nature:")
+canopy_page = st.Page("src/Canopy_stats.py", title="Canopy Volume", icon=":material/forest:")
+space_page = st.Page("src/Space_comp.py", title="Space Competition", icon=":material/workspaces:")
+light_page = st.Page("src/Light_comp.py", title="Light Competition", icon=":material/light_mode:")
+heatmap_page = st.Page("src/Heatmaps.py", title="Heatmaps", icon=":material/blur_on:")
 
 # Map, Att tab, pygpage
 map_page = st.Page("src/Map.py", title="Plot Map", icon=":material/map:")
@@ -45,6 +47,8 @@ pages = {
     "Results:": [
         tree_page,
         canopy_page,
+        space_page,
+        light_page,
         heatmap_page,
         map_page,
         att_page,

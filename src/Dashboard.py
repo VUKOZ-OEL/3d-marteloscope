@@ -10,24 +10,21 @@ from typing import Dict, List, Union
 import json
 
 # ---------- DATA ----------
-def load_plot_info(file_path: str) -> pd.DataFrame:
-    with open(file_path, "r", encoding="utf-8") as f:
-        data: Dict[str, Union[Dict, List]] = json.load(f)
-    pi = data.get("plot_info") or []
-    return pd.DataFrame(pi)
 
-# file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json")
 plot_info = st.session_state.plot_info
 df: pd.DataFrame = st.session_state.trees.copy()
 
 # ---------- HLAVIČKA ----------
-st.markdown(f"### Summary for plot: :green-background[**{plot_info['name'].iloc[0]}**]", help="For more details about Marteloscope site see bottom of this page.")
+st.markdown(
+    f"### Summary for plot: :green-background[**{plot_info['name'].iloc[0]}**]",
+    help="For more details about Marteloscope site see bottom of this page."
+)
 
 # ---------- SPOLEČNÉ ----------
 CHART_HEIGHT = 360
-Before = "Original Stand"
-After = "Managed Stand"
-Removed = "Removed from Stand"
+Before = st.session_state.Before
+After = st.session_state.After
+Removed = st.session_state.Removed
 
 colorBySpp = "Species"
 colorByMgmt = "Management"
@@ -50,6 +47,14 @@ if "management_status" in df.columns:
     df["management_status"] = df["management_status"].astype(str)
 if "managementColorHex" in df.columns:
     df["managementColorHex"] = df["managementColorHex"].astype(str)
+
+# plocha (ha) pro přepočet na hektar
+try:
+    area_ha = float(plot_info['size_ha'].iloc[0])
+    if not np.isfinite(area_ha) or area_ha <= 0:
+        area_ha = 1.0
+except Exception:
+    area_ha = 1.0
 
 def _make_masks(d: pd.DataFrame):
     keep_status = {"Target tree", "Untouched"}
@@ -108,10 +113,9 @@ with c2:
     dist_mode = st.segmented_control("**Show Data for:**", options=[Before, After, Removed], default=Before, width = "stretch",)
 
 with c4:
-    sum_metric_label = st.segmented_control("**Sum vylues by:**", options=["Tree count", "Volume (m³)"], default="Tree count", width = "stretch",)
-    if sum_metric_label == "Tree count":
-        by_volume = False
-    else: by_volume = True
+    sum_metric_label = st.segmented_control("**Sum values by:**", options=["Tree count", "Volume (m³)"], default="Tree count", width = "stretch",)
+    by_volume = (sum_metric_label != "Tree count")
+
 with c6:
     color_mode = st.segmented_control("**Color by:**", options=[colorBySpp, colorByMgmt], default=colorBySpp, width = "stretch",)
 
@@ -208,7 +212,7 @@ def render_three_panel_with_shared_legend(df_all: pd.DataFrame, df_sub: pd.DataF
     dbh_long = long_binned(df_sub, "dbh", dbh_bins, dbh_labels, hue_col, by_volume)
     height_long = long_binned(df_sub, "height", h_bins, h_labels, hue_col, by_volume) if "height" in df_sub.columns else pd.DataFrame(columns=["bin", hue_col, "value"])
 
-    # --- Y-osa: horní hranice z aktuálního výřezu (sum přes kategorie v každém binu)
+    # --- Y-osa: horní hranice
     def upper_from_long(long_df: pd.DataFrame, labels: list[str]) -> float:
         if long_df.empty:
             return 10
@@ -217,9 +221,8 @@ def render_three_panel_with_shared_legend(df_all: pd.DataFrame, df_sub: pd.DataF
         maxv = float(totals.max())
         if maxv <= 0:
             return 10
-        # zaokrouhlení na „pěkné“ číslo
         magnitude = 10 ** int(np.floor(np.log10(maxv)))
-        step = magnitude / 2  # trochu jemnější než celé řády
+        step = magnitude / 2
         upper = math.ceil(maxv / step) * step
         return upper
 
@@ -228,11 +231,23 @@ def render_three_panel_with_shared_legend(df_all: pd.DataFrame, df_sub: pd.DataF
 
     y_title = "Volume (m³)" if by_volume else "Trees"
 
+    # --- Σ na hektar pro titulky sloupcových grafů (zaokrouhlené, jednotky dle metriky)
+    unit_suffix = "m³/ha" if by_volume else "trees/ha"
+
+    def per_ha_from_long(long_df: pd.DataFrame) -> float:
+        total = float(long_df["value"].sum()) if not long_df.empty else 0.0
+        return total / (area_ha if area_ha > 0 else 1.0)
+
+    dbh_sum_ha = per_ha_from_long(dbh_long)
+    h_sum_ha   = per_ha_from_long(height_long)
+    dbh_title  = f"DBH Distribution · Σ {dbh_sum_ha:.0f} {unit_suffix}"
+    h_title    = f"Height Distribution · Σ {h_sum_ha:.0f} {unit_suffix}"
+
     # --- Subplots: pie | dbh | height
     fig = make_subplots(
         rows=1, cols=3,
         specs=[[{"type": "domain"}, {"type": "xy"}, {"type": "xy"}]],
-        subplot_titles=("Composition", "DBH Distribution", "Height Distribution"),
+        subplot_titles=("Composition", dbh_title, h_title),
         horizontal_spacing=0.06
     )
 
