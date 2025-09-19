@@ -18,7 +18,7 @@ heatmap_page = st.Page("src/Heatmaps.py", title="Heatmaps", icon=":material/blur
 # Map, Att tab, pygpage
 map_page = st.Page("src/Map.py", title="Plot Map", icon=":material/map:")
 att_page = st.Page("src/Attributes.py", title="Attribute Table", icon=":material/data_table:")
-analytics_page = st.Page("src/Analytics.py", title="Analytics", icon=":material/addchart:")
+analytics_page = st.Page("src/Analytics.py", title="Analytics - Experimental", icon=":material/addchart:")
 
 # Simulation results 
 simul_page = st.Page("src/Simulation.py", title="Simulation", icon=":material/clock_arrow_up:")
