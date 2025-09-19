@@ -52,7 +52,7 @@ pages = {
         heatmap_page,
         map_page,
         att_page,
-        analytics_page,
+        #analytics_page,
     ],
     "Future Outlook": [
         simul_page,
