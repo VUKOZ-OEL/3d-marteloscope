@@ -23,7 +23,7 @@ analytics_page = st.Page("src/Analytics.py", title="Analytics", icon=":material/
 # Simulation results 
 simul_page = st.Page("src/Simulation.py", title="Simulation", icon=":material/clock_arrow_up:")
 simul_detail_page = st.Page("src/Simulation_detail.py", title="Deatiled view", icon=":material/frame_inspect:")
-test_page = st.Page("src/sandbox.py", title="_SANDBOX_")
+test_page = st.Page("src/sandbox.py", title="COMMENTS")
 
 
 
