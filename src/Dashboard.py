@@ -49,5 +49,5 @@ with c2:
     st.button("**Load example**", icon=":material/model_training:")
     st.markdown("###")
     st.button("Export results",icon=":material/file_save:")
-    st.button("Clear management",icon=":material/close:")
+    st.button("Clear management",icon=":material/delete:")
     st.markdown("... other settings")
