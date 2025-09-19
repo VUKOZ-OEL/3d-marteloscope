@@ -50,12 +50,12 @@ if "sim_trees" not in st.session_state:
         sim_trees = load_simulation(root)
         st.session_state.sim_trees = sim_trees
 
-sim_trees.to_feather("C:/Users/krucek/Documents/iLand/test/rep_out/sim_trees.feather")
+#sim_trees.to_feather("C:/Users/krucek/Documents/iLand/test/rep_out/sim_trees.feather")
 
 sim_trees["species_label"] = sim_trees["species"].map(lambda c: code2label.get(str(c).lower(), str(c).title()))
 sim_trees["species_color"] = sim_trees["species"].map(lambda c: code2color.get(str(c).lower()))
 
-print(sim_trees)
+#print(sim_trees)
 
-st.plotly_chart(fig_sim_vol_height_ba(sim_trees, code2color, code2label, smooth_window=3), use_container_width=True)
+#st.plotly_chart(fig_sim_vol_height_ba(sim_trees, code2color, code2label, smooth_window=3), use_container_width=True)
 
