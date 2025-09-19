@@ -5,10 +5,10 @@ from pygwalker.api.streamlit import StreamlitRenderer
 
 # Import your data
 
-with st.expander("### Experimentální - interaktivní tvorba uživatelských grafů"):
+with st.expander("### Interaktivní tvorba uživatelských grafů"):
     st.markdown("""
         #### Orientace v okně (co kam táhnout)
-        Fields (sloupce) – PyGWalker sám rozliší Dimension (kategorie, datum) vs Measure (číselné metriky).
+        Fields (sloupce) – app rozliší Dimension (kategorie, datum) vs Measure (číselné metriky), jde to ale měnit.
         X / Y – vodorovná a svislá osa.
         Color / Size / Shape – vizuální kódování další proměnné.
         Row / Column – facety (mřížka grafů) podle kategorií.
@@ -37,9 +37,8 @@ with st.expander("### Experimentální - interaktivní tvorba uživatelských gr
 
         #### Uložení & sdílení
         Uložení konfigurace grafů (aby ses k nim vrátil později): parametr spec="moje_nastaveni.json" – stav uložíš z UI tlačítkem Save a příště načteš automaticky. 
-        docs.kanaries.net
-        Export do HTML (samostatná stránka pro sdílení): PyGWalker podporuje HTML export přes API (např. to_html) – výsledek můžeš poslat kolegům. 
-        docs.kanaries.net
+        Export do HTML (samostatná stránka pro sdílení): HTML export přes API (např. to_html) – výsledek můžeš poslat kolegům. 
+
      """)
 
 if "trees" not in st.session_state:

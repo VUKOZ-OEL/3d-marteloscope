@@ -6,9 +6,10 @@ import src.io_utils as iou
 st.set_page_config(page_title="3D-Marteloscope", page_icon=":material/nature_people:",layout="wide")
 
 # Dash page with summary
-dash_page = st.Page("src/Dashboard.py", title="Plot Info", icon=":material/dashboard:")
+dash_page = st.Page("src/Dashboard.py", title="Info & controls", icon=":material/dashboard:")
 
 # Tree & Crown stats
+summary_page = st.Page("src/Summary.py", title="Summary", icon=":material/info:")
 tree_page = st.Page("src/Tree_stats.py", title="Tree Statistics", icon=":material/nature:")
 canopy_page = st.Page("src/Canopy_stats.py", title="Canopy Volume", icon=":material/forest:")
 space_page = st.Page("src/Space_comp.py", title="Space Competition", icon=":material/workspaces:")
@@ -25,8 +26,6 @@ simul_page = st.Page("src/Simulation.py", title="Simulation", icon=":material/cl
 simul_detail_page = st.Page("src/Simulation_detail.py", title="Deatiled view", icon=":material/frame_inspect:")
 test_page = st.Page("src/sandbox.py", title="COMMENTS")
 
-
-
 file_path = "data/test_project.json"
 st.session_state.trees = iou.load_project_json(file_path)
 st.session_state.plot_info = iou.load_plot_info(file_path)
@@ -41,10 +40,11 @@ st.session_state.Removed = "Removed from Stand"
 st.session_state.plot_title_font = dict(size=18, color="#33343f", weight="bold")
 
 pages = {
-    "Summary": [
+    "Main": [
         dash_page,
     ],
     "Results:": [
+        summary_page,
         tree_page,
         canopy_page,
         space_page,
