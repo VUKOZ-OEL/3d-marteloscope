@@ -1,6 +1,4 @@
 streamlit>=1.36
 pandas>=2.0
 plotly>=5.22,<6
-st_aggrid>=1.1.8
-pygwalker>=0.4.9.15
 st-gsheets-connection>=0.1.0
