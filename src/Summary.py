@@ -9,6 +9,8 @@ import plotly.graph_objects as go
 from typing import Dict, List, Union
 import json
 
+print("summary")
+print(st.session_state.trees["speciesColorHex"])
 # ---------- DATA ----------
 
 plot_info = st.session_state.plot_info
@@ -345,3 +347,4 @@ render_three_panel_with_shared_legend(
 )
 
 
+print(st.session_state.trees["speciesColorHex"])

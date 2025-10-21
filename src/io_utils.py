@@ -8,7 +8,7 @@ from pathlib import Path
 import sqlite3
 import html
 
-__all__ = ["load_project_json","save_project_json","load_color_pallete","load_plot_info","load_simulation_results", "heading_centered","_unique_sorted"]
+__all__ = ["load_project_json","save_project_json","load_color_pallete","load_plot_info","load_simulation_results", "heading_centered","_unique_sorted","show_success"]
 
 
 
@@ -223,7 +223,7 @@ def load_simulation_results(db_path: str | Path, table: str = "tree") -> pd.Data
     st.session_state.simulation = df
     return df
 
-
+"""
 def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
     import json
 
@@ -259,5 +259,84 @@ def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = N
     output_path = output_path or original_path
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+"""
+def show_success(message: str, timeout: int = 2000):
+    """
+    Zobrazí úspěchovou zprávu na pár vteřin.
+    
+    Args:
+        message: text zprávy
+        timeout: doba zobrazení v ms (2000 = 2 vteřiny)
+    """
+    placeholder = st.empty()
+    placeholder.markdown(
+        f"""
+        <div id="tmp-success" style="background:#d4edda;
+             color:#155724;
+             border:1px solid #c3e6cb;
+             padding:0.75rem 1rem;
+             border-radius:0.25rem;
+             margin:0.5rem 0;">
+          ✅ {message}
+        </div>
+        <script>
+        setTimeout(function(){{
+            var el = document.getElementById("tmp-success");
+            if(el) el.style.display = 'none';
+        }}, {timeout});
+        </script>
+        """,
+        unsafe_allow_html=True
+    )
 
+import pandas as pd
 
+def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
+
+    with open(original_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # mapování řádek podle ID
+    id_map = df.set_index("id").to_dict("index")
+
+    for segment in data.get("segments", []):
+        sid = segment.get("id")
+        if sid in id_map and "treeAttributes" in segment:
+            row = id_map[sid]
+            attr = segment["treeAttributes"]
+
+            # zachovat původní Z, ale aktualizovat X,Y pokud jsou v DF
+            z = 0.0
+            if isinstance(attr.get("position"), list) and len(attr["position"]) >= 3:
+                z = attr["position"][2]
+
+            if "x" in row and "y" in row:
+                attr["position"] = [float(row["x"]), float(row["y"]), z]
+
+            # --- převod HEX -> RGB (0..1) a zapsání do speciesColor/managementColor ---
+            if "speciesColorHex" in row and isinstance(row["speciesColorHex"], str):
+                rgb = _to_color01(row["speciesColorHex"])
+                if rgb is not None:
+                    attr["speciesColor"] = rgb
+
+            if "managementColorHex" in row and isinstance(row["managementColorHex"], str):
+                rgb = _to_color01(row["managementColorHex"])
+                if rgb is not None:
+                    attr["managementColor"] = rgb
+
+            # --- kopírování dalších atributů do treeAttributes ---
+            # vynecháme klíče, které nechceme vkládat (HEX, id) a ty, co existují ve vnějším segmentu
+            skip_keys = {"id", "speciesColorHex", "managementColorHex"}
+            outer_keys = set(segment.keys())
+            for key, value in row.items():
+                if key in skip_keys or key in outer_keys:
+                    continue
+                # speciesColor / managementColor už jsme nastavili výše z HEX – nepřepisovat z DF,
+                # pokud by tam náhodou byly i floatové sloupce stejného jména
+                if key in {"speciesColor", "managementColor"}:
+                    continue
+                attr[key] = value
+
+    output_path = output_path or original_path
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)

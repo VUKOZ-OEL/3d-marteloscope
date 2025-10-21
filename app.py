@@ -25,11 +25,18 @@ analytics_page = st.Page("src/Analytics.py", title="Analytics - Experimental", i
 simul_page = st.Page("src/Simulation.py", title="Simulation", icon=":material/clock_arrow_up:")
 simul_detail_page = st.Page("src/Simulation_detail.py", title="Deatiled view", icon=":material/frame_inspect:")
 test_page = st.Page("src/sandbox.py", title="COMMENTS")
+settings_page = st.Page("src/Project_settings.py", title="Project", icon=":material/file_present:")
+colors_page = st.Page("src/Colors_settings.py", title="Colors", icon=":material/colors:")
 
 file_path = "data/test_project.json"
-st.session_state.trees = iou.load_project_json(file_path)
-st.session_state.plot_info = iou.load_plot_info(file_path)
 
+# Init data
+if not st.session_state.get("data_initialized"):
+    st.session_state.project_file = file_path
+    st.session_state.trees = iou.load_project_json(file_path)
+    st.session_state.plot_info = iou.load_plot_info(file_path)
+    st.session_state.color_palette = iou.load_color_pallete(file_path)
+    st.session_state.data_initialized = True
 
 # Define common labels:
 st.session_state.Before = "Original Stand"
@@ -57,8 +64,12 @@ pages = {
     "Future Outlook": [
         simul_page,
         simul_detail_page,
-        test_page,
     ],
+    "Settings":[
+        test_page,
+        settings_page,
+        colors_page,
+    ]
 }
 
 pg = st.navigation(pages)
