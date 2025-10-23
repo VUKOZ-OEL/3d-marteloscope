@@ -35,7 +35,6 @@ with c2:
     st.session_state.trees = df
 
 with c3:
-    st.markdown("#")
     if st.button("**Save colors to project**", width="stretch",type="primary", icon=":material/save:"):
         iou.save_project_json(st.session_state.project_file, st.session_state.trees, "data/test_save_project.json")
         iou.show_success("Colors saved into project.")
