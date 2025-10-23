@@ -12,7 +12,7 @@ dash_page = st.Page("src/Dashboard.py", title="Info & controls", icon=":material
 summary_page = st.Page("src/Summary.py", title="Summary", icon=":material/info:")
 tree_page = st.Page("src/Tree_stats.py", title="Tree Statistics", icon=":material/nature:")
 canopy_page = st.Page("src/Canopy_stats.py", title="Canopy Volume", icon=":material/forest:")
-space_page = st.Page("src/Space_comp.py", title="Space Competition", icon=":material/workspaces:")
+space_page = st.Page("src/Space_comp.py", title="Space Competition", icon=":material/join:")
 light_page = st.Page("src/Light_comp.py", title="Light Competition", icon=":material/light_mode:")
 heatmap_page = st.Page("src/Heatmaps.py", title="Heatmaps", icon=":material/blur_on:")
 
@@ -24,9 +24,9 @@ analytics_page = st.Page("src/Analytics.py", title="Analytics - Experimental", i
 # Simulation results 
 simul_page = st.Page("src/Simulation.py", title="Simulation", icon=":material/clock_arrow_up:")
 simul_detail_page = st.Page("src/Simulation_detail.py", title="Deatiled view", icon=":material/frame_inspect:")
-test_page = st.Page("src/sandbox.py", title="COMMENTS")
-settings_page = st.Page("src/Project_settings.py", title="Project", icon=":material/file_present:")
+add_atts_page = st.Page("src/Add_attributes_prj.py", title="Add attributes", icon=":material/list_alt_add:")
 colors_page = st.Page("src/Colors_settings.py", title="Colors", icon=":material/colors:")
+test_page = st.Page("src/sandbox.py", title="COMMENTS")
 
 file_path = "data/test_project.json"
 
@@ -66,9 +66,9 @@ pages = {
         simul_detail_page,
     ],
     "Settings":[
-        test_page,
-        settings_page,
+        add_atts_page,
         colors_page,
+        test_page,
     ]
 }
 

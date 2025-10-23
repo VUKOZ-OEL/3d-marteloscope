@@ -3,8 +3,6 @@ import pandas as pd
 import src.io_utils as iou
 
 
-print("changes")
-print(st.session_state.trees["speciesColorHex"])
 df = st.session_state.trees  # zkratka
 
 c1, c2, c3 = st.columns([1, 1, 1])
