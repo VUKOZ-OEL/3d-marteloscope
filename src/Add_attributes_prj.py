@@ -3,14 +3,6 @@ import pandas as pd
 import numpy as np
 import src.io_utils as iou
 
-# Široké zobrazení
-st.set_page_config(layout="wide")
-
-# --- Načtení projektu do session_state (pro testování můžeš upravit cestu) ---
-if "trees" not in st.session_state:
-    file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v11.json"
-    st.session_state.trees = iou.load_project_json(file_path)
-
 trees_df = st.session_state.trees.copy()
 
 # --- HLAVIČKA / BUTTONS ---
@@ -31,9 +23,9 @@ with c1:
 
   
 with c3:
-    st.button("**Save project**", type="primary", icon=":material/save:")
-    st.button("**Save project as**", type="secondary", icon=":material/save_as:")
-    do_import = st.button("Import attributes", type="secondary", icon=":material/add_column_right:")
+    st.button("**Save project**", type="primary", icon=":material/save:", use_container_width=True)
+    st.button("**Save project as**", type="secondary", icon=":material/save_as:", use_container_width=True)
+    do_import = st.button("Import attributes", type="secondary", icon=":material/add_column_right:", use_container_width=True)
 
 
 # === ZPRACOVÁNÍ PO NAHRÁNÍ ===
