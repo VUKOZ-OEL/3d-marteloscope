@@ -71,14 +71,9 @@ def combine_with_ids(mapping: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     return pd.concat(mapping.values(), ignore_index=True) if mapping else pd.DataFrame()
 
 # ---------- Příprava per-tree datasetu (bez závislosti na output_forest_development) ----------
+"""
 def prepare_tree_dataset(outputs: ILandOutputs, mark_death: bool = True) -> pd.DataFrame:
-    """
-    Sloučí replikace a aplikuje logiku výběru/označení úhynu:
-      - Cíl odumření per species = mean(volume_m3) v daném roce z treeremoved
-      - Kandidáty (id,species) seřadí dle pravděpodobnosti (výskyt/n_reps) a volume_m3, kumuluje do cíle
-      - Z living dělá průměr DBH by id,year,species,x,y
-      - Pokud mark_death=True, od cut_year výš přepíše species -> 'death', jinak řádky >= cut_year odfiltruje
-    """
+
     death_trees  = combine_with_ids(outputs.death)
     living_trees = combine_with_ids(outputs.living)
     living_trees.to_feather("C:/Users/krucek/Documents/iLand/test/rep_out/living.feather")
@@ -131,6 +126,114 @@ def prepare_tree_dataset(outputs: ILandOutputs, mark_death: bool = True) -> pd.D
         out = out[(out["cut_year"].isna()) | (out["year"] < out["cut_year"])].drop(columns=["cut_year"])
 
     return out.sort_values(["year","id"]).reset_index(drop=True)
+"""
+def prepare_tree_dataset(outputs: ILandOutputs, mark_death: bool = True) -> pd.DataFrame:
+    """
+    Sloučí replikace a aplikuje logiku výběru/označení úhynu:
+      - PÁROVÁNÍ replik: pouze podle (year, id)
+      - species = nejčastější hodnota (mode) napříč replikami
+      - x, y = medián napříč replikami
+      - mean_output_cols = průměr napříč replikami
+      - Cíl odumření per species = mean(volume_m3) v daném roce z treeremoved
+      - Kandidáty (id) seřadí dle pravděpodobnosti (výskyt/n_reps) a volume_m3, kumuluje do cíle; druh kandidáta určen modem species
+      - Pokud mark_death=True, od cut_year výš přepíše species -> 'death', jinak řádky >= cut_year odfiltruje
+    """
+    def _mode(s: pd.Series):
+        try:
+            m = s.mode(dropna=True)
+            if len(m):
+                return m.iloc[0]
+        except Exception:
+            pass
+        s = s.dropna()
+        return s.iloc[0] if len(s) else None
+
+    death_trees  = combine_with_ids(outputs.death)
+    living_trees = combine_with_ids(outputs.living)
+    living_trees.to_feather("C:/Users/krucek/Documents/iLand/test/rep_out/living.feather")
+    n_reps = len(outputs.death) if isinstance(outputs.death, dict) else 100
+
+    # Agregace LIVING: párování jen podle (year, id)
+    agg_dict = {c: "mean" for c in mean_output_cols}
+    agg_dict.update({"species": _mode, "x": "median", "y": "median"})
+    output = (
+        living_trees
+        .groupby(["id", "year"], as_index=False)
+        .agg(agg_dict)
+    )
+
+    # Pokud nejsou 'death' záznamy → rovnou vrať agregovaný output
+    if death_trees.empty:
+        return output.sort_values(["year", "id"]).reset_index(drop=True)
+
+    # Výběr stromů k utnutí podle cílového objemu per species v daném roce
+    trees_to_cut: List[Tuple[int, int]] = []
+    for yr in sorted(death_trees["year"].dropna().unique()):
+        sub = death_trees.loc[death_trees["year"] == yr]
+
+        # Cíl objemu na species v daném roce
+        deth_vol = sub.groupby("species", as_index=False)["volume_m3"].mean()
+
+        # Pravděpodobnost (výskyt/počet replik) a průměrný objem na ID
+        prob = (
+            sub.groupby("id", as_index=False)["year"].count()
+               .rename(columns={"year": "prob"})
+        )
+        prob["prob"] = prob["prob"] / float(n_reps)
+        vol_by_id = sub.groupby("id", as_index=False)["volume_m3"].mean()
+
+        # Druh kandidáta = mode species pro dané ID v tomto roce
+        spp_mode = sub.groupby("id")["species"].agg(_mode).rename("spp")
+
+        prob = (
+            prob.merge(vol_by_id, on="id", how="left")
+                .merge(spp_mode, on="id", how="left")
+        )
+
+        # Pro každý species naplň cíl
+        for sp in deth_vol["species"].unique():
+            target = float(deth_vol.loc[deth_vol["species"] == sp, "volume_m3"].values[0])
+            if target <= 0:
+                continue
+
+            cand = prob.loc[prob["spp"] == sp].copy()
+            if cand.empty:
+                continue
+
+            cand = cand.sort_values(["prob", "volume_m3"], ascending=[False, False]).reset_index(drop=True)
+            cand["cum"] = cand["volume_m3"].cumsum()
+
+            # Najdi první index, kde kumulovaný objem dosáhne/ překročí cíl
+            hit = np.argmax(cand["cum"].values >= target)
+            chosen = cand["id"].values if cand["cum"].values[hit] < target else cand["id"].values[:hit + 1]
+
+            trees_to_cut.extend([(int(yr), int(tid)) for tid in chosen])
+
+    # Pokud se nic nevybralo, vrať pouze agregovaný living output
+    if not trees_to_cut:
+        return output.sort_values(["year", "id"]).reset_index(drop=True)
+
+    trees_to_cut = pd.DataFrame(trees_to_cut, columns=["year", "tree_id"])
+
+    # Rok prvního řezu pro každé ID
+    first_cut = (
+        trees_to_cut.groupby("tree_id", as_index=False)["year"]
+        .min()
+        .rename(columns={"tree_id": "id", "year": "cut_year"})
+    )
+
+    # Spoj s agregovaným living outputem (už jen podle id, year)
+    out = output.merge(first_cut, on="id", how="left")
+
+    if mark_death:
+        mask = out["cut_year"].notna() & (out["year"] >= out["cut_year"])
+        out.loc[mask, "species"] = "death"
+        out = out.drop(columns=["cut_year"])
+    else:
+        out = out[(out["cut_year"].isna()) | (out["year"] < out["cut_year"])].drop(columns=["cut_year"])
+
+    return out.sort_values(["year", "id"]).reset_index(drop=True)
+
 # ---------- Load simulations  --------------
 def load_simulation(root: str):
 

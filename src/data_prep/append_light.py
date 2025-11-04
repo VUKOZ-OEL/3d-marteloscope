@@ -1,8 +1,8 @@
 import pandas as pd
 import json
 import src.io_utils as iou
-import src.data_prep.species as spp
-import src.colors2json as c2j
+#import src.data_prep.species as spp
+import src.data_prep.colors2json as c2j
 
 def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
     import json
