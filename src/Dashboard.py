@@ -14,16 +14,17 @@ import json
 plot_info = st.session_state.plot_info
 df: pd.DataFrame = st.session_state.trees.copy()
 
-# ---------- HLAVIČKA ----------
-st.markdown(
-    f"### :orange[**{plot_info['name'].iloc[0]}**]",
-)
+
 
 
 # ---------- OVLÁDÁNÍ ----------
 c1, c2 = st.columns([2,2])
 
 with c1:
+    # ---------- HLAVIČKA ----------
+    st.markdown(
+        f"### :orange[**{plot_info['name'].iloc[0]}**]",
+    )
     st.markdown("###")
     st.markdown("##### Overview:")
     st.markdown("")
@@ -42,12 +43,19 @@ with c1:
 
 
 with c2:
-    st.markdown("###")
-    st.markdown("##### Controls:")
+    #st.markdown("###")
+    st.markdown("##### Choose management selection:")
     st.markdown("")
+   # st.markdown("##### Import management selection from external file:")
+    uploaded_file = st.file_uploader("**Import management selection from external file:**", type="csv", help="""
+                Load file exported form ForDil mobile app if you have created management selection in field. 
+                """)
+    st.markdown("#####")
     st.selectbox("**Management examples:**",["some example","another"])
     st.button("**Load example**", icon=":material/model_training:")
-    st.markdown("###")
+    st.markdown("#####")
+    st.divider()
+    st.markdown("##### Project controls:")
     st.button("Export results",icon=":material/file_save:")
     st.button("Clear management",icon=":material/delete:")
-    st.markdown("... other settings")
+
