@@ -289,7 +289,6 @@ def show_success(message: str, timeout: int = 2000):
         unsafe_allow_html=True
     )
 
-import pandas as pd
 
 def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
 
@@ -304,6 +303,11 @@ def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = N
         if sid in id_map and "treeAttributes" in segment:
             row = id_map[sid]
             attr = segment["treeAttributes"]
+            print("a")
+            if "speciesId" in row:
+                segment["speciesId"] = int(row["speciesId"])
+                print(segment["speciesId"])
+                print(row["speciesId"])
 
             # zachovat původní Z, ale aktualizovat X,Y pokud jsou v DF
             z = 0.0

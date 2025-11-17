@@ -42,13 +42,23 @@ def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) ->
 
 
 file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json"
-out_file = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v10.json"
+out_file = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_mod.json"
 settings_file = "C:/Users/krucek/Documents/GitHub/3d-marteloscope/settings_with_colors.json"
 
 
-
-
 trees = iou.load_project_json(file_path)
+trees["volume"] = trees["Volume_m3"]
+trees["dbhPosition"] = trees["position"]
+trees["dbhPosition"] = trees["dbhPosition"].apply(
+    lambda v: [v[0], v[1], v[2] + 1.3]
+)
+trees["dbh"] = trees["dbh"] / 100
+
+write_json(file_path,trees,out_file)
+
+
+
+
 
 trees.to_feather("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora.json.trees.feather")
 

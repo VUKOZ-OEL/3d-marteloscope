@@ -138,7 +138,7 @@ h_series = pd.to_numeric(df.get("height", np.nan), errors="coerce")
 Hmax = int(np.nanmax(h_series)) if np.isfinite(np.nanmax(h_series)) else 0
 Hmax = max(0, Hmax)
 
-c1, c2, c3, c4, c5 = st.columns([1, 3, 1, 3, 1])
+c1, c2, c3, c4 = st.columns([1, 3, 3, 3])
 with c2:
     stand_state = st.segmented_control(
         "**Select Stand State to Show:**",
@@ -147,6 +147,15 @@ with c2:
         selection_mode="single",
         width="stretch",
         help="Original / Managed / Removed.",
+    )
+with c3:
+    chart_mode = st.segmented_control(
+        "**Show:**",
+        options=["Who competes", "Sky View Values"],
+        default="Who competes",
+        selection_mode="single",
+        width="stretch",
+        help="Switch between competition bars and Sky View violin stats.",
     )
 with c4:
     height_min, height_max = st.slider(
@@ -157,6 +166,8 @@ with c4:
         step=1,
         help="Zobrazí pouze stromy v zadaném intervalu výšek (aplikuje se jako první).",
     )
+
+
 
 # ---------- READ CURRENT FILTER VALUES FROM SESSION ----------
 species_sel = st.session_state.get("species_sel", sp_all if sp_all else ["(none)"])
@@ -332,8 +343,12 @@ avg_light = float(df_focal["light_avail_adj"].mean()) if not df_focal.empty else
 p_light = max(0.0, min(100.0, avg_light)) / 100.0  # 0..1
 
 bubble_title = "Average Available Light"
-spec_title = "Who Competes · by Species"
-mgmt_title = "Who Competes · by Management"
+if chart_mode == "Who competes":
+    spec_title = "Who Competes by Species"
+    mgmt_title = "Who Competes by Management"
+else:
+    spec_title = "Sky View Values by Species"
+    mgmt_title = "Sky View Values by Management"
 
 fig = make_subplots(
     rows=1,
@@ -358,7 +373,7 @@ fig.add_shape(
     y0=yg - R,
     y1=yg + R,
     line=dict(width=0),
-    fillcolor="rgba(68, 68, 68, 1.0)",
+    fillcolor="rgba(68, 68, 68, 0.90)",
 )
 fig.add_shape(
     type="circle",
@@ -369,7 +384,7 @@ fig.add_shape(
     y0=yr - r,
     y1=yr + r,
     line=dict(width=0),
-    fillcolor="rgba(255, 204, 0, 1.0)",
+    fillcolor="rgba(135, 206, 235, 1.0)",
 )
 
 fig.add_annotation(
@@ -396,63 +411,139 @@ fig.update_xaxes(
 )
 fig.update_yaxes(row=1, col=1, visible=False, range=[-1.3, 1.3])
 
-# === 2) BARS by SPECIES (values in %) ===
-x_species = (
-    spec_df["species"].astype(str).tolist()
-    if not spec_df.empty
-    else (species_all or [])
-)
-y_species = spec_df["value"].tolist() if not spec_df.empty else ([0.0] * len(x_species))
-colors_species = [species_cmap.get(s, "#AAAAAA") for s in x_species]
-fig.add_trace(
-    go.Bar(
-        x=x_species,
-        y=y_species,
-        marker_color=colors_species,
-        hovertemplate="Species: %{x}<br>Shade: %{y:.2f} %<extra></extra>",
-        showlegend=False,
-    ),
-    row=1,
-    col=2,
-)
+# === 2 & 3) RIGHT CHARTS: MODE-DEPENDENT ===
 
-# === 3) BARS by MANAGEMENT (values in %) ===
-x_mgmt = (
-    mgmt_df["management_status"].astype(str).tolist()
-    if not mgmt_df.empty
-    else (mgmt_all or [])
-)
-y_mgmt = mgmt_df["value"].tolist() if not mgmt_df.empty else ([0.0] * len(x_mgmt))
-colors_mgmt = [mgmt_cmap.get(m, "#AAAAAA") for m in x_mgmt]
-fig.add_trace(
-    go.Bar(
-        x=x_mgmt,
-        y=y_mgmt,
-        marker_color=colors_mgmt,
-        hovertemplate="Management: %{x}<br>Shade: %{y:.2f} %<extra></extra>",
-        showlegend=False,
-    ),
-    row=1,
-    col=3,
-)
+if chart_mode == "Who competes":
+    # === 2) BARS by SPECIES (values in %) ===
+    x_species = (
+        spec_df["species"].astype(str).tolist()
+        if not spec_df.empty
+        else (species_all or [])
+    )
+    y_species = (
+        spec_df["value"].tolist() if not spec_df.empty else ([0.0] * len(x_species))
+    )
+    colors_species = [species_cmap.get(s, "#AAAAAA") for s in x_species]
+    fig.add_trace(
+        go.Bar(
+            x=x_species,
+            y=y_species,
+            marker_color=colors_species,
+            hovertemplate="Species: %{x}<br>Shade: %{y:.2f} %<extra></extra>",
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
+    )
+
+    # === 3) BARS by MANAGEMENT (values in %) ===
+    x_mgmt = (
+        mgmt_df["management_status"].astype(str).tolist()
+        if not mgmt_df.empty
+        else (mgmt_all or [])
+    )
+    y_mgmt = mgmt_df["value"].tolist() if not mgmt_df.empty else ([0.0] * len(x_mgmt))
+    colors_mgmt = [mgmt_cmap.get(m, "#AAAAAA") for m in x_mgmt]
+    fig.add_trace(
+        go.Bar(
+            x=x_mgmt,
+            y=y_mgmt,
+            marker_color=colors_mgmt,
+            hovertemplate="Management: %{x}<br>Shade: %{y:.2f} %<extra></extra>",
+            showlegend=False,
+        ),
+        row=1,
+        col=3,
+    )
+
+    # Axes formatting for bars
+    for c in (2, 3):
+        fig.update_xaxes(title_text=None, tickangle=45, row=1, col=c)
+        col_vals = y_species if c == 2 else y_mgmt
+        ymax = float(max(col_vals)) if col_vals else 1.0
+        if ymax <= 0:
+            y_upper = 1.0
+        else:
+            magnitude = 10 ** int(np.floor(np.log10(ymax)))
+            step = magnitude / 2
+            y_upper = math.ceil(ymax / step) * step
+        fig.update_yaxes(
+            title_text="Shade contribution [%]", range=[0, y_upper], row=1, col=c
+        )
+
+else:
+    # === Sky View Stats: VIOLIN PLOTS of light_avail_adj ===
+    # Species
+    if not df_focal.empty and "light_avail_adj" in df_focal.columns:
+        if "species" in df_focal.columns:
+            for sp in (
+                df_focal["species"].astype(str).dropna().unique().tolist()
+            ):
+                vals = (
+                    df_focal.loc[
+                        df_focal["species"].astype(str) == sp, "light_avail_adj"
+                    ]
+                    .dropna()
+                    .tolist()
+                )
+                if not vals:
+                    continue
+                fig.add_trace(
+                    go.Violin(
+                        x=[sp] * len(vals),
+                        y=vals,
+                        name=str(sp),
+                        box_visible=True,
+                        meanline_visible=False,
+                        points=False,
+                        fillcolor=species_cmap.get(sp, "#AAAAAA"),
+                        line=dict(color="black", width=1),
+                        showlegend=False,
+                    ),
+                    row=1,
+                    col=2,
+                )
+
+        # Management
+        if "management_status" in df_focal.columns:
+            for mg in (
+                df_focal["management_status"].astype(str).dropna().unique().tolist()
+            ):
+                vals = (
+                    df_focal.loc[
+                        df_focal["management_status"].astype(str) == mg,
+                        "light_avail_adj",
+                    ]
+                    .dropna()
+                    .tolist()
+                )
+                if not vals:
+                    continue
+                fig.add_trace(
+                    go.Violin(
+                        x=[mg] * len(vals),
+                        y=vals,
+                        name=str(mg),
+                        box_visible=True,
+                        meanline_visible=False,
+                        points=False,
+                        fillcolor=mgmt_cmap.get(mg, "#AAAAAA"),
+                        line=dict(color="black", width=1),
+                        showlegend=False,
+                    ),
+                    row=1,
+                    col=3,
+                )
+
+    # Axes formatting for violins
+    for c in (2, 3):
+        fig.update_xaxes(title_text=None, tickangle=45, row=1, col=c)
+        fig.update_yaxes(
+            title_text="Available light [%]", range=[0, 100], row=1, col=c
+        )
 
 # Layout
 fig.update_layout(height=460, margin=dict(l=10, r=10, t=60, b=40))
-
-# Axes formatting for bars
-for c in (2, 3):
-    fig.update_xaxes(title_text=None, tickangle=45, row=1, col=c)
-    col_vals = y_species if c == 2 else y_mgmt
-    ymax = float(max(col_vals)) if col_vals else 1.0
-    if ymax <= 0:
-        y_upper = 1.0
-    else:
-        magnitude = 10 ** int(np.floor(np.log10(ymax)))
-        step = magnitude / 2
-        y_upper = math.ceil(ymax / step) * step
-    fig.update_yaxes(
-        title_text="Shade contribution [%]", range=[0, y_upper], row=1, col=c
-    )
 
 # ---------- LAYOUT: CHART + FILTERS BELOW ----------
 c_bot1, c_bot2 = st.columns([2, 15])

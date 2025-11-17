@@ -7,21 +7,15 @@ import src.io_utils as iou
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-if "plot_uid" not in st.session_state:
-    st.session_state.plot_uid = 0
-
-def get_uid():
-    st.session_state.plot_uid += 1
-    return st.session_state.plot_uid
-
 st.markdown("### Explore tree statistics:")
+
 
 # --- Data ---
 if "trees" not in st.session_state:
     file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json")
     st.session_state.trees = iou.load_project_json(file_path)
 
-df_raw: pd.DataFrame = st.session_state.trees.copy()
+df: pd.DataFrame = st.session_state.trees.copy()
 
 # ========== SETTINGS ==========
 CHART_HEIGHT = 350  # chart height
@@ -32,12 +26,12 @@ exclude_list = {
 }
 
 # --- After/Removed masks ---
-df = df_raw.copy()
 keep_status = {"Target tree", "Untouched"}
 mask_after   = df.get("management_status", pd.Series(False, index=df.index)).isin(keep_status)
 mask_removed = ~mask_after if "management_status" in df.columns else pd.Series(False, index=df.index)
 
 # Standardize dtypes
+df = df.copy()
 if "species" in df.columns: df["species"] = df["species"].astype(str)
 if "speciesColorHex" in df.columns: df["speciesColorHex"] = df["speciesColorHex"].astype(str)
 if "management_status" in df.columns: df["management_status"] = df["management_status"].astype(str)
@@ -228,9 +222,10 @@ def _ensure_all_categories(sub_counts: pd.DataFrame, hue_col: str, categories: l
     sub["__error__"] = sub_counts["__error__"].iloc[0] if ("__error__" in sub_counts.columns and not sub_counts.empty) else False
     return sub
 
-# ========== BY CATEGORY (bars – pro Tree count) ==========
+# ========== BY CATEGORY (bars) ==========
 def render_triple_by_category(df_all: pd.DataFrame, y_col: str, y_stats: str, color_mode: str, stacked: bool):
-    """Kategorie na X; sloupce – Count nebo další agregace (používáme pro Tree count)."""
+    """Note: stacking/grouping has no visual effect here because each category is its own X tick,
+    but we keep the toggle for UI consistency."""
     hue_col, categories, color_map, title_suffix = _hue_setup(df_all, color_mode)
     if not categories:
         st.info("No categories found for the selected color mode.")
@@ -254,7 +249,7 @@ def render_triple_by_category(df_all: pd.DataFrame, y_col: str, y_stats: str, co
     fig = make_subplots(
         rows=1, cols=3,
         shared_yaxes=True,
-        subplot_titles=("Before", "After", "Removed"),
+        subplot_titles=(f"Before {title_suffix}", f"After {title_suffix}", f"Removed {title_suffix}"),
         horizontal_spacing=0.06
     )
 
@@ -296,9 +291,9 @@ def render_triple_by_category(df_all: pd.DataFrame, y_col: str, y_stats: str, co
     fig.update_yaxes(title_text=None,    row=1, col=2, tick0=0, range=[0, y_upper])
     fig.update_yaxes(title_text=None,    row=1, col=3, tick0=0, range=[0, y_upper])
 
-    st.plotly_chart(fig, use_container_width=True, key=f"category_{get_uid()}")
+    st.plotly_chart(fig, use_container_width=True)
 
-# ========== BY DBH / HEIGHT CLASS (bars – pro Tree count) ==========
+# ========== BY DBH / HEIGHT CLASS (stacked/grouped) ==========
 def _panel_y_upper_for_long(long_df: pd.DataFrame, stacked: bool) -> float:
     if long_df is None or long_df.empty:
         return 0.0
@@ -354,30 +349,24 @@ def render_triple_by_class(df_all: pd.DataFrame,
     fig = make_subplots(
         rows=1, cols=3,
         shared_yaxes=True,
-        subplot_titles=(
-            getattr(st.session_state, "Before", "Before"),
-            getattr(st.session_state, "After", "After"),
-            getattr(st.session_state, "Removed", "Removed")
-        ),
+        subplot_titles=(st.session_state.Before, st.session_state.After, st.session_state.Removed),
         horizontal_spacing=0.06
     )
 
-    # volitelný styling titulků, pokud máš v session_state definovaný font
-    if "plot_title_font" in st.session_state:
-        fig.update_layout(
-            annotations=[
-                dict(
-                    text=ann.text,
-                    x=ann.x,
-                    y=ann.y,
-                    xref=ann.xref,
-                    yref=ann.yref,
-                    showarrow=False,
-                    font=st.session_state.plot_title_font
-                )
-                for ann in fig.layout.annotations
-            ]
-        )
+    fig.update_layout(
+    annotations=[
+        dict(
+            text=ann.text, 
+            x=ann.x, 
+            y=ann.y, 
+            xref=ann.xref, 
+            yref=ann.yref,
+            showarrow=False,
+            font=st.session_state.plot_title_font
+            )
+        for ann in fig.layout.annotations
+        ]
+    )
 
     # traces
     def add_panel_traces(long_df: pd.DataFrame, col: int, show_legend_for: set[str]):
@@ -423,316 +412,154 @@ def render_triple_by_class(df_all: pd.DataFrame,
     fig.update_yaxes(title_text=None, row=1, col=2, tick0=0, range=[0, y_upper])
     fig.update_yaxes(title_text=None, row=1, col=3, tick0=0, range=[0, y_upper])
 
-    st.plotly_chart(fig, use_container_width=True, key=f"class_{get_uid()}")
-
-# ========== TRIPLE VIOLIN PLOT (pro všechny metriky kromě Tree count) ==========
-def render_triple_violin(df_all: pd.DataFrame, value_col: str, color_mode: str):
-    if value_col not in df_all.columns:
-        st.warning(f"Missing column '{value_col}'.")
-        return
-
-    hue_col, categories, color_map, title_suffix = _hue_setup(df_all, color_mode)
-    if not categories:
-        st.info("No categories found for selected color mode.")
-        return
-
-    def _clean_numeric(s: pd.Series) -> pd.Series:
-        return pd.to_numeric(s, errors="coerce")
-
-    panels = [
-        (df_all,               "Before"),
-        (df_all[mask_after],   "After"),
-        (df_all[mask_removed], "Removed"),
-    ]
-
-    fig = make_subplots(
-        rows=1, cols=3,
-        shared_yaxes=True,
-        subplot_titles=[p[1] for p in panels],
-        horizontal_spacing=0.06
-    )
-
-    max_val = 0
-    for col_idx, (sub, title) in enumerate(panels, start=1):
-        if sub.empty:
-            continue
-
-        sub = sub.copy()
-        sub[hue_col] = sub[hue_col].astype(str)
-        sub[value_col] = _clean_numeric(sub[value_col])
-        sub = sub.dropna(subset=[value_col])
-
-        for cat in categories:
-            vals = sub.loc[sub[hue_col] == cat, value_col].dropna()
-            if vals.empty:
-                continue
-
-            max_val = max(max_val, float(vals.max()))
-
-            fig.add_trace(go.Violin(
-                x=[cat] * len(vals),
-                y=vals,
-                name=str(cat),
-                legendgroup=str(cat),
-                line_color="black",
-                line_width=1,
-                fillcolor=color_map.get(cat, "#AAAAAA"),
-                opacity=0.7,
-                box_visible=True,
-                meanline_visible=True,
-                points=False,           # <<< odstranění bodů mimo violin
-                showlegend=(col_idx == 1),
-                hovertemplate=f"{hue_col}: {cat}<br>{value_col}: %{{y:.2f}}<extra></extra>"
-            ), row=1, col=col_idx)
-
-    fig.update_layout(
-        height=CHART_HEIGHT,
-        margin=dict(l=10, r=10, t=60, b=80),
-        legend=dict(
-            orientation="h",
-            yanchor="top",
-            y=-0.3,
-            xanchor="center",
-            x=0.5
-        )
-    )
-
-    y_upper = _y_upper_nice(max_val)
-    fig.update_yaxes(title_text=value_col, row=1, col=1, range=[0, y_upper])
-    fig.update_yaxes(title_text=None, row=1, col=2, range=[0, y_upper])
-    fig.update_yaxes(title_text=None, row=1, col=3, range=[0, y_upper])
-
-    st.plotly_chart(fig, use_container_width=True, key=f"violin_{get_uid()}")
+    st.plotly_chart(fig, use_container_width=True)
 
 # ========== UI ==========
-
-# Mapování názvů v UI -> sloupců v datech
-VALUE_TREE_COUNT = "Tree count"
-value_mapping = {
-    VALUE_TREE_COUNT: None,  # speciální hodnota (Count)
-    "DBH": "dbh",
-    "BA": "BasalArea_m2",
-    "Volume": "Volume_m3",
-    "tree height": "height",
-    "crown base height": "crown_base_height",
-    "crown centroid height": "crown_centroid_height",
-    "crown lenght": "crown_length",
-    "crown diameter": "crown_diameter",
-    "crown volume": "crown_volume",
-    "crown surface": "crown_surface",
-    "crown projected area": "crown_projected_area",
-}
-
-# dostupné volby podle toho, co je v datech
-value_options = []
-for label, col in value_mapping.items():
-    if label == VALUE_TREE_COUNT:
-        value_options.append(label)
-    else:
-        if col in df.columns:
-            value_options.append(label)
-
-# "Plot by"
 by_category = "Category"
 by_dbh = "DBH"
 by_height = "Height"
 mode_options = [by_dbh, by_height, by_category]
 
-# Defaultní bin velikosti (fixní, třídy jsou stále po pevné šířce)
-DBH_BIN_DEFAULT = 5.0   # cm
-H_BIN_DEFAULT   = 2.0   # m
+avail_cols = [c for c in df.columns if c not in exclude_list]
+avail_stats = ["Count","Sum","Mean","Median","Max","Min"]
 
-color_mode_default = colorBySpp
+# DBH bin sizes [cm] and Height bin sizes [m]
+dbh_bins = [5, 10, 20]
+h_bins = [2, 5, 10]
 
-# Sloupce pro layout
 c_left, c_left_empty, c_mid, c_right_empty, c_right = st.columns([3, 1, 4, 1, 3])
 
-# --- LEFT: výběr proměnné ---
 with c_left:
-    default_index = 0
-    if VALUE_TREE_COUNT in value_options:
-        default_index = value_options.index(VALUE_TREE_COUNT)
-    y_label = st.selectbox(
-        "**Values to plot:**",
-        options=value_options,
-        index=default_index,
-        help=(
-            "Choose variable to display:\n"
-            "- **Tree count** is plotted as barblot.\n"
-            "- Other variables are showed as violin plot."
-        )
+    y_col = st.selectbox(
+        "**Select Values to Plot:**",
+        options=avail_cols, index=0,
+        help="Choose the column to aggregate on Y-axis (e.g., Volume_m3, CrownWidth, etc.). "
+             "Text columns can only be used with 'Count'."
+    )
+    y_stats = st.selectbox(
+        "**How to Plot (Y statistic):**",
+        options=avail_stats, index=0,
+        help="Pick the descriptive statistic for Y-axis: "
+             "• Count = number of rows • Sum/Mean/Median/Max/Min = numeric-only. "
+             "If a non-numeric column is selected for these, you'll see a warning."
     )
 
-# --- MID: Plot by + Color by + Stacked ---
 with c_mid:
-    is_tree_count = (y_label == VALUE_TREE_COUNT)
-
-    if is_tree_count:
-        x_mode = st.segmented_control(
-            "**Plot by:**",
-            options=mode_options,
-            default=by_dbh,
-            width="stretch",
-            help=(
-                "Show tree count according to:\n"
-                "- **DBH** class\n"
-                "- **Height** class\n"
-                "- **Category** (Species/Management)."
-            )
-        )
-    else:
-        # pro ostatní proměnné je graf vždy podle kategorie, DBH/Height jsou jen vizuálně „zakázané“
-        x_mode = by_category
-        st.segmented_control(
-            "**Plot by:**",
-            options=[by_category],
-            default=by_category,
-            disabled=True,
-            width="stretch",
-            help="For selected variable only display by Category is allowed."
-        )
-
+    x_mode = st.segmented_control(
+        "**Plot by:**",
+        options=mode_options, default=by_dbh, width = "stretch",
+        help="Choose the X-axis structure: "
+             "• DBH = distribution by diameter classes • Height = distribution by height classes • Category = totals per category."
+    )
     color_mode = st.segmented_control(
         "**Color by:**",
-        options=[colorBySpp, colorByMgmt],
-        default=color_mode_default,
-        width="stretch",
-        help="Select Category (Species / Management) to color plots by."
+        options=[colorBySpp, colorByMgmt], default=colorBySpp, width = "stretch",
+        help="Controls coloring AND grouping"
     )
-
-    # Stacked dává smysl hlavně pro barploty (Tree count)
     stacked = st.toggle(
         "**Stacked bars**",
         value=True,
-        help=(
-            "Only for Tree count, switch between stacked and grouped mode."
-        )
-    ) if is_tree_count else False
+        help="Switch between stacked and grouped bars. "
+             "While stacked mode shows also 'Count'/'Sum' in class, grouped is better for direct comparison of categories. "
+             "For 'Mean', 'Median', 'Max' and 'Min' is strongly suggested to disable stacked mode."
+    )
 
-# --- RIGHT: DBH / Height filtry ---
-# --- RIGHT: DBH / Height filtry ---
 with c_right:
+    bin_size = st.select_slider(
+        "**DBH class range [cm]**",
+        options=dbh_bins, value=10,
+        help="Class width for DBH histograms (only used when 'Plot by' = DBH)."
+    )
+    bin_size_h = st.select_slider(
+        "**Height class range [m]**",
+        options=h_bins, value=5,
+        help="Class width for Height histograms (only used when 'Plot by' = Height)."
+    )
 
-    if is_tree_count:
-        # -----------------------------
-        # CLASS RANGE (Tree count ONLY)
-        # -----------------------------
+# --- Render by mode ---
+if x_mode == by_category:
+    render_triple_by_category(df, y_col, y_stats, color_mode, stacked)
 
-        dbh_bins = [5, 10, 20]
-        h_bins = [2, 5, 10]
+elif x_mode == by_dbh:
+    render_triple_by_class(df_all=df, value_col="dbh", bin_size=float(bin_size), unit_label="cm",
+                           color_mode=color_mode, y_col=y_col, y_stats=y_stats, stacked=stacked)
 
-        bin_size = st.select_slider(
-            "**DBH class range [cm]**",
-            options=dbh_bins,
-            value=10,
-            help="Width of DBH bands."
-        )
-        bin_size_h = st.select_slider(
-            "**Height class range [m]**",
-            options=h_bins,
-            value=5,
-            help="Width of Height bands."
-        )
+else:  # by_height
+    render_triple_by_class(df_all=df, value_col="height", bin_size=float(bin_size_h), unit_label="m",
+                           color_mode=color_mode, y_col=y_col, y_stats=y_stats, stacked=stacked)
 
-        dbh_range = None
-        height_range = None
+# --- See help ---
+with st.expander("See help"):
+    st.markdown("""
+## How to use this interface
 
-    else:
-        # ---------------------------------
-        # MIN–MAX FILTER (NON Tree count)
-        # ---------------------------------
+### 1) Select Values to Plot
+Choose the **data column** that will be aggregated on the **Y-axis**.  
+- Examples: `Volume_m3`, `BasalArea_m2`, `CrownWidth`, etc.  
+- Text columns are allowed only with **Count**.
 
-        # DBH FILTER
-        if "dbh" in df.columns:
-            dbh_vals = pd.to_numeric(df["dbh"], errors="coerce").dropna()
-            if not dbh_vals.empty:
-                min_dbh = int(np.floor(dbh_vals.min()))
-                max_dbh = int(np.ceil(dbh_vals.max()))
+### 2) How to Plot (Y statistic)
+Pick a **descriptive statistic** for the Y-axis:
+- **Count**: number of records (works for any column).
+- **Sum / Mean / Median / Max / Min**: require a **numeric** (or boolean) column.
+  - If you pick a non-numeric column here, you'll see a warning like:
+    - *“Cannot sum non-numeric variable 'species'.”*
+  - Tip: If your numeric column contains text placeholders (e.g., `"NA"`), they are treated as missing.
 
-                dbh_range = st.slider(
-                    "**DBH filter [cm]**",
-                    min_value=min_dbh,
-                    max_value=max_dbh,
-                    value=(min_dbh, max_dbh),
-                    step=1,
-                    help="Filter trees by DBH."
-                )
-            else:
-                dbh_range = None
-        else:
-            dbh_range = None
+### 3) Plot by
+Defines the **X-axis**:
+- **DBH**: histogram-like bars by **DBH classes** (in cm). Uses *DBH class range*.
+- **Height**: histogram-like bars by **height classes** (in m). Uses *Height class range*.
+- **Category**: one bar **per category** (Species or Management), i.e., totals by group.
 
-        # HEIGHT FILTER
-        if "height" in df.columns:
-            h_vals = pd.to_numeric(df["height"], errors="coerce").dropna()
-            if not h_vals.empty:
-                min_h = int(np.floor(h_vals.min()))
-                max_h = int(np.ceil(h_vals.max()))
+Each mode always shows three panels:
+- **Before** (all trees),
+- **After** (Target tree + Untouched),
+- **Removed** (all the remaining trees).
 
-                height_range = st.slider(
-                    "**Height filter [m]**",
-                    min_value=min_h,
-                    max_value=max_h,
-                    value=(min_h, max_h),
-                    step=1,
-                    help="Filter trees by height."
-                )
-            else:
-                height_range = None
-        else:
-            height_range = None
+### 4) Color by
+Controls **both coloring and grouping**:
+- **Tree Species**: groups by `species` and uses `speciesColorHex`.
+- **Tree Management**: groups by `management_status` and uses `managementColorHex`.
+If a color is missing for a category, a neutral gray `#AAAAAA` is used.
 
-        bin_size = None
-        bin_size_h = None
+### 5) Stacked bars
+- **ON (stacked)**: categories are summed within each X-bin.  
+  - Great for totals; the Y-axis top is derived from **bin sums**.
+- **OFF (grouped)**: categories are side-by-side within each X-bin.  
+  - Best for **Max** or direct category comparison; the Y-axis top is derived from **max single bar**.
 
-# --- aplikace filtrů na data ---
-df_filt = df.copy()
+### 6) Class ranges
+- **DBH class range [cm]**: width of DBH bins. Smaller bins show finer structure but may be noisy.
+- **Height class range [m]**: width of height bins. Same trade-offs.
 
-# DBH filter
-if dbh_range is not None and "dbh" in df_filt.columns:
-    vals = pd.to_numeric(df_filt["dbh"], errors="coerce")
-    df_filt = df_filt[(vals >= dbh_range[0]) & (vals <= dbh_range[1])]
+---
 
-# Height filter
-if height_range is not None and "height" in df_filt.columns:
-    vals_h = pd.to_numeric(df_filt["height"], errors="coerce")
-    df_filt = df_filt[(vals_h >= height_range[0]) & (vals_h <= height_range[1])]
+## Best practices & examples
 
-# --- Render podle vybrané proměnné a režimu ---
-if df_filt.empty:
-    st.info("No data after applying DBH/Height filters.")
-else:
-    if is_tree_count:
-        y_stats = "Count"
-        dummy_y_col = "dbh"
+- Want species composition by **volume** in the managed stand?  
+  **Color by** = *Tree Species*, **Plot by** = *DBH* or *Height*, **How to Plot** = *Sum*, **Select Values** = *Volume_m3*, then toggle **Stacked** as desired.
 
-        if x_mode == by_category:
-            render_triple_by_category(df_filt, dummy_y_col, y_stats, color_mode, stacked)
+- Compare **Max height** per management category:  
+  **Color by** = *Tree Management*, **Plot by** = *Height*, **How to Plot** = *Max*, **Select Values** = *height*, set **Stacked** = OFF (grouped) to see per-category peaks.
 
-        elif x_mode == by_dbh:
-            render_triple_by_class(
-                df_all=df_filt,
-                value_col="dbh",
-                bin_size=bin_size,
-                unit_label="cm",
-                color_mode=color_mode,
-                y_col=dummy_y_col,
-                y_stats=y_stats,
-                stacked=stacked
-            )
+- Count of trees by DBH class and species:  
+  **How to Plot** = *Count*, **Plot by** = *DBH*, **Color by** = *Tree Species*. Works regardless of column types.
 
-        else:  # by_height
-            render_triple_by_class(
-                df_all=df_filt,
-                value_col="height",
-                bin_size=bin_size_h,
-                unit_label="m",
-                color_mode=color_mode,
-                y_col=dummy_y_col,
-                y_stats=y_stats,
-                stacked=stacked
-            )
+---
 
-    else:
-        metric_col = value_mapping[y_label]
-        render_triple_violin(df_all=df_filt, value_col=metric_col, color_mode=color_mode)
+## Troubleshooting
+
+- **Empty chart / very low bars**: check that your **class ranges** make sense (too narrow bins can be sparse).
+- **Warning “Cannot … non-numeric variable”**: change **How to Plot** to **Count** or pick a **numeric** column in **Select Values**.
+- **Colors look the same**: ensure the data contains `speciesColorHex` / `managementColorHex` for all categories; otherwise a default gray is used.
+- **Removed panel is empty**: verify that `management_status` is present and that some trees are actually outside `Target tree` / `Untouched`.
+
+---
+
+## Notes
+
+- Booleans count as numeric for statistics (e.g., Sum = count of `True`).
+- In **Category** mode, the *Stacked* toggle is kept for consistency but has no visible effect (each category is its own X tick).
+- Y-axis scaling adapts to **Stacked** vs **Grouped** automatically to keep bars readable.
+""")
