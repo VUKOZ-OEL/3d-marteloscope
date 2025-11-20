@@ -2,12 +2,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import math
-import plotly.express as px
-import src.io_utils as iou
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-from typing import Dict, List, Union
-import json
+
 
 print("summary")
 print(st.session_state.trees["speciesColorHex"])
@@ -17,7 +14,7 @@ plot_info = st.session_state.plot_info
 df: pd.DataFrame = st.session_state.trees.copy()
 
 # ---------- HLAVIČKA ----------
-st.markdown(f"### Plot summary:")
+st.markdown("### Plot summary:")
 
 # ---------- SPOLEČNÉ ----------
 CHART_HEIGHT = 360
@@ -25,8 +22,8 @@ Before = st.session_state.Before
 After = st.session_state.After
 Removed = st.session_state.Removed
 
-colorBySpp = "Species"
-colorByMgmt = "Management"
+colorBySpp = st.session_state.Species
+colorByMgmt = st.session_state.Management
 
 df = df.copy()
 
@@ -110,7 +107,7 @@ def _y_upper_for(df_all: pd.DataFrame, value_col: str, bins: np.ndarray, labels:
     return int(max(10, np.ceil(vc.max() / 10.0) * 10))
 
 # ---------- OVLÁDÁNÍ ----------
-c1, c2, c3, c4, c5, c6, c7 = st.columns([0.5,4,0.25,2,0.25,2,1])
+c1, c2, c3, c4, c5, c6, c7 = st.columns([1,3,0.25,3,0.25,2,1])
 
 with c2:
     dist_mode = st.segmented_control(
@@ -159,8 +156,6 @@ def render_three_panel_with_shared_legend(df_all: pd.DataFrame, df_sub: pd.DataF
                                           y_title: str, unit_suffix: str, pie_value_label: str):
 
     # --- Nastavení hue / kategorií / barev
-    colorBySpp = "Species"
-    colorByMgmt = "Management"
     if color_mode == colorByMgmt:
         hue_col = "management_status"
         if hue_col in df_all.columns:
@@ -380,7 +375,7 @@ def render_three_panel_with_shared_legend(df_all: pd.DataFrame, df_sub: pd.DataF
         fig.update_yaxes(title_text=y_title, row=1, col=2, range=[0, dbh_y_upper])
         fig.update_yaxes(title_text=None,   row=1, col=3, range=[0, h_y_upper])
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 # RENDER PLOTS
 render_three_panel_with_shared_legend(

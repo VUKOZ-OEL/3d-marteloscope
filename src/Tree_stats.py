@@ -14,6 +14,10 @@ def get_uid():
     st.session_state.plot_uid += 1
     return st.session_state.plot_uid
 
+# --- colors & categories by mode ---
+colorBySpp = st.session_state.Species
+colorByMgmt = st.session_state.Management
+
 st.markdown("### Explore tree statistics:")
 
 # --- Data ---
@@ -68,9 +72,7 @@ def _make_bins_labels(df_all: pd.DataFrame, value_col: str, bin_size: float, uni
     labels = [f"{int(b)}–{int(b + bin_size)} {unit_label}" for b in bins[:-1]]
     return bins, labels
 
-# --- colors & categories by mode ---
-colorBySpp  = "Tree Species"
-colorByMgmt = "Tree Management"
+
 
 def _species_categories_and_colors(df_all: pd.DataFrame):
     if "species" not in df_all.columns:

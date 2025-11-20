@@ -42,10 +42,12 @@ if not st.session_state.get("data_initialized"):
     st.session_state.data_initialized = True
 
 # Define common labels:
-st.session_state.Before = "Original Stand"
-st.session_state.After = "Managed Stand"
-st.session_state.Removed = "Removed from Stand"
+st.session_state.Before = "Before Cut"
+st.session_state.After = "After Cut"
+st.session_state.Removed = "Harvested"
 
+st.session_state.Management = "Cutting purpose"
+st.session_state.Species = "Species"
 
 st.session_state.plot_title_font = dict(size=18, color="#33343f", weight="bold")
 
@@ -53,19 +55,22 @@ pages = {
     "Main": [
         dash_page,
     ],
-    "Results:": [
+    "Basic Results:": [
         summary_page,
+        map_page,
+        heatmap_page,
         tree_page,
+
+    ],
+    "Expert Results": [
         canopy_page,
         space_page,
         light_page,
-        heatmap_page,
-        map_page,
-        att_page,
+        #att_page,
         #analytics_page,
     ],
-    "Future Outlook": [
-        simul_page,
+    "Growt Simulation": [
+                simul_page,
         simul_detail_page,
     ],
     "Settings":[

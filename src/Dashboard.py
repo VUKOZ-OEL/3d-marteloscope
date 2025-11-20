@@ -1,13 +1,7 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import math
-import plotly.express as px
-import src.io_utils as iou
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
-from typing import Dict, List, Union
-import json
+
+
 
 # ---------- DATA ----------
 
@@ -53,7 +47,6 @@ with c2:
     st.markdown("#####")
     st.selectbox("**Management examples:**",["some example","another"])
     st.button("**Load example**", icon=":material/model_training:")
-    st.markdown("#####")
     st.divider()
     st.markdown("##### Project controls:")
     st.button("Export results",icon=":material/file_save:")
