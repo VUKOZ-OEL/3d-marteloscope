@@ -168,7 +168,6 @@ with c4:
     )
 
 
-
 # ---------- READ CURRENT FILTER VALUES FROM SESSION ----------
 species_sel = st.session_state.get("species_sel", sp_all if sp_all else ["(none)"])
 mgmt_sel = st.session_state.get("mgmt_sel", mg_all if mg_all else ["(none)"])
@@ -373,7 +372,7 @@ fig.add_shape(
     y0=yg - R,
     y1=yg + R,
     line=dict(width=0),
-    fillcolor="rgba(68, 68, 68, 0.90)",
+    fillcolor="#06402B",
 )
 fig.add_shape(
     type="circle",
@@ -384,7 +383,7 @@ fig.add_shape(
     y0=yr - r,
     y1=yr + r,
     line=dict(width=0),
-    fillcolor="rgba(135, 206, 235, 1.0)",
+    fillcolor="#87CEEB",
 )
 
 fig.add_annotation(
@@ -476,9 +475,7 @@ else:
     # Species
     if not df_focal.empty and "light_avail_adj" in df_focal.columns:
         if "species" in df_focal.columns:
-            for sp in (
-                df_focal["species"].astype(str).dropna().unique().tolist()
-            ):
+            for sp in df_focal["species"].astype(str).dropna().unique().tolist():
                 vals = (
                     df_focal.loc[
                         df_focal["species"].astype(str) == sp, "light_avail_adj"
@@ -538,9 +535,7 @@ else:
     # Axes formatting for violins
     for c in (2, 3):
         fig.update_xaxes(title_text=None, tickangle=45, row=1, col=c)
-        fig.update_yaxes(
-            title_text="Available light [%]", range=[0, 100], row=1, col=c
-        )
+        fig.update_yaxes(title_text="Available light [%]", range=[0, 100], row=1, col=c)
 
 # Layout
 fig.update_layout(height=460, margin=dict(l=10, r=10, t=60, b=40))

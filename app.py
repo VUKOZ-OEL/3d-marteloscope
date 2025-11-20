@@ -28,7 +28,7 @@ light_page = st.Page(
 )
 heatmap_page = st.Page("src/Heatmaps.py", title="Heatmaps", icon=":material/blur_on:")
 intensity_page = st.Page(
-    "src/Intensity.py", title="Management Intensity", icon=":material/percent:"
+    "src/Intensity.py", title="Intensity", icon=":material/percent:"
 )
 
 # Map, Att tab, pygpage
