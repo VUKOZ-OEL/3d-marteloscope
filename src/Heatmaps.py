@@ -31,6 +31,14 @@ CHART_HEIGHT = 420
 HEATMAP_NBINS = 50
 keep_status = {"Target tree", "Untouched"}
 
+# ---------- INTERNÍ KLÍČE (STÁLÉ, NEZÁVISLÉ NA TEXTECH) ----------
+FILTER_BEFORE = "before"
+FILTER_AFTER = "after"
+FILTER_REMOVED = "removed"
+
+COLOR_SPP = st.session_state.Species
+COLOR_MGMT = st.session_state.Management
+
 
 # ---------- HELPERS ----------
 def _is_numeric_like(s: pd.Series) -> bool:
@@ -153,10 +161,11 @@ with c6:
         height_range = None
 
 with c8:
-    show_targets = st.toggle(
-        "Show **Target trees**",
-        value=False,
-        help="Přidá polohy všech 'Target tree' přes každou heatmapu.",
+    color_mode = st.segmented_control(
+        "**Show Tree Positions colored by:**",
+        options=["None", COLOR_SPP, COLOR_MGMT],
+        default="None",
+        width="stretch",
     )
 
 # ---------- PLACEHOLDER FOR PLOTS ----------
