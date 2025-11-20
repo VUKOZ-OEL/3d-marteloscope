@@ -49,22 +49,12 @@ with c1:
 with c2:
     dbh_vals = df0["dbh"].dropna()
     dbh_min, dbh_max = float(dbh_vals.min()), float(dbh_vals.max())
-    dbh_range = st.slider(
-        "DBH filter (cm)",
-        dbh_min,
-        dbh_max,
-        (dbh_min, dbh_max),
-    )
+    dbh_range = st.slider("DBH filter (cm)", dbh_min, dbh_max, (dbh_min, dbh_max))
 
 with c3:
     h_vals = df0["height"].dropna()
     h_min, h_max = float(h_vals.min()), float(h_vals.max())
-    height_range = st.slider(
-        "Height filter (m)",
-        h_min,
-        h_max,
-        (h_min, h_max),
-    )
+    height_range = st.slider("Height filter (m)", h_min, h_max, (h_min, h_max))
 
 with c4:
     group_by = st.segmented_control(
@@ -116,7 +106,7 @@ else:
     df[color_col] = df[color_col].fillna("#AAAAAA").astype(str)
 
 # ------------------------------------------------------------
-# PIVOTS (NEJPRVE "FULL" – bez ořezání stack skupin)
+# PIVOTS (FULL)
 # ------------------------------------------------------------
 pivot_total_all = df.pivot_table(
     index=main_group,
@@ -134,33 +124,27 @@ pivot_removed_all = df[df["is_removed"]].pivot_table(
     fill_value=0.0,
 )
 
-# hlavní skupiny pro osu Y
+# hlavní skupiny
 if group_by == "Species":
     all_main_groups = sorted(pivot_total_all.index.tolist())
 else:
-    # u Cutting purpose nezahrnujeme Untouched + Target tree
-    all_main_groups = sorted(
-        [g for g in pivot_total_all.index.tolist() if g not in keep_status]
-    )
+    all_main_groups = sorted([g for g in pivot_total_all.index if g not in keep_status])
 
-# stack skupiny (co má být vidět ve stacku)
+# stack skupiny
 if group_by == "Species":
-    # stack = cutting purposes, bez Untouched/Target
     stack_groups = [
         c
         for c in pivot_total_all.columns
         if c not in keep_status and pivot_total_all[c].sum() > 0
     ]
 else:
-    # stack = species, všechny s nenulovou hodnotou
     stack_groups = [c for c in pivot_total_all.columns if pivot_total_all[c].sum() > 0]
 
-# PIVOT TOTAL – bezpečná reindexace
+# bezpečné pivoty pro vybrané skupiny
 pivot_total = pivot_total_all.reindex(
     index=all_main_groups, columns=stack_groups, fill_value=0.0
 )
 
-# PIVOT REMOVED – bezpečná reindexace bez KeyError
 pivot_removed = pivot_removed_all.reindex(
     index=all_main_groups, columns=stack_groups, fill_value=0.0
 )
@@ -169,34 +153,24 @@ pivot_removed = pivot_removed_all.reindex(
 # PROCENTA
 # ------------------------------------------------------------
 total_all = float(pivot_total_all.values.sum())
-removed_all = float(pivot_removed_all.values.sum())
 
 if total_all > 0:
     pct_from_total = pivot_removed / total_all * 100.0
 else:
     pct_from_total = pivot_removed * 0.0
 
-# pro inside-group intensity: jmenovatel = celková hodnota skupiny (vč. všecho)
-group_sums = pivot_total_all.reindex(all_main_groups, fill_value=0.0).sum(axis=1)
+# pro inside-group intensity
+group_sums = pivot_total_all.reindex(all_main_groups).sum(axis=1)
 group_sums_safe = group_sums.replace(0.0, np.nan)
-
-if not pivot_removed.empty:
-    pct_in_group = pivot_removed.div(group_sums_safe, axis=0) * 100.0
-    pct_in_group = pct_in_group.fillna(0.0)
-else:
-    pct_in_group = pd.DataFrame(0.0, index=all_main_groups, columns=[])
+pct_in_group = (pivot_removed.div(group_sums_safe, axis=0) * 100.0).fillna(0.0)
 
 # ------------------------------------------------------------
-# TOTAL řádek (stackovaný sloupec)
+# TOTAL řádek (Sum)
 # ------------------------------------------------------------
-# pro TOTAL chceme také rozpad podle stack_group, ale za celý porost
 if len(stack_groups) and total_all > 0:
-    # total_row_stack = pivot_removed_all[stack_groups].sum(axis=0) / total_all * 100.0
     total_row_stack = (
         pivot_removed_all.reindex(
-            index=pivot_total_all.index,  # bezpečný existující index
-            columns=stack_groups,  # VŠECHNY stack skupiny
-            fill_value=0.0,
+            index=pivot_total_all.index, columns=stack_groups, fill_value=0.0
         ).sum(axis=0)
         / total_all
         * 100.0
@@ -204,13 +178,11 @@ if len(stack_groups) and total_all > 0:
 else:
     total_row_stack = pd.Series(0.0, index=stack_groups)
 
-# rozšířená tabulka pro levý graf (přidáme řádek "TOTAL")
 pct_from_total_plot = pct_from_total.copy()
-pct_from_total_plot.loc["TOTAL"] = total_row_stack
+pct_from_total_plot.loc["Sum"] = total_row_stack
 
-# summary intenzita = součet segmentů ve sloupci TOTAL (nemůže >100 %)
-summary_intensity = float(pct_from_total_plot.loc["TOTAL"].sum())
-summary_title = f"Total management intensity: {summary_intensity:.1f} %"
+summary_intensity = pct_from_total_plot.loc["Sum"].sum()
+summary_title = f"Total Selection Intensity: {summary_intensity:.1f} %"
 
 # ------------------------------------------------------------
 # BARVY PRO STACK
@@ -218,28 +190,44 @@ summary_title = f"Total management intensity: {summary_intensity:.1f} %"
 stack_colors = {}
 for sg in stack_groups:
     row = df[df[stack_group] == sg]
-    if len(row):
-        stack_colors[sg] = row[color_col].iloc[0]
-    else:
-        stack_colors[sg] = "#777777"
-
-# fallback, kdyby nebyly žádné stack skupiny
-if not stack_groups:
-    stack_groups = []
-    stack_colors = {}
+    stack_colors[sg] = row[color_col].iloc[0] if len(row) else "#777777"
 
 # ------------------------------------------------------------
-# LAYOUT – DVA GRAFY VEDLE SEBE
+# LAYOUT – DVA GRAFY
 # ------------------------------------------------------------
 left, right = st.columns([1, 1])
 
 # ------------------------------------------------------------
-# GRAF 1 — REMOVAL FROM TOTAL (STACKED + TOTAL řádek)
+# 🔵 GRAF 1 — REMOVAL FROM TOTAL
 # ------------------------------------------------------------
 with left:
     fig1 = go.Figure()
 
+    # customdata: [Removed_abs, Total_abs] — Total = suma za skupinu
     for sg in stack_groups:
+        cd_rows = []
+        for g in pct_from_total_plot.index:
+            if g == "Sum":
+                # GLOBAL SUM
+                removed_val = pivot_removed_all.reindex(columns=[sg], fill_value=0.0)[
+                    sg
+                ].sum()
+                total_val = pivot_total_all.reindex(columns=[sg], fill_value=0.0)[
+                    sg
+                ].sum()
+            else:
+                # Konkrétní skupina
+                removed_val = pivot_removed_all.reindex(
+                    index=[g], columns=[sg], fill_value=0.0
+                ).iloc[0, 0]
+                # Total jako SUMA přes všechny stack groups v dané group
+                total_val = (
+                    pivot_total_all.reindex(index=[g], fill_value=0.0).loc[g, :].sum()
+                )
+            cd_rows.append([removed_val, total_val])
+
+        custom = np.array(cd_rows)
+
         fig1.add_trace(
             go.Bar(
                 y=pct_from_total_plot.index,
@@ -247,27 +235,46 @@ with left:
                 name=str(sg),
                 orientation="h",
                 marker_color=stack_colors[sg],
+                customdata=custom,
+                hovertemplate=(
+                    "Group: %{y}<br>"
+                    "Removed: %{customdata[0]:.1f}<br>"
+                    "Total: %{customdata[1]:.1f}<br>"
+                    "Percent: %{x:.1f}%<extra></extra>"
+                ),
             )
         )
 
     fig1.update_layout(
         height=400,
         barmode="stack",
-        title=summary_title,
-        xaxis_title="Removal (% of total)",
-        yaxis_title="Group",
+        title={"text": summary_title, "x": 0.5, "xanchor": "center"},
+        xaxis_title="Removal [%]",
+        yaxis_title="",
         legend_title="Legend",
     )
     fig1.update_xaxes(range=[0, 100])
     st.plotly_chart(fig1, use_container_width=True)
 
 # ------------------------------------------------------------
-# GRAF 2 — REMOVAL INSIDE GROUP (bez TOTAL řádku)
+# 🔵 GRAF 2 — INSIDE GROUP INTENSITY
 # ------------------------------------------------------------
 with right:
     fig2 = go.Figure()
 
     for sg in stack_groups:
+        cd_rows = []
+        for g in pct_in_group.index:
+            removed_val = pivot_removed_all.reindex(
+                index=[g], columns=[sg], fill_value=0.0
+            ).iloc[0, 0]
+            total_val = (
+                pivot_total_all.reindex(index=[g], fill_value=0.0).loc[g, :].sum()
+            )
+            cd_rows.append([removed_val, total_val])
+
+        custom = np.array(cd_rows)
+
         fig2.add_trace(
             go.Bar(
                 y=pct_in_group.index,
@@ -275,16 +282,27 @@ with right:
                 name=str(sg),
                 orientation="h",
                 marker_color=stack_colors[sg],
+                customdata=custom,
+                hovertemplate=(
+                    "Group: %{y}<br>"
+                    "Removed: %{customdata[0]:.1f}<br>"
+                    "Total: %{customdata[1]:.1f}<br>"
+                    "Percent: %{x:.1f}%<extra></extra>"
+                ),
             )
         )
 
     fig2.update_layout(
         height=400,
         barmode="stack",
-        title="Inside group intensity",
-        xaxis_title="Removal (% within group)",
-        yaxis_title="Group",
+        title={
+            "text": "Intensity of Selection in Group",
+            "x": 0.5,
+            "xanchor": "center",
+        },
+        xaxis_title="Removal [%]",
+        yaxis_title="",
         legend_title="Legend",
     )
-    fig1.update_xaxes(range=[0, 100])
+    fig2.update_xaxes(range=[0, 100])
     st.plotly_chart(fig2, use_container_width=True)
