@@ -1,8 +1,9 @@
 import pandas as pd
 import json
 import src.io_utils as iou
-import src.data_prep.species as spp
-import src.colors2json as c2j
+#import src.data_prep.species as spp
+#import src.colors2json as c2j
+import arrow
 
 def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
     import json
@@ -41,12 +42,38 @@ def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) ->
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json"
-out_file = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_mod.json"
+#file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json"
+#out_file = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_mod.json"
 settings_file = "C:/Users/krucek/Documents/GitHub/3d-marteloscope/settings_with_colors.json"
 
+file_path = "C:/Users/krucek/Documents/GitHub/3d-marteloscope/data/test_project.json"
+out_file = "C:/Users/krucek/Documents/GitHub/3d-marteloscope/data/test_project_with_polys.json"
 
+
+
+polys = pd.read_feather("C:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/planar_projections.feather")
 trees = iou.load_project_json(file_path)
+
+polys = polys.rename(columns={"geometry": "planar_projection_poly"})
+
+df_merged = trees.merge(
+    polys,
+    left_on="label",
+    right_on="file",
+    how="left"
+)
+
+
+write_json(file_path,df_merged,out_file)
+
+
+
+
+
+
+
+
+
 trees["volume"] = trees["Volume_m3"]
 trees["dbhPosition"] = trees["position"]
 trees["dbhPosition"] = trees["dbhPosition"].apply(
@@ -83,7 +110,7 @@ write_json(file_path,trees,out_file)
 file_path2 = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v10.json"
 out_file2 = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_v11.json"
 settings_file = "C:/Users/krucek/Documents/GitHub/3d-marteloscope/settings_with_colors.json"
-c2j.add_palettes(file_path2,out_file2,settings_file)
+#c2j.add_palettes(file_path2,out_file2,settings_file)
 
 
 
