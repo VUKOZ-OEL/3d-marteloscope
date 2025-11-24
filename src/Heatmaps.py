@@ -1,14 +1,6 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------
 # XY Heatmaps (Before | After | Removed)
-# Supports:
-# - DBH + Height filters
-# - Species + Management multi filters
-# - Weight column
-# - Overlay all trees (optional) with species/management colors
-# - Fixed coordinate range with 1 m buffer
-# - Square aspect ratio
-# - Correct legend for species/management
 # ------------------------------------------------------------
 
 import streamlit as st
@@ -30,12 +22,15 @@ st.markdown("### Heatmaps for selected Attribute")
 # LOAD + NORMALIZE DATA
 # ------------------------------------------------------------
 if "trees" not in st.session_state:
-    file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json"
+    file_path = (
+        "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/"
+        "SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json"
+    )
     st.session_state.trees = iou.load_project_json(file_path)
 
 df0 = st.session_state.trees.copy()
 
-# normalize XY so that min = 0
+# set min=0 for XY
 df0["x"] = df0["x"] - df0["x"].min()
 df0["y"] = df0["y"] - df0["y"].min()
 
@@ -43,7 +38,7 @@ df0["y"] = df0["y"] - df0["y"].min()
 # ------------------------------------------------------------
 # CONSTANTS
 # ------------------------------------------------------------
-CHART_HEIGHT = 420
+CHART_HEIGHT = 600
 HEATMAP_NBINS = 50
 keep_status = {"Target tree", "Untouched"}
 
@@ -70,7 +65,7 @@ def _normalize_list(lst):
     return [] if (not lst or "(none)" in lst) else lst
 
 
-# Gaussian smoothing helpers
+# smoothing helpers
 def _gaussian_kernel_1d(sigma_bins: float) -> np.ndarray:
     if sigma_bins <= 0 or not np.isfinite(sigma_bins):
         return np.array([1.0])
@@ -121,7 +116,7 @@ z_candidates = [c for c in df0.columns if c not in exclude]
 
 
 # ------------------------------------------------------------
-# UI — TOP CONTROLS
+# UI — TOP
 # ------------------------------------------------------------
 c1, c2, c3, c4, c5, c6, c7, c8 = st.columns([1, 4, 1, 4, 1, 4, 1, 4])
 
@@ -130,27 +125,21 @@ with c2:
 
 with c4:
     dbh_vals = _safe_num(df0["dbh"]).dropna()
-    if len(dbh_vals):
-        dbh_range = st.slider(
-            "**DBH filter [cm]**",
-            min_value=int(dbh_vals.min()),
-            max_value=int(dbh_vals.max()),
-            value=(int(dbh_vals.min()), int(dbh_vals.max())),
-        )
-    else:
-        dbh_range = None
+    dbh_range = st.slider(
+        "**DBH filter [cm]**",
+        int(dbh_vals.min()),
+        int(dbh_vals.max()),
+        (int(dbh_vals.min()), int(dbh_vals.max())),
+    )
 
 with c6:
     hvals = _safe_num(df0["height"]).dropna()
-    if len(hvals):
-        height_range = st.slider(
-            "**Height filter [m]**",
-            min_value=int(hvals.min()),
-            max_value=int(hvals.max()),
-            value=(int(hvals.min()), int(hvals.max())),
-        )
-    else:
-        height_range = None
+    height_range = st.slider(
+        "**Height filter [m]**",
+        int(hvals.min()),
+        int(hvals.max()),
+        (int(hvals.min()), int(hvals.max())),
+    )
 
 with c8:
     color_mode = st.segmented_control(
@@ -161,7 +150,7 @@ show_overlay = st.checkbox("**Show tree positions (small dots)**", value=True)
 
 
 # ------------------------------------------------------------
-# UI — BOTTOM FILTERS
+# UI — BOTTOM
 # ------------------------------------------------------------
 cA, cB = st.columns([2, 15])
 with cA:
@@ -186,36 +175,16 @@ mgmt_sel = _normalize_list(mgmt_sel)
 # ------------------------------------------------------------
 def _apply_filters(df):
     d = df.copy()
-
     if species_sel:
         d = d[d["species"].astype(str).isin(species_sel)]
-
     if mgmt_sel:
         d = d[d["management_status"].astype(str).isin(mgmt_sel)]
-
-    if dbh_range:
-        d = d[(d["dbh"] >= dbh_range[0]) & (d["dbh"] <= dbh_range[1])]
-
-    if height_range:
-        d = d[(d["height"] >= height_range[0]) & (d["height"] <= height_range[1])]
-
+    d = d[(d["dbh"] >= dbh_range[0]) & (d["dbh"] <= dbh_range[1])]
+    d = d[(d["height"] >= height_range[0]) & (d["height"] <= height_range[1])]
     return d
 
 
 df_f = _apply_filters(df0)
-
-
-# ------------------------------------------------------------
-# FIXED XY RANGE FROM FULL DATA + BUFFER
-# ------------------------------------------------------------
-buffer = 1.0
-x0 = _safe_num(df0["x"])
-y0 = _safe_num(df0["y"])
-
-xmin = float(x0.min()) - buffer
-xmax = float(x0.max()) + buffer
-ymin = float(y0.min()) - buffer
-ymax = float(y0.max()) + buffer
 
 
 # ------------------------------------------------------------
@@ -231,6 +200,29 @@ if not valid_xy.any():
 
 
 # ------------------------------------------------------------
+# XY RANGE FROM HEATMAP GRID (±1 m)
+# ------------------------------------------------------------
+buffer = 1.0
+
+x_edges = np.linspace(
+    float(df0["x"].min()),
+    float(df0["x"].max()),
+    HEATMAP_NBINS + 1,
+)
+
+y_edges = np.linspace(
+    float(df0["y"].min()),
+    float(df0["y"].max()),
+    HEATMAP_NBINS + 1,
+)
+
+xmin = x_edges[0] - buffer
+xmax = x_edges[-1] + buffer
+ymin = y_edges[0] - buffer
+ymax = y_edges[-1] + buffer
+
+
+# ------------------------------------------------------------
 # WEIGHTS
 # ------------------------------------------------------------
 if _is_numeric_like(df_f[z_col]):
@@ -242,7 +234,7 @@ else:
 
 
 # ------------------------------------------------------------
-# GRID
+# FINAL GRID FOR HISTOGRAM
 # ------------------------------------------------------------
 x_edges = np.linspace(xmin, xmax, HEATMAP_NBINS + 1)
 y_edges = np.linspace(ymin, ymax, HEATMAP_NBINS + 1)
@@ -265,37 +257,41 @@ def _panel(mask):
         H = np.full_like(Z, "No data", dtype=object)
         return Z, H
 
-    Z, _, _ = np.histogram2d(x_f[m], y_f[m], bins=[x_edges, y_edges], weights=w[m])
+    Z, _, _ = np.histogram2d(
+        x_f[m],
+        y_f[m],
+        bins=[x_edges, y_edges],
+        weights=w[m],
+    )
     Z = Z.T
 
+    # smoothing
     if m.sum() > 1:
         sigma = 3
         sx = sigma / bin_wx if bin_wx > 0 else 0
         sy = sigma / bin_wy if bin_wy > 0 else 0
         Z = _blur2d(Z, sx, sy)
 
+    # hover labels
     H = np.empty_like(Z, dtype=object)
     for iy in range(Z.shape[0]):
         for ix in range(Z.shape[1]):
             val = Z[iy, ix]
-            if colorbar_title == "Count":
-                H[iy, ix] = f"Count: {val:.0f}"
-            else:
-                H[iy, ix] = f"{colorbar_title}: {val:.2f}"
+            H[iy, ix] = (
+                f"{colorbar_title}: {val:.2f}"
+                if colorbar_title != "Count"
+                else f"Count: {val:.0f}"
+            )
 
     return Z, H
 
 
 # ------------------------------------------------------------
-# BEFORE / AFTER / REMOVED
+# COMPUTE PANELS
 # ------------------------------------------------------------
 m_before = pd.Series(True, index=df_f.index)
-
-if "management_status" in df_f:
-    m_after = df_f["management_status"].isin(keep_status)
-    m_removed = ~m_after
-else:
-    m_after = m_removed = pd.Series(False, index=df_f.index)
+m_after = df_f["management_status"].isin(keep_status)
+m_removed = ~m_after
 
 Zb, Hb = _panel(m_before)
 Za, Ha = _panel(m_after)
@@ -316,17 +312,20 @@ fig = make_subplots(
         st.session_state.Removed,
     ),
     specs=[[{"type": "heatmap"}] * 3],
-    horizontal_spacing=0.001,
+    horizontal_spacing=0.003,
 )
 
 
-# ------------------------------------------------------------
-# ADD HEATMAPS
-# ------------------------------------------------------------
+# add panels
 def _add(Z, H, col):
     fig.add_trace(
         go.Heatmap(
-            x=x_cent, y=y_cent, z=Z, text=H, hoverinfo="text", coloraxis="coloraxis"
+            x=x_cent,
+            y=y_cent,
+            z=Z,
+            text=H,
+            hoverinfo="text",
+            coloraxis="coloraxis",
         ),
         row=1,
         col=col,
@@ -339,13 +338,11 @@ _add(Zr, Hr, 3)
 
 
 # ------------------------------------------------------------
-# OVERLAY POINTS WITH PROPER LEGEND
+# OVERLAY POINTS
 # ------------------------------------------------------------
 if show_overlay:
     df_o = df_f.copy()
-    xo = _safe_num(df_o["x"])
-    yo = _safe_num(df_o["y"])
-    ok = xo.notna() & yo.notna()
+    ok = df_o["x"].notna() & df_o["y"].notna()
 
     if color_mode == COLOR_SPP:
         group_col = "species"
@@ -355,18 +352,14 @@ if show_overlay:
         color_col = "managementColorHex"
 
     valid_hex = re.compile(r"^#([0-9A-Fa-f]{6})$")
-    df_o[color_col] = df_o[color_col].astype(str)
     df_o[color_col] = df_o[color_col].where(
-        df_o[color_col].str.match(valid_hex), "#000000"
+        df_o[color_col].astype(str).str.match(valid_hex),
+        "#000000",
     )
 
     for category, sub in df_o[ok].groupby(group_col):
-        col = sub[color_col].iloc[0]
+        colvals = sub[color_col].tolist()
         for c in (1, 2, 3):
-            if c == 1:
-                show_legend = True
-            else:
-                show_legend = False
             fig.add_trace(
                 go.Scatter(
                     x=sub["x"],
@@ -374,12 +367,12 @@ if show_overlay:
                     mode="markers",
                     name=str(category),
                     hoverinfo="skip",
-                    showlegend=show_legend,
+                    showlegend=(c == 1),
                     marker=dict(
                         size=4,
-                        color=sub[color_col].tolist(),
+                        color=colvals,
                         opacity=0.9,
-                        line=dict(color="black", width=0.5),
+                        line=dict(width=0),
                     ),
                 ),
                 row=1,
@@ -388,7 +381,7 @@ if show_overlay:
 
 
 # ------------------------------------------------------------
-# FIX AXES (SQUARE + FIXED RANGE)
+# AXES — SQUARE PANELS
 # ------------------------------------------------------------
 for c in (1, 2, 3):
     fig.update_xaxes(
@@ -396,26 +389,51 @@ for c in (1, 2, 3):
         title="x [m]",
         row=1,
         col=c,
-        constrain="domain",
+        ticks="outside",
+        ticklen=4,
         showgrid=False,
     )
-    fig.update_yaxes(
-        range=[ymin, ymax],
-        title="y [m]" if c == 1 else None,
-        row=1,
-        col=c,
-        scaleanchor=f"x{c}",
-        scaleratio=1,
-        showgrid=False,
-    )
+
+    if c == 1:
+        fig.update_yaxes(
+            range=[ymin, ymax],
+            title="y [m]",
+            showgrid=False,
+            scaleanchor="x1",
+            scaleratio=1,
+            ticks="outside",
+            ticklen=4,
+            row=1,
+            col=c,
+        )
+    else:
+        fig.update_yaxes(
+            range=[ymin, ymax],
+            showticklabels=False,
+            ticks="",
+            title=None,
+            showgrid=False,
+            scaleanchor=f"x{c}",
+            scaleratio=1,
+            row=1,
+            col=c,
+        )
 
 
 # ------------------------------------------------------------
-# COLORBAR
+# LAYOUT
 # ------------------------------------------------------------
 fig.update_layout(
     height=CHART_HEIGHT,
-    margin=dict(l=4, r=4, t=50, b=90),
+    margin=dict(l=4, r=4, t=50, b=150),
+    legend=dict(
+        orientation="h",
+        x=0.5,
+        y=-0.15,
+        xanchor="center",
+        yanchor="top",
+        bgcolor="rgba(255,255,255,0.6)",
+    ),
     coloraxis=dict(
         colorscale=[
             (0.00, "#ffffff"),
@@ -426,14 +444,14 @@ fig.update_layout(
         cmin=0,
         cmax=zmax,
         colorbar=dict(
-            title=colorbar_title,
+            title=None,
             orientation="h",
             x=0.5,
             xanchor="center",
-            y=-0.25,
+            y=-0.23,
             yanchor="top",
-            thickness=10,
-            len=0.75,
+            thickness=12,
+            len=0.70,
         ),
     ),
 )

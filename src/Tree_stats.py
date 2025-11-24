@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import math
-import plotly.express as px
 import src.io_utils as iou
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
@@ -10,9 +9,11 @@ import plotly.graph_objects as go
 if "plot_uid" not in st.session_state:
     st.session_state.plot_uid = 0
 
+
 def get_uid():
     st.session_state.plot_uid += 1
     return st.session_state.plot_uid
+
 
 # --- colors & categories by mode ---
 colorBySpp = st.session_state.Species
@@ -22,7 +23,7 @@ st.markdown("### Explore tree statistics:")
 
 # --- Data ---
 if "trees" not in st.session_state:
-    file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json")
+    file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json"
     st.session_state.trees = iou.load_project_json(file_path)
 
 df_raw: pd.DataFrame = st.session_state.trees.copy()
@@ -31,21 +32,30 @@ df_raw: pd.DataFrame = st.session_state.trees.copy()
 CHART_HEIGHT = 350  # chart height
 
 # Columns excluded from Y-variable list (these are categorical/style drivers)
-exclude_list = {
-    "species", "speciesColorHex", "management_status", "managementColorHex"
-}
+exclude_list = {"species", "speciesColorHex", "management_status", "managementColorHex"}
 
 # --- After/Removed masks ---
 df = df_raw.copy()
 keep_status = {"Target tree", "Untouched"}
-mask_after   = df.get("management_status", pd.Series(False, index=df.index)).isin(keep_status)
-mask_removed = ~mask_after if "management_status" in df.columns else pd.Series(False, index=df.index)
+mask_after = df.get("management_status", pd.Series(False, index=df.index)).isin(
+    keep_status
+)
+mask_removed = (
+    ~mask_after
+    if "management_status" in df.columns
+    else pd.Series(False, index=df.index)
+)
 
 # Standardize dtypes
-if "species" in df.columns: df["species"] = df["species"].astype(str)
-if "speciesColorHex" in df.columns: df["speciesColorHex"] = df["speciesColorHex"].astype(str)
-if "management_status" in df.columns: df["management_status"] = df["management_status"].astype(str)
-if "managementColorHex" in df.columns: df["managementColorHex"] = df["managementColorHex"].astype(str)
+if "species" in df.columns:
+    df["species"] = df["species"].astype(str)
+if "speciesColorHex" in df.columns:
+    df["speciesColorHex"] = df["speciesColorHex"].astype(str)
+if "management_status" in df.columns:
+    df["management_status"] = df["management_status"].astype(str)
+if "managementColorHex" in df.columns:
+    df["managementColorHex"] = df["managementColorHex"].astype(str)
+
 
 # ========== HELPERS ==========
 def _y_upper_nice(vmax: float, step_base: int = 10, min_upper: int = 10) -> int:
@@ -59,13 +69,16 @@ def _y_upper_nice(vmax: float, step_base: int = 10, min_upper: int = 10) -> int:
         step = 50
     return int(max(min_upper, math.ceil(vmax / step) * step))
 
-def _make_bins_labels(df_all: pd.DataFrame, value_col: str, bin_size: float, unit_label: str):
+
+def _make_bins_labels(
+    df_all: pd.DataFrame, value_col: str, bin_size: float, unit_label: str
+):
     vals = pd.to_numeric(df_all.get(value_col), errors="coerce")
     vals_ok = vals.dropna()
     if vals_ok.empty:
         return None, None
     vmin = float(np.floor(vals_ok.min() / bin_size) * bin_size)
-    vmax = float(np.ceil (vals_ok.max()  / bin_size) * bin_size)
+    vmax = float(np.ceil(vals_ok.max() / bin_size) * bin_size)
     if vmax <= vmin:
         vmax = vmin + bin_size
     bins = np.arange(vmin, vmax + bin_size, bin_size, dtype=float)
@@ -73,38 +86,57 @@ def _make_bins_labels(df_all: pd.DataFrame, value_col: str, bin_size: float, uni
     return bins, labels
 
 
-
 def _species_categories_and_colors(df_all: pd.DataFrame):
     if "species" not in df_all.columns:
         return [], {}
-    order = (df_all["species"].astype(str)
-             .value_counts(dropna=False)
-             .sort_values(ascending=False)
-             .index.astype(str).str.strip().tolist())
+    order = (
+        df_all["species"]
+        .astype(str)
+        .value_counts(dropna=False)
+        .sort_values(ascending=False)
+        .index.astype(str)
+        .str.strip()
+        .tolist()
+    )
     if "speciesColorHex" in df_all.columns:
-        col_lookup = (df_all.groupby("species", as_index=False)["speciesColorHex"]
-                          .first()
-                          .assign(species=lambda d: d["species"].astype(str).str.strip()))
+        col_lookup = (
+            df_all.groupby("species", as_index=False)["speciesColorHex"]
+            .first()
+            .assign(species=lambda d: d["species"].astype(str).str.strip())
+        )
         colors = dict(zip(col_lookup["species"], col_lookup["speciesColorHex"]))
     else:
         colors = {}
     colors = {c: colors.get(c, "#AAAAAA") for c in order}
     return order, colors
 
+
 def _management_categories_and_colors(df_all: pd.DataFrame):
     if "management_status" not in df_all.columns:
         return [], {}
     order = pd.Index(df_all["management_status"].astype(str).dropna().unique()).tolist()
     if "managementColorHex" in df_all.columns:
-        cmap = (df_all.assign(management_status=lambda x: x["management_status"].astype(str),
-                              managementColorHex=lambda x: x["managementColorHex"].astype(str))
-                      .groupby("management_status")["managementColorHex"]
-                      .first().to_dict())
+        cmap = (
+            df_all.assign(
+                management_status=lambda x: x["management_status"].astype(str),
+                managementColorHex=lambda x: x["managementColorHex"].astype(str),
+            )
+            .groupby("management_status")["managementColorHex"]
+            .first()
+            .to_dict()
+        )
     else:
         cmap = {}
-    cmap = {c: (cmap.get(c) if isinstance(cmap.get(c, ""), str) and cmap.get(c, "").strip() else "#AAAAAA")
-            for c in order}
+    cmap = {
+        c: (
+            cmap.get(c)
+            if isinstance(cmap.get(c, ""), str) and cmap.get(c, "").strip()
+            else "#AAAAAA"
+        )
+        for c in order
+    }
     return order, cmap
+
 
 def _hue_setup(df_all: pd.DataFrame, color_mode: str):
     """Return (hue_col, categories, color_map, title_suffix)."""
@@ -114,6 +146,7 @@ def _hue_setup(df_all: pd.DataFrame, color_mode: str):
     else:
         cats, colors = _species_categories_and_colors(df_all)
         return "species", cats, colors, "(by Species)"
+
 
 # ---------- Stats helpers ----------
 def _is_numeric_like(s: pd.Series) -> bool:
@@ -125,25 +158,36 @@ def _is_numeric_like(s: pd.Series) -> bool:
     except Exception:
         return False
 
+
 def _aggfunc_name_for_hover(stat: str, y_col: str) -> str:
     return "Count (rows)" if stat == "Count" else f"{stat} of {y_col}"
 
+
 # --- binned aggregation by hue + y_col/y_stats ---
-def _compute_binned_agg(df_sub: pd.DataFrame,
-                        value_col: str,         # DBH / height (bins on X)
-                        bins: np.ndarray,
-                        labels: list[str],
-                        hue_col: str,
-                        y_col: str,
-                        y_stats: str) -> pd.DataFrame:
+def _compute_binned_agg(
+    df_sub: pd.DataFrame,
+    value_col: str,  # DBH / height (bins on X)
+    bins: np.ndarray,
+    labels: list[str],
+    hue_col: str,
+    y_col: str,
+    y_stats: str,
+) -> pd.DataFrame:
     d = df_sub.copy()
     d[hue_col] = d[hue_col].astype(str)
 
     # assign bin
     cats = pd.Categorical(
-        pd.cut(pd.to_numeric(d[value_col], errors="coerce"),
-               bins=bins, labels=labels, include_lowest=True, right=False, ordered=True),
-        categories=labels, ordered=True
+        pd.cut(
+            pd.to_numeric(d[value_col], errors="coerce"),
+            bins=bins,
+            labels=labels,
+            include_lowest=True,
+            right=False,
+            ordered=True,
+        ),
+        categories=labels,
+        ordered=True,
     )
     d = d.assign(bin=cats).dropna(subset=["bin"])
 
@@ -157,24 +201,51 @@ def _compute_binned_agg(df_sub: pd.DataFrame,
         return pd.DataFrame(columns=["bin", hue_col, "value", "__error__"])
     s = d[y_col]
     if not _is_numeric_like(s):
-        return pd.DataFrame(columns=["bin", hue_col, "value", "__error__"]).assign(__error__=True)
+        return pd.DataFrame(columns=["bin", hue_col, "value", "__error__"]).assign(
+            __error__=True
+        )
 
     d["_y_"] = pd.to_numeric(s, errors="coerce")
 
     if y_stats == "Sum":
-        agg = d.groupby(["bin", hue_col], as_index=False)["_y_"].sum().rename(columns={"_y_": "value"})
+        agg = (
+            d.groupby(["bin", hue_col], as_index=False)["_y_"]
+            .sum()
+            .rename(columns={"_y_": "value"})
+        )
     elif y_stats == "Mean":
-        agg = d.groupby(["bin", hue_col], as_index=False)["_y_"].mean().rename(columns={"_y_": "value"})
+        agg = (
+            d.groupby(["bin", hue_col], as_index=False)["_y_"]
+            .mean()
+            .rename(columns={"_y_": "value"})
+        )
     elif y_stats == "Median":
-        agg = d.groupby(["bin", hue_col], as_index=False)["_y_"].median().rename(columns={"_y_": "value"})
+        agg = (
+            d.groupby(["bin", hue_col], as_index=False)["_y_"]
+            .median()
+            .rename(columns={"_y_": "value"})
+        )
     elif y_stats == "Max":
-        agg = d.groupby(["bin", hue_col], as_index=False)["_y_"].max().rename(columns={"_y_": "value"})
+        agg = (
+            d.groupby(["bin", hue_col], as_index=False)["_y_"]
+            .max()
+            .rename(columns={"_y_": "value"})
+        )
     elif y_stats == "Min":
-        agg = d.groupby(["bin", hue_col], as_index=False)["_y_"].min().rename(columns={"_y_": "value"})
+        agg = (
+            d.groupby(["bin", hue_col], as_index=False)["_y_"]
+            .min()
+            .rename(columns={"_y_": "value"})
+        )
     else:
-        agg = d.groupby(["bin", hue_col], as_index=False)["_y_"].size().rename(columns={"_y_": "value"})
+        agg = (
+            d.groupby(["bin", hue_col], as_index=False)["_y_"]
+            .size()
+            .rename(columns={"_y_": "value"})
+        )
 
     return agg
+
 
 def _frame_max_value(df_long: pd.DataFrame) -> float:
     if df_long is None or df_long.empty or "value" not in df_long.columns:
@@ -184,20 +255,29 @@ def _frame_max_value(df_long: pd.DataFrame) -> float:
         return 0.0
     return float(v.max())
 
+
 # ========== CATEGORY AGGREGATION (species / management) ==========
-def _aggregate_by_hue(sub: pd.DataFrame, hue_col: str, y_col: str, y_stats: str) -> pd.DataFrame:
+def _aggregate_by_hue(
+    sub: pd.DataFrame, hue_col: str, y_col: str, y_stats: str
+) -> pd.DataFrame:
     if hue_col not in sub.columns:
         return pd.DataFrame(columns=[hue_col, "value"])
 
     if y_stats == "Count":
-        return sub.groupby(hue_col, as_index=False).agg(value=(hue_col, "size")).assign(value=lambda x: x["value"].astype(float))
+        return (
+            sub.groupby(hue_col, as_index=False)
+            .agg(value=(hue_col, "size"))
+            .assign(value=lambda x: x["value"].astype(float))
+        )
 
     if y_col not in sub.columns:
         return pd.DataFrame(columns=[hue_col, "value", "__error__"])
 
     s = sub[y_col]
     if not _is_numeric_like(s):
-        return pd.DataFrame(columns=[hue_col, "value", "__error__"]).assign(__error__=True)
+        return pd.DataFrame(columns=[hue_col, "value", "__error__"]).assign(
+            __error__=True
+        )
 
     x = pd.to_numeric(s, errors="coerce")
     tmp = sub.copy()
@@ -218,46 +298,65 @@ def _aggregate_by_hue(sub: pd.DataFrame, hue_col: str, y_col: str, y_stats: str)
 
     return agg_df
 
-def _ensure_all_categories(sub_counts: pd.DataFrame, hue_col: str, categories: list[str], color_lookup: dict) -> pd.DataFrame:
+
+def _ensure_all_categories(
+    sub_counts: pd.DataFrame, hue_col: str, categories: list[str], color_lookup: dict
+) -> pd.DataFrame:
     base = pd.DataFrame({hue_col: categories})
-    sub  = base.merge(
-        sub_counts.assign(**{hue_col: sub_counts[hue_col].astype(str).str.strip()}) if not sub_counts.empty else base.assign(value=np.nan),
-        on=hue_col, how="left"
+    sub = base.merge(
+        sub_counts.assign(**{hue_col: sub_counts[hue_col].astype(str).str.strip()})
+        if not sub_counts.empty
+        else base.assign(value=np.nan),
+        on=hue_col,
+        how="left",
     )
     sub["value"] = pd.to_numeric(sub["value"], errors="coerce")
     sub["value"] = sub["value"].fillna(0.0).astype(float)
     sub["__color__"] = sub[hue_col].map(color_lookup).fillna("#AAAAAA")
-    sub["__error__"] = sub_counts["__error__"].iloc[0] if ("__error__" in sub_counts.columns and not sub_counts.empty) else False
+    sub["__error__"] = (
+        sub_counts["__error__"].iloc[0]
+        if ("__error__" in sub_counts.columns and not sub_counts.empty)
+        else False
+    )
     return sub
 
+
 # ========== BY CATEGORY (bars – pro Tree count) ==========
-def render_triple_by_category(df_all: pd.DataFrame, y_col: str, y_stats: str, color_mode: str, stacked: bool):
+def render_triple_by_category(
+    df_all: pd.DataFrame, y_col: str, y_stats: str, color_mode: str, stacked: bool
+):
     """Kategorie na X; sloupce – Count nebo další agregace (používáme pro Tree count)."""
     hue_col, categories, color_map, title_suffix = _hue_setup(df_all, color_mode)
     if not categories:
         st.info("No categories found for the selected color mode.")
         return
 
-    before_df  = _aggregate_by_hue(df_all,               hue_col, y_col, y_stats)
-    after_df   = _aggregate_by_hue(df_all[mask_after],   hue_col, y_col, y_stats)
+    before_df = _aggregate_by_hue(df_all, hue_col, y_col, y_stats)
+    after_df = _aggregate_by_hue(df_all[mask_after], hue_col, y_col, y_stats)
     removed_df = _aggregate_by_hue(df_all[mask_removed], hue_col, y_col, y_stats)
 
-    any_error = any(("__error__" in d.columns and not d.empty) for d in [before_df, after_df, removed_df])
+    any_error = any(
+        ("__error__" in d.columns and not d.empty)
+        for d in [before_df, after_df, removed_df]
+    )
     if any_error and y_stats != "Count":
         st.warning(f"Cannot {y_stats.lower()} non-numeric variable '{y_col}'.")
 
-    before_df  = _ensure_all_categories(before_df,  hue_col, categories, color_map)
-    after_df   = _ensure_all_categories(after_df,   hue_col, categories, color_map)
+    before_df = _ensure_all_categories(before_df, hue_col, categories, color_map)
+    after_df = _ensure_all_categories(after_df, hue_col, categories, color_map)
     removed_df = _ensure_all_categories(removed_df, hue_col, categories, color_map)
 
-    y_max = max(before_df["value"].max(), after_df["value"].max(), removed_df["value"].max())
+    y_max = max(
+        before_df["value"].max(), after_df["value"].max(), removed_df["value"].max()
+    )
     y_upper = _y_upper_nice(float(y_max))
 
     fig = make_subplots(
-        rows=1, cols=3,
+        rows=1,
+        cols=3,
         shared_yaxes=True,
         subplot_titles=("Before", "After", "Removed"),
-        horizontal_spacing=0.06
+        horizontal_spacing=0.06,
     )
 
     def _add_panel(panel_df: pd.DataFrame, col: int):
@@ -270,9 +369,10 @@ def render_triple_by_category(df_all: pd.DataFrame, y_col: str, y_stats: str, co
                     marker_color=row["__color__"],
                     legendgroup=str(cat),
                     showlegend=False,
-                    hovertemplate=f"{hue_col}: {cat}<br>{_aggfunc_name_for_hover(y_stats, y_col)}: %{{y:.2f}}<extra></extra>"
+                    hovertemplate=f"{hue_col}: {cat}<br>{_aggfunc_name_for_hover(y_stats, y_col)}: %{{y:.2f}}<extra></extra>",
                 ),
-                row=1, col=col
+                row=1,
+                col=col,
             )
 
     _add_panel(before_df, 1)
@@ -283,22 +383,26 @@ def render_triple_by_category(df_all: pd.DataFrame, y_col: str, y_stats: str, co
         barmode="stack" if stacked else "group",
         height=CHART_HEIGHT,
         margin=dict(l=10, r=10, t=60, b=80),
-        showlegend=False
+        showlegend=False,
     )
 
     for c in (1, 2, 3):
         fig.update_xaxes(
-            title_text=None, tickangle=45,
-            categoryorder="array", categoryarray=categories,
-            row=1, col=c
+            title_text=None,
+            tickangle=45,
+            categoryorder="array",
+            categoryarray=categories,
+            row=1,
+            col=c,
         )
 
     y_label = "Count (rows)" if y_stats == "Count" else f"{y_stats} of {y_col}"
     fig.update_yaxes(title_text=y_label, row=1, col=1, tick0=0, range=[0, y_upper])
-    fig.update_yaxes(title_text=None,    row=1, col=2, tick0=0, range=[0, y_upper])
-    fig.update_yaxes(title_text=None,    row=1, col=3, tick0=0, range=[0, y_upper])
+    fig.update_yaxes(title_text=None, row=1, col=2, tick0=0, range=[0, y_upper])
+    fig.update_yaxes(title_text=None, row=1, col=3, tick0=0, range=[0, y_upper])
 
     st.plotly_chart(fig, use_container_width=True, key=f"category_{get_uid()}")
+
 
 # ========== BY DBH / HEIGHT CLASS (bars – pro Tree count) ==========
 def _panel_y_upper_for_long(long_df: pd.DataFrame, stacked: bool) -> float:
@@ -310,14 +414,17 @@ def _panel_y_upper_for_long(long_df: pd.DataFrame, stacked: bool) -> float:
     else:
         return float(long_df["value"].max())
 
-def render_triple_by_class(df_all: pd.DataFrame,
-                           value_col: str,
-                           bin_size: float,
-                           unit_label: str,
-                           color_mode: str,
-                           y_col: str,
-                           y_stats: str,
-                           stacked: bool):
+
+def render_triple_by_class(
+    df_all: pd.DataFrame,
+    value_col: str,
+    bin_size: float,
+    unit_label: str,
+    color_mode: str,
+    y_col: str,
+    y_stats: str,
+    stacked: bool,
+):
     if value_col not in df_all.columns:
         st.warning(f"Missing column '{value_col}'.")
         return
@@ -333,35 +440,47 @@ def render_triple_by_class(df_all: pd.DataFrame,
         return
 
     # compute three long tables according to the requested stat
-    long_before  = _compute_binned_agg(df_all,               value_col, bins, labels, hue_col, y_col, y_stats)
-    long_after   = _compute_binned_agg(df_all[mask_after],   value_col, bins, labels, hue_col, y_col, y_stats)
-    long_removed = _compute_binned_agg(df_all[mask_removed], value_col, bins, labels, hue_col, y_col, y_stats)
+    long_before = _compute_binned_agg(
+        df_all, value_col, bins, labels, hue_col, y_col, y_stats
+    )
+    long_after = _compute_binned_agg(
+        df_all[mask_after], value_col, bins, labels, hue_col, y_col, y_stats
+    )
+    long_removed = _compute_binned_agg(
+        df_all[mask_removed], value_col, bins, labels, hue_col, y_col, y_stats
+    )
 
     def has_error(df_long):
-        return ("__error__" in df_long.columns) and (df_long["__error__"].any() if not df_long.empty else True)
+        return ("__error__" in df_long.columns) and (
+            df_long["__error__"].any() if not df_long.empty else True
+        )
 
-    if y_stats != "Count" and (has_error(long_before) or has_error(long_after) or has_error(long_removed)):
+    if y_stats != "Count" and (
+        has_error(long_before) or has_error(long_after) or has_error(long_removed)
+    ):
         st.warning(f"Cannot {y_stats.lower()} non-numeric variable '{y_col}'.")
 
     # Y-range according to stacked/grouped
     y_max = max(
         _panel_y_upper_for_long(long_before, stacked),
-        _panel_y_upper_for_long(long_after,  stacked),
-        _panel_y_upper_for_long(long_removed,stacked),
+        _panel_y_upper_for_long(long_after, stacked),
+        _panel_y_upper_for_long(long_removed, stacked),
     )
     y_upper = _y_upper_nice(y_max)
 
-    def color_for(cat): return color_map.get(cat, "#AAAAAA")
+    def color_for(cat):
+        return color_map.get(cat, "#AAAAAA")
 
     fig = make_subplots(
-        rows=1, cols=3,
+        rows=1,
+        cols=3,
         shared_yaxes=True,
         subplot_titles=(
             getattr(st.session_state, "Before", "Before"),
             getattr(st.session_state, "After", "After"),
-            getattr(st.session_state, "Removed", "Removed")
+            getattr(st.session_state, "Removed", "Removed"),
         ),
-        horizontal_spacing=0.06
+        horizontal_spacing=0.06,
     )
 
     # volitelný styling titulků, pokud máš v session_state definovaný font
@@ -375,7 +494,7 @@ def render_triple_by_class(df_all: pd.DataFrame,
                     xref=ann.xref,
                     yref=ann.yref,
                     showarrow=False,
-                    font=st.session_state.plot_title_font
+                    font=st.session_state.plot_title_font,
                 )
                 for ann in fig.layout.annotations
             ]
@@ -385,12 +504,15 @@ def render_triple_by_class(df_all: pd.DataFrame,
     def add_panel_traces(long_df: pd.DataFrame, col: int, show_legend_for: set[str]):
         for cat in categories:
             if long_df.empty:
-                y_vals = [0]*len(labels)
+                y_vals = [0] * len(labels)
             else:
-                y_vals = (long_df[long_df.get(hue_col, "") == cat]
-                          .set_index("bin")
-                          .reindex(labels)["value"]
-                          .fillna(0).tolist())
+                y_vals = (
+                    long_df[long_df.get(hue_col, "") == cat]
+                    .set_index("bin")
+                    .reindex(labels)["value"]
+                    .fillna(0)
+                    .tolist()
+                )
             fig.add_trace(
                 go.Bar(
                     x=labels,
@@ -399,33 +521,37 @@ def render_triple_by_class(df_all: pd.DataFrame,
                     marker_color=color_for(cat),
                     legendgroup=str(cat),
                     showlegend=(cat in show_legend_for),
-                    hovertemplate=f"%{{x}}<br>{hue_col}: {cat}<br>{_aggfunc_name_for_hover(y_stats, y_col)}: %{{y:.2f}}<extra></extra>"
+                    hovertemplate=f"%{{x}}<br>{hue_col}: {cat}<br>{_aggfunc_name_for_hover(y_stats, y_col)}: %{{y:.2f}}<extra></extra>",
                 ),
-                row=1, col=col
+                row=1,
+                col=col,
             )
 
-    add_panel_traces(long_before,  col=1, show_legend_for=set(categories))
-    add_panel_traces(long_after,   col=2, show_legend_for=set())
+    add_panel_traces(long_before, col=1, show_legend_for=set(categories))
+    add_panel_traces(long_after, col=2, show_legend_for=set())
     add_panel_traces(long_removed, col=3, show_legend_for=set())
 
     fig.update_layout(
         barmode="stack" if stacked else "group",
         height=CHART_HEIGHT,
         margin=dict(l=10, r=10, t=60, b=80),
-        legend=dict(
-            orientation="h",
-            yanchor="top",
-            y=-0.45,
-            xanchor="center",
-            x=0.5
-        )
+        legend=dict(orientation="h", yanchor="top", y=-0.45, xanchor="center", x=0.5),
     )
-    fig.update_xaxes(title_text=None, tickangle=45, categoryorder="array", categoryarray=labels)
-    fig.update_yaxes(title_text=_aggfunc_name_for_hover(y_stats, y_col), row=1, col=1, tick0=0, range=[0, y_upper])
+    fig.update_xaxes(
+        title_text=None, tickangle=45, categoryorder="array", categoryarray=labels
+    )
+    fig.update_yaxes(
+        title_text=_aggfunc_name_for_hover(y_stats, y_col),
+        row=1,
+        col=1,
+        tick0=0,
+        range=[0, y_upper],
+    )
     fig.update_yaxes(title_text=None, row=1, col=2, tick0=0, range=[0, y_upper])
     fig.update_yaxes(title_text=None, row=1, col=3, tick0=0, range=[0, y_upper])
 
     st.plotly_chart(fig, use_container_width=True, key=f"class_{get_uid()}")
+
 
 # ========== TRIPLE VIOLIN PLOT (pro všechny metriky kromě Tree count) ==========
 def render_triple_violin(df_all: pd.DataFrame, value_col: str, color_mode: str):
@@ -442,16 +568,17 @@ def render_triple_violin(df_all: pd.DataFrame, value_col: str, color_mode: str):
         return pd.to_numeric(s, errors="coerce")
 
     panels = [
-        (df_all,               "Before"),
-        (df_all[mask_after],   "After"),
+        (df_all, "Before"),
+        (df_all[mask_after], "After"),
         (df_all[mask_removed], "Removed"),
     ]
 
     fig = make_subplots(
-        rows=1, cols=3,
+        rows=1,
+        cols=3,
         shared_yaxes=True,
         subplot_titles=[p[1] for p in panels],
-        horizontal_spacing=0.06
+        horizontal_spacing=0.06,
     )
 
     max_val = 0
@@ -471,32 +598,30 @@ def render_triple_violin(df_all: pd.DataFrame, value_col: str, color_mode: str):
 
             max_val = max(max_val, float(vals.max()))
 
-            fig.add_trace(go.Violin(
-                x=[cat] * len(vals),
-                y=vals,
-                name=str(cat),
-                legendgroup=str(cat),
-                line_color="black",
-                line_width=1,
-                fillcolor=color_map.get(cat, "#AAAAAA"),
-                opacity=0.7,
-                box_visible=True,
-                meanline_visible=True,
-                points=False,           # <<< odstranění bodů mimo violin
-                showlegend=(col_idx == 1),
-                hovertemplate=f"{hue_col}: {cat}<br>{value_col}: %{{y:.2f}}<extra></extra>"
-            ), row=1, col=col_idx)
+            fig.add_trace(
+                go.Violin(
+                    x=[cat] * len(vals),
+                    y=vals,
+                    name=str(cat),
+                    legendgroup=str(cat),
+                    line_color="black",
+                    line_width=1,
+                    fillcolor=color_map.get(cat, "#AAAAAA"),
+                    opacity=0.7,
+                    box_visible=True,
+                    meanline_visible=True,
+                    points=False,  # <<< odstranění bodů mimo violin
+                    showlegend=(col_idx == 1),
+                    hovertemplate=f"{hue_col}: {cat}<br>{value_col}: %{{y:.2f}}<extra></extra>",
+                ),
+                row=1,
+                col=col_idx,
+            )
 
     fig.update_layout(
         height=CHART_HEIGHT,
         margin=dict(l=10, r=10, t=60, b=80),
-        legend=dict(
-            orientation="h",
-            yanchor="top",
-            y=-0.3,
-            xanchor="center",
-            x=0.5
-        )
+        legend=dict(orientation="h", yanchor="top", y=-0.3, xanchor="center", x=0.5),
     )
 
     y_upper = _y_upper_nice(max_val)
@@ -506,23 +631,26 @@ def render_triple_violin(df_all: pd.DataFrame, value_col: str, color_mode: str):
 
     st.plotly_chart(fig, use_container_width=True, key=f"violin_{get_uid()}")
 
+
 # ========== UI ==========
 
 # Mapování názvů v UI -> sloupců v datech
-VALUE_TREE_COUNT = "Tree count"
+VALUE_TREE_COUNT = "Tree Count"
 value_mapping = {
     VALUE_TREE_COUNT: None,  # speciální hodnota (Count)
     "DBH": "dbh",
     "BA": "BasalArea_m2",
     "Volume": "Volume_m3",
-    "tree height": "height",
-    "crown base height": "crown_base_height",
-    "crown centroid height": "crown_centroid_height",
-    "crown lenght": "crown_length",
-    "crown diameter": "crown_diameter",
-    "crown volume": "crown_volume",
-    "crown surface": "crown_surface",
-    "crown projected area": "crown_projected_area",
+    "Tree Height": "height",
+    "Crown Base Height": "crown_base_height",
+    "Crown Centroid Height": "crown_centroid_height",
+    #    "crown diameter": "crown_diameter",
+    "Crown Volume": "crown_volume",
+    "Crown Surface Area": "crown_surface",
+    "Horizontal Crown Projection Area": "horizontal_crown_proj",
+    "Vertical Crown Projection Area": "vertical_crown_proj",
+    "Crown Eccentricity": "crown_eccentricity",
+    "Height-DBH Ratio": "heightXdbh",
 }
 
 # dostupné volby podle toho, co je v datech
@@ -541,8 +669,8 @@ by_height = "Height"
 mode_options = [by_dbh, by_height, by_category]
 
 # Defaultní bin velikosti (fixní, třídy jsou stále po pevné šířce)
-DBH_BIN_DEFAULT = 5.0   # cm
-H_BIN_DEFAULT   = 2.0   # m
+DBH_BIN_DEFAULT = 5.0  # cm
+H_BIN_DEFAULT = 2.0  # m
 
 color_mode_default = colorBySpp
 
@@ -562,12 +690,12 @@ with c_left:
             "Choose variable to display:\n"
             "- **Tree count** is plotted as barblot.\n"
             "- Other variables are showed as violin plot."
-        )
+        ),
     )
 
 # --- MID: Plot by + Color by + Stacked ---
 with c_mid:
-    is_tree_count = (y_label == VALUE_TREE_COUNT)
+    is_tree_count = y_label == VALUE_TREE_COUNT
 
     if is_tree_count:
         x_mode = st.segmented_control(
@@ -580,7 +708,7 @@ with c_mid:
                 "- **DBH** class\n"
                 "- **Height** class\n"
                 "- **Category** (Species/Management)."
-            )
+            ),
         )
     else:
         # pro ostatní proměnné je graf vždy podle kategorie, DBH/Height jsou jen vizuálně „zakázané“
@@ -591,7 +719,7 @@ with c_mid:
             default=by_category,
             disabled=True,
             width="stretch",
-            help="For selected variable only display by Category is allowed."
+            help="For selected variable only display by Category is allowed.",
         )
 
     color_mode = st.segmented_control(
@@ -599,22 +727,23 @@ with c_mid:
         options=[colorBySpp, colorByMgmt],
         default=color_mode_default,
         width="stretch",
-        help="Select Category (Species / Management) to color plots by."
+        help="Select Category (Species / Management) to color plots by.",
     )
 
     # Stacked dává smysl hlavně pro barploty (Tree count)
-    stacked = st.toggle(
-        "**Stacked bars**",
-        value=True,
-        help=(
-            "Only for Tree count, switch between stacked and grouped mode."
+    stacked = (
+        st.toggle(
+            "**Stacked bars**",
+            value=True,
+            help=("Only for Tree count, switch between stacked and grouped mode."),
         )
-    ) if is_tree_count else False
+        if is_tree_count
+        else False
+    )
 
 # --- RIGHT: DBH / Height filtry ---
 # --- RIGHT: DBH / Height filtry ---
 with c_right:
-
     if is_tree_count:
         # -----------------------------
         # CLASS RANGE (Tree count ONLY)
@@ -627,13 +756,13 @@ with c_right:
             "**DBH class range [cm]**",
             options=dbh_bins,
             value=10,
-            help="Width of DBH bands."
+            help="Width of DBH bands.",
         )
         bin_size_h = st.select_slider(
             "**Height class range [m]**",
             options=h_bins,
             value=5,
-            help="Width of Height bands."
+            help="Width of Height bands.",
         )
 
         dbh_range = None
@@ -657,7 +786,7 @@ with c_right:
                     max_value=max_dbh,
                     value=(min_dbh, max_dbh),
                     step=1,
-                    help="Filter trees by DBH."
+                    help="Filter trees by DBH.",
                 )
             else:
                 dbh_range = None
@@ -677,7 +806,7 @@ with c_right:
                     max_value=max_h,
                     value=(min_h, max_h),
                     step=1,
-                    help="Filter trees by height."
+                    help="Filter trees by height.",
                 )
             else:
                 height_range = None
@@ -709,7 +838,9 @@ else:
         dummy_y_col = "dbh"
 
         if x_mode == by_category:
-            render_triple_by_category(df_filt, dummy_y_col, y_stats, color_mode, stacked)
+            render_triple_by_category(
+                df_filt, dummy_y_col, y_stats, color_mode, stacked
+            )
 
         elif x_mode == by_dbh:
             render_triple_by_class(
@@ -720,7 +851,7 @@ else:
                 color_mode=color_mode,
                 y_col=dummy_y_col,
                 y_stats=y_stats,
-                stacked=stacked
+                stacked=stacked,
             )
 
         else:  # by_height
@@ -732,9 +863,11 @@ else:
                 color_mode=color_mode,
                 y_col=dummy_y_col,
                 y_stats=y_stats,
-                stacked=stacked
+                stacked=stacked,
             )
 
     else:
         metric_col = value_mapping[y_label]
-        render_triple_violin(df_all=df_filt, value_col=metric_col, color_mode=color_mode)
+        render_triple_violin(
+            df_all=df_filt, value_col=metric_col, color_mode=color_mode
+        )
