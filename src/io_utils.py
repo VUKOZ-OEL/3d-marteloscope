@@ -1,24 +1,33 @@
 import json
 import pandas as pd
-import numpy as np
-import unicodedata
-from typing import Dict, List, Union, Any, Optional
+from typing import Dict, List, Union, Any
 import streamlit as st
 from pathlib import Path
 import sqlite3
 import html
 
-__all__ = ["load_project_json","save_project_json","load_color_pallete","load_plot_info","load_simulation_results", "heading_centered","_unique_sorted","show_success"]
-
+__all__ = [
+    "load_project_json",
+    "save_project_json",
+    "load_color_pallete",
+    "load_plot_info",
+    "load_simulation_results",
+    "heading_centered",
+    "_unique_sorted",
+    "show_success",
+]
 
 
 # --- Pomocné funkce (samostatné a robustní) ----------------------------------
 
+
 def norm(s: str) -> str:
     return (s or "").strip().lower()
 
+
 def _is_hex_color(x: Any) -> bool:
     return isinstance(x, str) and len(x) == 7 and x.startswith("#")
+
 
 def _rgb_to_hex01(c01: List[float]) -> str:
     """c01 = [r,g,b] v rozsahu 0..1 → '#RRGGBB'"""
@@ -26,6 +35,7 @@ def _rgb_to_hex01(c01: List[float]) -> str:
     g = max(0, min(255, int(round(c01[1] * 255))))
     b = max(0, min(255, int(round(c01[2] * 255))))
     return f"#{r:02X}{g:02X}{b:02X}"
+
 
 def _to_color01(value: Any) -> List[float] | None:
     """
@@ -53,14 +63,15 @@ def _to_color01(value: Any) -> List[float] | None:
             return None
         # 0..1 nebo 0..255?
         if max(r, g, b) <= 1.0:
-            return [max(0.0, min(1.0, r)),
-                    max(0.0, min(1.0, g)),
-                    max(0.0, min(1.0, b))]
+            return [max(0.0, min(1.0, r)), max(0.0, min(1.0, g)), max(0.0, min(1.0, b))]
         else:
-            return [max(0.0, min(1.0, r / 255.0)),
-                    max(0.0, min(1.0, g / 255.0)),
-                    max(0.0, min(1.0, b / 255.0))]
+            return [
+                max(0.0, min(1.0, r / 255.0)),
+                max(0.0, min(1.0, g / 255.0)),
+                max(0.0, min(1.0, b / 255.0)),
+            ]
     return None
+
 
 def _to_hex(value: Any) -> str | None:
     """Vrátí '#RRGGBB' nebo None."""
@@ -69,8 +80,10 @@ def _to_hex(value: Any) -> str | None:
     c01 = _to_color01(value)
     return _rgb_to_hex01(c01) if c01 else None
 
+
 def _unique_sorted(series: pd.Series) -> list[str]:
     return sorted(series.dropna().astype(str).unique().tolist())
+
 
 def heading_centered(text: str, color: str = "#2E7D32", level: int = 5):
     """
@@ -95,8 +108,9 @@ def heading_centered(text: str, color: str = "#2E7D32", level: int = 5):
     safe_text = html.escape(str(text))
     st.markdown(
         f"<h{lvl} style='text-align:center; color:{color}; margin:0;'>{safe_text}</h{lvl}>",
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
+
 
 # --- Hlavní funkce ------------------------------------------------------------
 def load_color_pallete(file_path: str) -> pd.DataFrame:
@@ -118,6 +132,7 @@ def load_color_pallete(file_path: str) -> pd.DataFrame:
                 sp_map[norm(str(lat))] = hexc
 
     return sp_map
+
 
 def load_project_json(file_path: str) -> pd.DataFrame:
     with open(file_path, "r", encoding="utf-8") as f:
@@ -194,13 +209,15 @@ def load_project_json(file_path: str) -> pd.DataFrame:
 
     return df
 
+
 def load_plot_info(file_path: str) -> pd.DataFrame:
     with open(file_path, "r", encoding="utf-8") as f:
         data: Dict[str, Union[Dict, List]] = json.load(f)
 
     pi = data.get("plot_info") or []
 
-    return(pd.DataFrame(pi))
+    return pd.DataFrame(pi)
+
 
 def load_simulation_results(db_path: str | Path, table: str = "tree") -> pd.DataFrame:
     """
@@ -213,7 +230,9 @@ def load_simulation_results(db_path: str | Path, table: str = "tree") -> pd.Data
     with sqlite3.connect(db_path) as con:
         # check table exists
         cur = con.cursor()
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?;", (table,))
+        cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?;", (table,)
+        )
         if cur.fetchone() is None:
             raise ValueError(f"Table '{table}' not found in {db_path}")
 
@@ -222,6 +241,7 @@ def load_simulation_results(db_path: str | Path, table: str = "tree") -> pd.Data
 
     st.session_state.simulation = df
     return df
+
 
 """
 def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
@@ -260,10 +280,12 @@ def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = N
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 """
+
+
 def show_success(message: str, timeout: int = 2000):
     """
     Zobrazí úspěchovou zprávu na pár vteřin.
-    
+
     Args:
         message: text zprávy
         timeout: doba zobrazení v ms (2000 = 2 vteřiny)
@@ -286,12 +308,13 @@ def show_success(message: str, timeout: int = 2000):
         }}, {timeout});
         </script>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
 
-def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
-
+def save_project_json(
+    original_path: str, df: pd.DataFrame, output_path: str = None
+) -> None:
     with open(original_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -323,7 +346,9 @@ def save_project_json(original_path: str, df: pd.DataFrame, output_path: str = N
                 if rgb is not None:
                     attr["speciesColor"] = rgb
 
-            if "managementColorHex" in row and isinstance(row["managementColorHex"], str):
+            if "managementColorHex" in row and isinstance(
+                row["managementColorHex"], str
+            ):
                 rgb = _to_color01(row["managementColorHex"])
                 if rgb is not None:
                     attr["managementColor"] = rgb

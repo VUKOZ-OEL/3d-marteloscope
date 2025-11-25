@@ -104,11 +104,11 @@ pages = {
         add_atts_page,
         colors_page,
     ],
-    "Sanbox": [
-        test_page2,
-        comment_page,
-        test_page,
-    ],
+    # "Sanbox": [
+    #    test_page2,
+    #    comment_page,
+    #    test_page,
+    # ],
 }
 
 pg = st.navigation(pages)

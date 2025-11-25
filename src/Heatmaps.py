@@ -38,7 +38,7 @@ df0["y"] = df0["y"] - df0["y"].min()
 # ------------------------------------------------------------
 # CONSTANTS
 # ------------------------------------------------------------
-CHART_HEIGHT = 600
+CHART_HEIGHT = 500
 HEATMAP_NBINS = 50
 keep_status = {"Target tree", "Untouched"}
 
@@ -57,7 +57,7 @@ def _is_numeric_like(s):
     try:
         pd.to_numeric(s)
         return True
-    except:
+    except Exception:
         return False
 
 

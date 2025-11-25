@@ -255,10 +255,10 @@ def render_three_panel_with_shared_legend(
                 / area_ha
             )
         elif metric_key == "stocking":
-            if "horizontal_crown_projection" not in df_in.columns:
+            if "horizontal_crown_proj" not in df_in.columns:
                 return pd.Series(0.0, index=df_in.index)
             crown = pd.to_numeric(
-                df_in["horizontal_crown_projection"], errors="coerce"
+                df_in["horizontal_crown_proj"], errors="coerce"
             ).fillna(0.0)
             # Přepočet na % z plochy porostu (0–100)
             return (crown / area_m2) * 100.0
@@ -269,9 +269,9 @@ def render_three_panel_with_shared_legend(
     weights = per_tree_weight_for_metric(d, metric_key)
 
     if metric_key == "stocking":
-        if "horizontal_crown_projection" not in df_all.columns:
+        if "horizontal_crown_proj" not in df_all.columns:
             st.warning(
-                "Chybí sloupec 'horizontal_crown_projection' – nelze spočítat Stocking."
+                "Chybí sloupec 'horizontal_crown_proj' – nelze spočítat Stocking."
             )
             return
 
