@@ -494,7 +494,7 @@ def render_triple_by_class(
                     xref=ann.xref,
                     yref=ann.yref,
                     showarrow=False,
-                    font=st.session_state.plot_title_font,
+                    # font=st.session_state.plot_title_font,
                 )
                 for ann in fig.layout.annotations
             ]
@@ -568,9 +568,9 @@ def render_triple_violin(df_all: pd.DataFrame, value_col: str, color_mode: str):
         return pd.to_numeric(s, errors="coerce")
 
     panels = [
-        (df_all, "Before"),
-        (df_all[mask_after], "After"),
-        (df_all[mask_removed], "Removed"),
+        (df_all, st.session_state.Before),
+        (df_all[mask_after], st.session_state.After),
+        (df_all[mask_removed], st.session_state.Removed),
     ]
 
     fig = make_subplots(

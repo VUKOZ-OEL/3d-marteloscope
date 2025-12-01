@@ -5,6 +5,9 @@ import src.io_utils as iou
 # import src.colors2json as c2j
 
 
+# "managementStatusId": 0,
+# "speciesId": 0,
+
 def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
     with open(original_path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -36,7 +39,7 @@ def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) ->
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-# file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json"
+file_path_2 = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json"
 # out_file = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_mod.json"
 settings_file = (
     "C:/Users/krucek/Documents/GitHub/VUK/3d-marteloscope/settings_with_colors.json"
@@ -49,6 +52,9 @@ out_file = (
     "C:/Users/krucek/Documents/GitHub/VUK/3d-marteloscope/data/test_project_new2.json"
 )
 trees = iou.load_project_json(file_path)
+trees2 = iou.load_project_json(file_path_2)
+trees2["speciesId"] = trees["speciesId"]
+
 
 idx = trees.sample(frac=0.75).index
 trees.loc[idx, "management_status"] = "Untouched"

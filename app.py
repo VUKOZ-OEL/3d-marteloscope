@@ -42,7 +42,7 @@ analytics_page = st.Page(
 
 # Simulation results
 simul_page = st.Page(
-    "src/Simulation.py", title="Simulation", icon=":material/clock_arrow_up:"
+    "src/Simulation.py", title="Prediction", icon=":material/clock_arrow_up:"
 )
 simul_detail_page = st.Page(
     "src/Simulation_detail.py", title="Deatiled view", icon=":material/frame_inspect:"
@@ -98,7 +98,7 @@ pages = {
     ],
     "Growt Simulation": [
         simul_page,
-        simul_detail_page,
+        #  simul_detail_page,
     ],
     "Settings": [
         add_atts_page,
