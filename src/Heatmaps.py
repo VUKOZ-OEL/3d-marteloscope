@@ -11,12 +11,10 @@ from plotly.subplots import make_subplots
 import src.io_utils as iou
 import re
 
-
 # ------------------------------------------------------------
 # PAGE TITLE
 # ------------------------------------------------------------
 st.markdown("### Heatmaps for selected Attribute")
-
 
 # ------------------------------------------------------------
 # LOAD + NORMALIZE DATA
@@ -30,10 +28,9 @@ if "trees" not in st.session_state:
 
 df0 = st.session_state.trees.copy()
 
-# set min=0 for XY
+# normalize XY (origin = min)
 df0["x"] = df0["x"] - df0["x"].min()
 df0["y"] = df0["y"] - df0["y"].min()
-
 
 # ------------------------------------------------------------
 # CONSTANTS
@@ -45,20 +42,34 @@ keep_status = {"Target tree", "Untouched"}
 COLOR_SPP = st.session_state.Species
 COLOR_MGMT = st.session_state.Management
 
+# ------------------------------------------------------------
+# VALUE MAPPING (nice labels → dataframe columns)
+# ------------------------------------------------------------
+VALUE_TREE_COUNT = "Tree Count"
+
+value_mapping = {
+    VALUE_TREE_COUNT: None,
+    "DBH": "dbh",
+    "Basal Area [m²]": "BasalArea_m2",
+    "Volume [m³]": "Volume_m3",
+    "Tree Height [m]": "height",
+    "Crown Base Height [m]": "crown_base_height",
+    "Crown Centroid Height [m]": "crown_centroid_height",
+    "Crown Volume [m³]": "crown_volume",
+    "Crown Surface Area [m²]": "crown_surface",
+    "Horizontal Crown Projection [m²]": "horizontal_crown_proj",
+    "Vertical Crown Projection [m²]": "vertical_crown_proj",
+    "Crown Eccentricity": "crown_eccentricity",
+    "Height-DBH Ratio": "heightXdbh",
+}
+
+value_options = list(value_mapping.keys())
 
 # ------------------------------------------------------------
 # HELPERS
 # ------------------------------------------------------------
 def _safe_num(s):
     return pd.to_numeric(s, errors="coerce")
-
-
-def _is_numeric_like(s):
-    try:
-        pd.to_numeric(s)
-        return True
-    except Exception:
-        return False
 
 
 def _normalize_list(lst):
@@ -97,65 +108,55 @@ def _blur2d(A, sx_bins, sy_bins):
 
 
 # ------------------------------------------------------------
-# FILTER SOURCES
+# FILTER LISTS
 # ------------------------------------------------------------
 sp_all = sorted(df0["species"].astype(str).unique())
 mg_all = sorted(df0["management_status"].astype(str).unique())
 
-exclude = {
-    "x",
-    "y",
-    "species",
-    "speciesColorHex",
-    "management_status",
-    "managementColorHex",
-    "managementStatusColorHex",
-}
-
-z_candidates = [c for c in df0.columns if c not in exclude]
-
-
 # ------------------------------------------------------------
 # UI — TOP
 # ------------------------------------------------------------
-c1, c2, c3, c4, c5, c6, c7, c8 = st.columns([1, 4, 1, 4, 1, 4, 1, 4])
+c1, c2, c3, c4 = st.columns([4, 4, 4, 4])
+
+with c1:
+    value_label = st.selectbox("**Value to display**", options=value_options)
+    z_col = value_mapping[value_label]  # None -> Count
 
 with c2:
-    z_col = st.selectbox("**Weight column**", options=z_candidates)
-
-with c4:
     dbh_vals = _safe_num(df0["dbh"]).dropna()
     dbh_range = st.slider(
-        "**DBH filter [cm]**",
+        "**DBH filter [cm] | Heatmap only**",
         int(dbh_vals.min()),
         int(dbh_vals.max()),
         (int(dbh_vals.min()), int(dbh_vals.max())),
     )
 
-with c6:
+with c3:
     hvals = _safe_num(df0["height"]).dropna()
     height_range = st.slider(
-        "**Height filter [m]**",
+        "**Height filter [m] | Heatmap only**",
         int(hvals.min()),
         int(hvals.max()),
         (int(hvals.min()), int(hvals.max())),
     )
 
-with c8:
+with c4:
     color_mode = st.segmented_control(
         "**Overlay color by**", options=[COLOR_SPP, COLOR_MGMT], default=COLOR_SPP
     )
 
 show_overlay = st.checkbox("**Show tree positions (small dots)**", value=True)
 
-
 # ------------------------------------------------------------
-# UI — BOTTOM
+# UI — BOTTOM (heatmap-only filters)
 # ------------------------------------------------------------
 cA, cB = st.columns([2, 15])
 with cA:
     species_sel = st.pills(
-        "**Filter Species:**", sp_all, default=sp_all, selection_mode="multi"
+        "**Filter Species (heatmap only):**",
+        sp_all,
+        default=sp_all,
+        selection_mode="multi",
     )
 with cB:
     plot_container = st.container()
@@ -163,17 +164,19 @@ with cB:
 _, _, cC = st.columns([1, 1, 15])
 with cC:
     mgmt_sel = st.pills(
-        "**Filter Management:**", mg_all, default=mg_all, selection_mode="multi"
+        "**Filter Management (heatmap only):**",
+        mg_all,
+        default=mg_all,
+        selection_mode="multi",
     )
 
 species_sel = _normalize_list(species_sel)
 mgmt_sel = _normalize_list(mgmt_sel)
 
-
 # ------------------------------------------------------------
-# APPLY FILTERS
+# APPLY FILTERS FOR HEATMAP ONLY
 # ------------------------------------------------------------
-def _apply_filters(df):
+def _apply_filters_heatmap(df):
     d = df.copy()
     if species_sel:
         d = d[d["species"].astype(str).isin(species_sel)]
@@ -184,11 +187,15 @@ def _apply_filters(df):
     return d
 
 
-df_f = _apply_filters(df0)
-
+df_f = _apply_filters_heatmap(df0)   # ONLY heatmap is filtered
 
 # ------------------------------------------------------------
-# VALID XY
+# OVERLAY POINTS (NEFILTROVANÉ)
+# ------------------------------------------------------------
+df_overlay = df0.copy()  # overlay dots ALWAYS use full dataset
+
+# ------------------------------------------------------------
+# VALID XY FOR HEATMAP
 # ------------------------------------------------------------
 x_f = _safe_num(df_f["x"])
 y_f = _safe_num(df_f["y"])
@@ -198,43 +205,27 @@ if not valid_xy.any():
     st.info("No valid (x,y) after filtering.")
     st.stop()
 
-
 # ------------------------------------------------------------
-# XY RANGE FROM HEATMAP GRID (±1 m)
+# XY RANGE (square panels)
 # ------------------------------------------------------------
 buffer = 1.0
-
-x_edges = np.linspace(
-    float(df0["x"].min()),
-    float(df0["x"].max()),
-    HEATMAP_NBINS + 1,
-)
-
-y_edges = np.linspace(
-    float(df0["y"].min()),
-    float(df0["y"].max()),
-    HEATMAP_NBINS + 1,
-)
-
-xmin = x_edges[0] - buffer
-xmax = x_edges[-1] + buffer
-ymin = y_edges[0] - buffer
-ymax = y_edges[-1] + buffer
-
+xmin = float(df0["x"].min()) - buffer
+xmax = float(df0["x"].max()) + buffer
+ymin = float(df0["y"].min()) - buffer
+ymax = float(df0["y"].max()) + buffer
 
 # ------------------------------------------------------------
 # WEIGHTS
 # ------------------------------------------------------------
-if _is_numeric_like(df_f[z_col]):
-    w = _safe_num(df_f[z_col]).fillna(0)
-    colorbar_title = z_col
+if z_col is None:
+    w = pd.Series(1.0, index=df_f.index)
+    colorbar_title = VALUE_TREE_COUNT
 else:
-    w = pd.Series(1, index=df_f.index, dtype=float)
-    colorbar_title = "Count"
-
+    w = _safe_num(df_f[z_col]).fillna(0)
+    colorbar_title = value_label
 
 # ------------------------------------------------------------
-# FINAL GRID FOR HISTOGRAM
+# GRID
 # ------------------------------------------------------------
 x_edges = np.linspace(xmin, xmax, HEATMAP_NBINS + 1)
 y_edges = np.linspace(ymin, ymax, HEATMAP_NBINS + 1)
@@ -244,7 +235,6 @@ y_cent = (y_edges[:-1] + y_edges[1:]) / 2
 
 bin_wx = (xmax - xmin) / HEATMAP_NBINS
 bin_wy = (ymax - ymin) / HEATMAP_NBINS
-
 
 # ------------------------------------------------------------
 # PANEL BUILDER
@@ -258,33 +248,24 @@ def _panel(mask):
         return Z, H
 
     Z, _, _ = np.histogram2d(
-        x_f[m],
-        y_f[m],
-        bins=[x_edges, y_edges],
-        weights=w[m],
+        x_f[m], y_f[m], bins=[x_edges, y_edges], weights=w[m]
     )
     Z = Z.T
 
-    # smoothing
     if m.sum() > 1:
         sigma = 3
-        sx = sigma / bin_wx if bin_wx > 0 else 0
-        sy = sigma / bin_wy if bin_wy > 0 else 0
-        Z = _blur2d(Z, sx, sy)
+        Z = _blur2d(Z, sigma / bin_wx, sigma / bin_wy)
 
-    # hover labels
     H = np.empty_like(Z, dtype=object)
     for iy in range(Z.shape[0]):
         for ix in range(Z.shape[1]):
             val = Z[iy, ix]
-            H[iy, ix] = (
-                f"{colorbar_title}: {val:.2f}"
-                if colorbar_title != "Count"
-                else f"Count: {val:.0f}"
-            )
+            if z_col is None:
+                H[iy, ix] = f"Count: {val:.0f}"
+            else:
+                H[iy, ix] = f"{colorbar_title}: {val:.2f}"
 
     return Z, H
-
 
 # ------------------------------------------------------------
 # COMPUTE PANELS
@@ -299,9 +280,8 @@ Zr, Hr = _panel(m_removed)
 
 zmax = max(Zb.max(), Za.max(), Zr.max())
 
-
 # ------------------------------------------------------------
-# FIGURE INIT
+# PLOT INIT
 # ------------------------------------------------------------
 fig = make_subplots(
     rows=1,
@@ -314,7 +294,6 @@ fig = make_subplots(
     specs=[[{"type": "heatmap"}] * 3],
     horizontal_spacing=0.003,
 )
-
 
 # add panels
 def _add(Z, H, col):
@@ -331,17 +310,15 @@ def _add(Z, H, col):
         col=col,
     )
 
-
 _add(Zb, Hb, 1)
 _add(Za, Ha, 2)
 _add(Zr, Hr, 3)
 
-
 # ------------------------------------------------------------
-# OVERLAY POINTS
+# OVERLAY POINTS (UNFILTERED)
 # ------------------------------------------------------------
 if show_overlay:
-    df_o = df_f.copy()
+    df_o = df_overlay.copy()
     ok = df_o["x"].notna() & df_o["y"].notna()
 
     if color_mode == COLOR_SPP:
@@ -359,6 +336,7 @@ if show_overlay:
 
     for category, sub in df_o[ok].groupby(group_col):
         colvals = sub[color_col].tolist()
+        legend_group = str(category)
         for c in (1, 2, 3):
             fig.add_trace(
                 go.Scatter(
@@ -368,6 +346,7 @@ if show_overlay:
                     name=str(category),
                     hoverinfo="skip",
                     showlegend=(c == 1),
+                    legendgroup=legend_group,
                     marker=dict(
                         size=4,
                         color=colvals,
@@ -379,9 +358,8 @@ if show_overlay:
                 col=c,
             )
 
-
 # ------------------------------------------------------------
-# AXES — SQUARE PANELS
+# AXES (SQUARE PANELS)
 # ------------------------------------------------------------
 for c in (1, 2, 3):
     fig.update_xaxes(
@@ -419,7 +397,6 @@ for c in (1, 2, 3):
             col=c,
         )
 
-
 # ------------------------------------------------------------
 # LAYOUT
 # ------------------------------------------------------------
@@ -455,7 +432,6 @@ fig.update_layout(
         ),
     ),
 )
-
 
 # ------------------------------------------------------------
 # RENDER

@@ -38,40 +38,99 @@ def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) ->
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
+    import json
 
-file_path_2 = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json"
+    # --- Load JSON ---
+    with open(original_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # dataframe -> dict podle id
+    id_map = df.set_index("id").to_dict("index")
+
+    # klíče, které se mají přepisovat do segmentu (outer level)
+    outer_rewrite_keys = {"label", "managementStatusId", "speciesId"}
+
+    for segment in data.get("segments", []):
+        sid = segment.get("id")
+        if sid not in id_map or "treeAttributes" not in segment:
+            continue
+
+        row = id_map[sid]
+        attr = segment["treeAttributes"]
+
+        # ---- (1) Zachování Z-ové hodnoty ----
+        z = 0.0
+        if isinstance(attr.get("position"), list) and len(attr["position"]) >= 3:
+            z = attr["position"][2]
+
+        # ---- (2) Přepis pozice pokud df obsahuje x,y ----
+        if "x" in row and "y" in row:
+            attr["position"] = [float(row["x"]), float(row["y"]), z]
+
+        # ---- (3) Přepis OUTER KEYS, pokud jsou v DF ----
+        # label, managementStatusId, speciesId
+        for key in outer_rewrite_keys:
+            if key in row and row[key] is not None:
+                segment[key] = row[key]
+
+        # ---- (4) Tyto klíče NESMÍ být v treeAttributes ----
+        for forbidden in outer_rewrite_keys:
+            if forbidden in attr:
+                del attr[forbidden]
+
+        # ---- (5) Ostatní atributy – přepis jen pokud nejsou outer keys segmentu ----
+        skip_keys = {"id"} | outer_rewrite_keys
+        outer_keys = set(segment.keys())
+
+        for key, value in row.items():
+            if key in skip_keys:
+                continue
+            if key in outer_keys:
+                continue
+            attr[key] = value  # bezpečné přepsání nebo přidání
+
+    # --- save ---
+    output_path = output_path or original_path
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+
+file_path_2 = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_mod.json"
 # out_file = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/_PokojnaHora_mod.json"
 settings_file = (
     "C:/Users/krucek/Documents/GitHub/VUK/3d-marteloscope/settings_with_colors.json"
 )
 
-file_path = (
+file_path_3 = (
     "C:/Users/krucek/Documents/GitHub/VUK/3d-marteloscope/data/test_project.json"
 )
 out_file = (
-    "C:/Users/krucek/Documents/GitHub/VUK/3d-marteloscope/data/test_project_new2.json"
+    "C:/Users/krucek/Documents/GitHub/VUK/3d-marteloscope/data/pokojna_test_v2.json"
 )
 trees = iou.load_project_json(file_path)
 trees2 = iou.load_project_json(file_path_2)
-trees2["speciesId"] = trees["speciesId"]
+trees["speciesId"] = trees2["speciesId"]
 
+trees["managementStatusId"] = 0
 
-idx = trees.sample(frac=0.75).index
-trees.loc[idx, "management_status"] = "Untouched"
-# trees["managementColorHex"] = "#808080"
 idx = trees.sample(frac=0.1).index
-trees.loc[idx, "management_status"] = "Competition"
+trees.loc[idx, "managementStatusId"] = 1
 idx = trees.sample(frac=0.05).index
-trees.loc[idx, "management_status"] = "Promote regeneration"
+trees.loc[idx, "managementStatusId"] = 2
 idx = trees.sample(frac=0.05).index
-trees.loc[idx, "management_status"] = "Promote rare species"
+trees.loc[idx, "managementStatusId"] = 3
 idx = trees.sample(frac=0.05).index
-trees.loc[idx, "management_status"] = "Sanitary"
+trees.loc[idx, "managementStatusId"] = 4
 idx = trees.sample(frac=0.05).index
-trees.loc[idx, "management_status"] = "Technical"
+trees.loc[idx, "managementStatusId"] = 5
 idx = trees.sample(frac=0.05).index
-trees.loc[idx, "management_status"] = "Target tree"
-
+trees.loc[idx, "managementStatusId"] = 6
+idx = trees.sample(frac=0.05).index
+trees.loc[idx, "managementStatusId"] = 7
+ 	
+trees = trees.drop(columns=["speciesColorHex", "managementColorHex"])
 
 write_json(file_path, trees, out_file)
 
