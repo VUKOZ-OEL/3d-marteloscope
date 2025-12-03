@@ -82,22 +82,17 @@ def alpha_shape(points, alpha=0.3):
     return unary_union(polygons)
 
 
-def ply_to_wkt_polygon(ply_path: str) -> str:
+def ply_to_wkt_polygon(ply_path: str, alpha=0.3, simplify_tolerance=0.5) -> str:
     """
-    Načte .ply, extrahuje XY body, odstraní bod 0,0,
-    spočítá konkávní obal (alpha-shape) a zjednoduší polygon.
-    alpha = detail obalu (menší → více detailu)
-    simplify_tolerance = minimální rozestup mezi vertexy (m)
+    Načte PLY polygon, odstraní bod (0,0),
+    vypočítá concave hull pomocí alpha-shape
+    a polygon zjednoduší.
     """
-
-    alpha=0.3
-    simplify_tolerance=0.5
 
     if not os.path.exists(ply_path):
         return None
 
-    xs = []
-    ys = []
+    xs, ys = [], []
     header = True
 
     with open(ply_path, "r") as f:
@@ -114,7 +109,7 @@ def ply_to_wkt_polygon(ply_path: str) -> str:
             try:
                 x, y = float(parts[0]), float(parts[1])
 
-                # a) odfiltruj 0,0
+                # odstranit artefakt 0,0
                 if x == 0 and y == 0:
                     continue
 
@@ -126,22 +121,26 @@ def ply_to_wkt_polygon(ply_path: str) -> str:
     if len(xs) < 3:
         return None
 
-    points = [(x, y) for x, y in zip(xs, ys)]
+    points = list(zip(xs, ys))
 
-    # b) concave hull (alpha shape)
-    hull = alpha_shape(points, alpha)
+    # --- 1) Vytvoř concave hull ---
+    hull = alpha_shape(points, alpha=alpha)
 
     if hull is None or hull.is_empty:
         return None
 
-    # c) zjednodušit polygon (min vzdáleností)
-    hull_simplified = hull.simplify(simplify_tolerance, preserve_topology=True)
+    # --- 2) Zjednodušení polygonu ---
+    hull = hull.simplify(simplify_tolerance, preserve_topology=True)
 
-    # zkontrolovat, že je to polygon
-    if not isinstance(hull_simplified, Polygon):
-        hull_simplified = hull_simplified.convex_hull
+    # --- 3) Pokud je to MultiPolygon → vezmeme největší ---
+    if isinstance(hull, shapely.geometry.MultiPolygon):
+        hull = max(hull.geoms, key=lambda p: p.area)
 
-    return hull_simplified.wkt
+    # --- 4) Pokud to není Polygon → convex hull fallback ---
+    if not isinstance(hull, Polygon):
+        hull = hull.convex_hull
+
+    return hull.wkt
 
 def norm(s: str) -> str:
     return (s or "").strip().lower()
