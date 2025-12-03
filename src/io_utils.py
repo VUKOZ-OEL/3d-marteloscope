@@ -9,6 +9,11 @@ import os
 import numpy as np
 import re
 import math
+from shapely.geometry import Point, Polygon, MultiPoint, LineString
+import shapely
+from shapely.ops import triangulate, unary_union, polygonize
+
+
 
 __all__ = [
     "load_project_json",
@@ -24,31 +29,70 @@ __all__ = [
 
 # --- Pomocné funkce (samostatné a robustní) ----------------------------------
 
-
-def simplify_polygon(points, min_dist=0.5):
-    """Redukuje body polygonu podle minimální vzdálenosti."""
-    if len(points) < 3:
-        return points
-
-    simplified = [points[0]]
-    last_x, last_y = points[0]
-
-    for x, y in points[1:]:
-        if math.dist((x, y), (last_x, last_y)) >= min_dist:
-            simplified.append((x, y))
-            last_x, last_y = x, y
-
-    # uzavřít polygon
-    if simplified[0] != simplified[-1]:
-        simplified.append(simplified[0])
-
-    return simplified
-
-def ply_to_wkt_polygon(ply_path: str, min_dist=0.5) -> str:
+def alpha_shape(points, alpha=0.3):
     """
-    Načte PLY, extrahuje XY body, zjednoduší polygon a vrátí WKT POLYGON.
-    min_dist = minimální rozestup mezi body (v metrech).
+    Vypočítá concave hull pomocí alpha shape (Shapely).
+    Čím menší alpha → tím detailnější obal.
     """
+    if len(points) < 4:
+        return MultiPoint(points).convex_hull
+
+    pts = MultiPoint(points)
+    triangles = triangulate(pts)
+
+    edges = []
+
+    for tri in triangles:
+        coords = list(tri.exterior.coords)
+        a, b, c = coords[0], coords[1], coords[2]
+
+        # délky stran
+        da = MultiPoint([a, b]).length
+        db = MultiPoint([b, c]).length
+        dc = MultiPoint([c, a]).length
+
+        # poloměr opsané kružnice
+        s = (da + db + dc) / 2.0
+        area = tri.area
+        if area == 0:
+            continue
+
+        R = da * db * dc / (4.0 * area)
+
+        # filtr podle alpha parametru
+        if R < 1.0 / alpha:
+            edges.append((a, b))
+            edges.append((b, c))
+            edges.append((c, a))
+
+    if not edges:
+        return pts.convex_hull
+
+    # vytvořit LineStringy
+    lines = [shapely.geometry.LineString(e) for e in edges]
+
+    # sjednotit
+    merged = unary_union(lines)
+
+    # polygonizace
+    polygons = list(polygonize(merged))
+    if not polygons:
+        return pts.convex_hull
+
+    return unary_union(polygons)
+
+
+def ply_to_wkt_polygon(ply_path: str) -> str:
+    """
+    Načte .ply, extrahuje XY body, odstraní bod 0,0,
+    spočítá konkávní obal (alpha-shape) a zjednoduší polygon.
+    alpha = detail obalu (menší → více detailu)
+    simplify_tolerance = minimální rozestup mezi vertexy (m)
+    """
+
+    alpha=0.3
+    simplify_tolerance=0.5
+
     if not os.path.exists(ply_path):
         return None
 
@@ -56,39 +100,48 @@ def ply_to_wkt_polygon(ply_path: str, min_dist=0.5) -> str:
     ys = []
     header = True
 
-    try:
-        with open(ply_path, "r") as f:
-            for line in f:
-                if header:
-                    if line.strip().lower() == "end_header":
-                        header = False
+    with open(ply_path, "r") as f:
+        for line in f:
+            if header:
+                if line.strip().lower() == "end_header":
+                    header = False
+                continue
+
+            parts = line.strip().split()
+            if len(parts) < 2:
+                continue
+
+            try:
+                x, y = float(parts[0]), float(parts[1])
+
+                # a) odfiltruj 0,0
+                if x == 0 and y == 0:
                     continue
 
-                parts = line.strip().split()
-                if len(parts) < 2:
-                    continue
-
-                try:
-                    xs.append(float(parts[0]))
-                    ys.append(float(parts[1]))
-                except:
-                    continue
-    except:
-        return None
+                xs.append(x)
+                ys.append(y)
+            except:
+                continue
 
     if len(xs) < 3:
         return None
 
-    # spojit XY body do listu
-    points = list(zip(xs, ys))
+    points = [(x, y) for x, y in zip(xs, ys)]
 
-    # --- SIMPLIFY POLYGON ---
-    points = simplify_polygon(points, min_dist=min_dist)
+    # b) concave hull (alpha shape)
+    hull = alpha_shape(points, alpha)
 
-    # WKT
-    coords = ", ".join(f"{x} {y}" for x, y in points)
-    return f"POLYGON (({coords}))"
+    if hull is None or hull.is_empty:
+        return None
 
+    # c) zjednodušit polygon (min vzdáleností)
+    hull_simplified = hull.simplify(simplify_tolerance, preserve_topology=True)
+
+    # zkontrolovat, že je to polygon
+    if not isinstance(hull_simplified, Polygon):
+        hull_simplified = hull_simplified.convex_hull
+
+    return hull_simplified.wkt
 
 def norm(s: str) -> str:
     return (s or "").strip().lower()
