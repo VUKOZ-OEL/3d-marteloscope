@@ -8,38 +8,8 @@ import src.io_utils as iou
 # "managementStatusId": 0,
 # "speciesId": 0,
 
-def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
-    with open(original_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    id_map = df.set_index("id").to_dict("index")
-
-    for segment in data.get("segments", []):
-        sid = segment.get("id")
-        if sid in id_map and "treeAttributes" in segment:
-            row = id_map[sid]
-            attr = segment["treeAttributes"]
-
-            z = 0.0
-            if isinstance(attr.get("position"), list) and len(attr["position"]) >= 3:
-                z = attr["position"][2]
-
-            if "x" in row and "y" in row:
-                attr["position"] = [float(row["x"]), float(row["y"]), z]
-
-            # Vyloučíme klíče, které už existují i ve vnějším segmentu
-            skip_keys = {"id"}
-            outer_keys = set(segment.keys())  # např. "label" na úrovni segmentu
-            for key, value in row.items():
-                if key not in skip_keys and key not in outer_keys:
-                    attr[key] = value  # bezpečné přepsání nebo přidání
-
-    output_path = output_path or original_path
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
 
 def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) -> None:
-    import json
 
     # --- Load JSON ---
     with open(original_path, "r", encoding="utf-8") as f:
@@ -111,6 +81,10 @@ out_file = (
 )
 trees = iou.load_project_json(file_path)
 trees2 = iou.load_project_json(file_path_2)
+
+trees3 = iou.load_project_json(file_path_3)
+trees3.to_feather("C:/Users/krucek/Documents/GitHub/VUK/3d-marteloscope/data/test_project.json.feather")
+
 trees["speciesId"] = trees2["speciesId"]
 
 trees["managementStatusId"] = 0
@@ -134,7 +108,7 @@ trees = trees.drop(columns=["speciesColorHex", "managementColorHex"])
 
 write_json(file_path, trees, out_file)
 
-# polys = pd.read_feather("C:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/planar_projections.feather")
+#polys = pd.read_feather("C:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/planar_projections.feather")
 qsm = pd.read_feather(
     "C:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/qsm2json.feather"
 )

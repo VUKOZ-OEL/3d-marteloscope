@@ -83,11 +83,6 @@ def alpha_shape(points, alpha=0.3):
 
 
 def ply_to_wkt_polygon(ply_path: str, alpha=0.3, simplify_tolerance=0.5) -> str:
-    """
-    Načte PLY polygon, odstraní bod (0,0),
-    vypočítá concave hull pomocí alpha-shape
-    a polygon zjednoduší.
-    """
 
     if not os.path.exists(ply_path):
         return None
@@ -255,11 +250,13 @@ def load_color_pallete(file_path: str) -> pd.DataFrame:
     return sp_map
 
 
-def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None) -> pd.DataFrame:
+def load_project_json_old(file_path: str, exclude_from_sql_update: List[str] = None) -> pd.DataFrame:
     """
     Načte JSON, zpracuje atributy a barvy, a synchronizuje s SQLite.
     Hodnoty z JSONu (species, barvy) mají přednost a nejsou přepisovány z SQL.
     """
+    st.write("LOADING PROJECT")
+
     if exclude_from_sql_update is None:
         exclude_from_sql_update = []
 
@@ -339,8 +336,6 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
             base["x"], base["y"] = 0.0, 0.0
         rows.append(base)
 
-    print("ROWS:")
-    #print(rows)
     # Vytvoření DataFrame
     df_json = pd.DataFrame(rows)
     
@@ -408,7 +403,9 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
 
         except Exception as e:
             print(f"Chyba při merge SQLite: {e}")
-
+        
+    st.write(df_json.columns)
+    
     return df_json.reset_index(drop=True)
 
 
@@ -541,7 +538,6 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
     Načte projektový JSON 3DForest, vytvoří DataFrame stromů, sloučí ho se SQLite databází
     a doplní chybějící 2D projekce koruny (PLY → WKT) do SQLite přes UPDATE.
     """
-
     import os, json, sqlite3
     import pandas as pd
 
@@ -781,6 +777,11 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
         except Exception as e:
             print("Chyba ukládání polygonů do SQLite:", e)
 
-
+    # dopočet bazální plochy [m²] z DBH [cm]  -> BA = π * (dbh_cm / 200)^2
+    if "dbh" in df_json.columns:
+        dbh_cm = pd.to_numeric(df_json["dbh"], errors="coerce")
+        df_json["basal_area_m2"] = np.pi * (dbh_cm / 200.0) ** 2
+    else:
+        df_json["basal_area_m2"] = np.nan
     # --------------------------------------------------------------------------------------
     return df_json.reset_index(drop=True)

@@ -21,10 +21,7 @@ colorByMgmt = st.session_state.Management
 
 st.markdown("### Explore tree statistics:")
 
-# --- Data ---
-if "trees" not in st.session_state:
-    file_path = "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json"
-    st.session_state.trees = iou.load_project_json(file_path)
+
 
 df_raw: pd.DataFrame = st.session_state.trees.copy()
 
@@ -58,17 +55,39 @@ if "managementColorHex" in df.columns:
 
 
 # ========== HELPERS ==========
-def _y_upper_nice(vmax: float, step_base: int = 10, min_upper: int = 10) -> int:
+
+def _y_upper_nice(vmax: float, min_upper: float = 1.0) -> float:
+    """
+    Vrátí pěkně zaokrouhlenou horní mez osy Y pro grafy.
+    Dynamicky volí krok podle řádu velikosti hodnoty.
+    Škáluje dobře i pro malé hodnoty (< 1).
+    """
     if vmax is None or np.isnan(vmax) or vmax <= 0:
         return min_upper
-    if vmax <= 100:
-        step = step_base
-    elif vmax <= 250:
-        step = 25
-    else:
-        step = 50
-    return int(max(min_upper, math.ceil(vmax / step) * step))
 
+    # Základní "nice" kroky
+    nice_steps = [1, 2, 5]
+
+    # exponent řádu hodnoty
+    exp = math.floor(math.log10(vmax))
+    base = 10 ** exp
+
+    # znormalizovaná hodnota
+    norm = vmax / base
+
+    # najde nejbližší pěkný krok >= norm
+    step = None
+    for s in nice_steps:
+        if norm <= s:
+            step = s
+            break
+    if step is None:
+        step = 10
+
+    upper = step * base
+
+    # garantujeme minimální horní mez
+    return max(min_upper, upper)
 
 def _make_bins_labels(
     df_all: pd.DataFrame, value_col: str, bin_size: float, unit_label: str
@@ -639,10 +658,10 @@ VALUE_TREE_COUNT = "Tree Count"
 value_mapping = {
     VALUE_TREE_COUNT: None,  # speciální hodnota (Count)
     "DBH": "dbh",
-    "BA": "BasalArea_m2",
+    "Basal Area": "basal_area_m2",
     "Volume": "Volume_m3",
     "Tree Height": "height",
-    "Crown Base Height": "crown_base_height",
+    "Crown Base Height": "crown_base_height", # RENAME 2 crownStartHeight
     "Crown Centroid Height": "crown_centroid_height",
     #    "crown diameter": "crown_diameter",
     "Crown Volume": "crown_volume",
