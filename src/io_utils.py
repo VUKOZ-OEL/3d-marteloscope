@@ -12,8 +12,7 @@ import math
 from shapely.geometry import Point, Polygon, MultiPoint, LineString
 import shapely
 from shapely.ops import triangulate, unary_union, polygonize
-
-
+from shapely import wkt as shapely_wkt
 
 __all__ = [
     "load_project_json",
@@ -532,12 +531,9 @@ def save_project_json(
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-
+"""
 def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None) -> pd.DataFrame:
-    """
-    Načte projektový JSON 3DForest, vytvoří DataFrame stromů, sloučí ho se SQLite databází
-    a doplní chybějící 2D projekce koruny (PLY → WKT) do SQLite přes UPDATE.
-    """
+
     import os, json, sqlite3
     import pandas as pd
 
@@ -783,5 +779,438 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
         df_json["basal_area_m2"] = np.pi * (dbh_cm / 200.0) ** 2
     else:
         df_json["basal_area_m2"] = np.nan
+    # --------------------------------------------------------------------------------------
+    return df_json.reset_index(drop=True)
+"""
+
+def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None) -> pd.DataFrame:
+    """
+    Načte projektový JSON 3DForest, vytvoří DataFrame stromů, sloučí ho se SQLite databází,
+    doplní chybějící 2D projekce koruny (PLY → WKT) do SQLite přes UPDATE
+    a spočte metriky projection_exposure a projection_exposure_after_mgmt.
+    """
+    import os, json, sqlite3
+    import pandas as pd
+
+    # --------------------------------------------------------------------------------------
+    # 0) Sloupce, které SQL nesmí nikdy přepsat
+    # --------------------------------------------------------------------------------------
+    if exclude_from_sql_update is None:
+        exclude_from_sql_update = []
+
+    protected_cols = [
+        "species",
+        "speciesColorHex",
+        "management_status",
+        "managementColorHex",
+        "label",
+    ]
+
+    exclude_final = list(set(exclude_from_sql_update + protected_cols))
+
+    # --------------------------------------------------------------------------------------
+    # 1) Načtení JSON souboru
+    # --------------------------------------------------------------------------------------
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(file_path)
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # --------------------------------------------------------------------------------------
+    # 2) Lookup tabulky species + management
+    # --------------------------------------------------------------------------------------
+    sp_id_map = {}
+    for item in data.get("species", []):
+        try:
+            sid = int(item.get("id"))
+            sp_id_map[sid] = {
+                "latin": item.get("latin", "Unknown"),
+                "color": _to_hex(item.get("color")),
+            }
+        except:
+            pass
+
+    mg_id_map = {}
+    for item in data.get("managementStatus", []):
+        try:
+            mid = int(item.get("id"))
+            mg_id_map[mid] = {
+                "label": item.get("label", "Unknown"),
+                "color": _to_hex(item.get("color")),
+            }
+        except:
+            pass
+
+    # --------------------------------------------------------------------------------------
+    # 3) Segmenty → DataFrame
+    # --------------------------------------------------------------------------------------
+    rows = []
+
+    for seg in data.get("segments", []):
+        base = {}
+
+        base["id"] = seg.get("id")
+        base["label"] = seg.get("label", "")
+
+        # Lookup IDs
+        try:
+            s_id = int(seg.get("speciesId"))
+        except:
+            s_id = -1
+        try:
+            m_id = int(seg.get("managementStatusId"))
+        except:
+            m_id = -1
+
+        # Lookup data
+        sp = sp_id_map.get(s_id, {})
+        mg = mg_id_map.get(m_id, {})
+
+        base["species"] = sp.get("latin", "Unknown")
+        base["speciesColorHex"] = sp.get("color")
+        base["management_status"] = mg.get("label", "Unknown")
+        base["managementColorHex"] = mg.get("color")
+
+        # Atributy stromu
+        SKIP_ATTRS = {"speciesColorHex", "managementColorHex", "species", "management_status"}
+
+        attrs = seg.get("treeAttributes", {}) or {}
+        for k, v in attrs.items():
+            if k == "position":
+                continue
+            if k in SKIP_ATTRS:
+                continue
+            base[k] = v
+
+        # Pozice
+        pos = attrs.get("position")
+        if isinstance(pos, list) and len(pos) >= 2:
+            base["x"] = float(pos[0])
+            base["y"] = float(pos[1])
+            if len(pos) > 2:
+                base["z"] = float(pos[2])
+        else:
+            base["x"], base["y"] = 0.0, 0.0
+
+        rows.append(base)
+
+    df_json = pd.DataFrame(rows)
+
+    if df_json.empty:
+        return df_json
+
+    df_json["id"] = df_json["id"].astype(int)
+    df_json.set_index("id", inplace=True, drop=False)
+
+    # Odstranit ground/unsegmented
+    if "label" in df_json.columns:
+        df_json = df_json[
+            ~df_json["label"].astype(str).str.contains("ground|unsegmented", case=False, na=False)
+        ]
+
+    # --------------------------------------------------------------------------------------
+    # 4) SQLite MERGE
+    # --------------------------------------------------------------------------------------
+    sqlite_path = os.path.splitext(file_path)[0] + ".sqlite"
+    table_name = "tree"
+
+    # A) Pokud SQLite neexistuje → vytvořit základní tabulku
+    if not os.path.exists(sqlite_path):
+        try:
+            conn = sqlite3.connect(sqlite_path)
+            df_json[["id", "label", "species"]].to_sql(
+                table_name, conn, if_exists="replace", index=False
+            )
+            conn.close()
+        except Exception as e:
+            print("Chyba při tvorbě SQLite:", e)
+
+    # B) SQLite existuje → merge
+    if os.path.exists(sqlite_path):
+        try:
+            conn = sqlite3.connect(sqlite_path)
+
+            exists = not pd.read_sql(
+                f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';",
+                conn
+            ).empty
+
+            if exists:
+                df_sql = pd.read_sql(f"SELECT * FROM {table_name}", conn)
+
+                if not df_sql.empty:
+                    df_sql["id"] = df_sql["id"].astype(int)
+                    df_sql.set_index("id", inplace=True, drop=False)
+
+                    # Sloupce, které smíme přepsat
+                    update_cols = [
+                        c for c in df_sql.columns
+                        if c in df_json.columns and c not in exclude_final
+                    ]
+
+                    if update_cols:
+                        df_json.update(df_sql[update_cols])
+
+                    # Nové sloupce z SQL → přidat
+                    new_cols = [c for c in df_sql.columns if c not in df_json.columns]
+                    if new_cols:
+                        df_json = df_json.join(df_sql[new_cols])
+
+            conn.close()
+
+        except Exception as e:
+            print("Chyba merge SQLite:", e)
+
+    # --------------------------------------------------------------------------------------
+    # 5) POLYGONY (PLY → WKT → SQLite UPDATE)
+    # --------------------------------------------------------------------------------------
+    project_dir = os.path.dirname(file_path)
+    project_name = os.path.splitext(os.path.basename(file_path))[0]
+
+    # Sloupec v DF
+    if "planar_projection_poly" not in df_json.columns:
+        df_json["planar_projection_poly"] = None
+
+    # Načíst existující polygony ze SQL, pokud jsou
+    try:
+        conn = sqlite3.connect(sqlite_path)
+        sql_cols = pd.read_sql(f"PRAGMA table_info({table_name});", conn)["name"].tolist()
+
+        if "planar_projection_poly" in sql_cols:
+            df_poly = pd.read_sql(
+                f"SELECT id, planar_projection_poly FROM {table_name}", conn
+            )
+            df_poly["id"] = df_poly["id"].astype(int)
+            df_poly.set_index("id", inplace=True, drop=False)
+            df_json.update(df_poly[["planar_projection_poly"]])
+
+        conn.close()
+    except:
+        pass
+
+    # Najít chybějící WKT polygony
+    missing = df_json[df_json["planar_projection_poly"].isna()]
+
+    if not missing.empty:
+        # dopočítat WKT z PLY
+        for tid in missing["id"]:
+            ply_name = f"{project_name}.{tid}.concaveHullProjection.ply"
+            ply_path = os.path.join(project_dir, ply_name)
+
+            wkt_poly = ply_to_wkt_polygon(ply_path)
+            if wkt_poly:
+                df_json.loc[tid, "planar_projection_poly"] = wkt_poly
+
+        # uložit do SQL pomocí UPDATE
+        try:
+            conn = sqlite3.connect(sqlite_path)
+
+            # přidat sloupec, pokud neexistuje
+            sql_cols = pd.read_sql(f"PRAGMA table_info({table_name});", conn)["name"].tolist()
+            if "planar_projection_poly" not in sql_cols:
+                conn.execute(f"ALTER TABLE {table_name} ADD COLUMN planar_projection_poly TEXT;")
+                conn.commit()
+
+            # UPDATE řádek po řádku
+            for tid, row in df_json.iterrows():
+                poly = row.get("planar_projection_poly")
+                if poly and isinstance(poly, str):
+                    conn.execute(
+                        f"UPDATE {table_name} SET planar_projection_poly = ? WHERE id = ?",
+                        (poly, int(tid))
+                    )
+
+            conn.commit()
+            conn.close()
+
+        except Exception as e:
+            print("Chyba ukládání polygonů do SQLite:", e)
+
+    # --------------------------------------------------------------------------------------
+    # 6) PROJECTION EXPOSURE (jen když máme height a polygon)
+    # --------------------------------------------------------------------------------------
+    # inicializace sloupců
+    if "projection_exposure" not in df_json.columns:
+        df_json["projection_exposure"] = np.nan
+    if "projection_exposure_after_mgmt" not in df_json.columns:
+        df_json["projection_exposure_after_mgmt"] = np.nan
+
+    # zkusíme najít název výškového sloupce
+    height_col = None
+    for cand in ["height", "tree_height", "h"]:
+        if cand in df_json.columns:
+            height_col = cand
+            break
+
+    # --- nejdřív zjistíme, jestli už projection_exposure existuje v SQLite ---
+    has_projection_exposure_in_sql = False
+    if os.path.exists(sqlite_path):
+        try:
+            conn = sqlite3.connect(sqlite_path)
+            sql_cols = pd.read_sql(f"PRAGMA table_info({table_name});", conn)["name"].tolist()
+            has_projection_exposure_in_sql = "projection_exposure" in sql_cols
+
+            if has_projection_exposure_in_sql:
+                # jen načteme existující hodnoty
+                df_proj = pd.read_sql(
+                    f"SELECT id, projection_exposure FROM {table_name}", conn
+                )
+                if not df_proj.empty:
+                    df_proj["id"] = df_proj["id"].astype(int)
+                    df_proj.set_index("id", inplace=True, drop=False)
+                    df_json.update(df_proj[["projection_exposure"]])
+
+            conn.close()
+        except Exception as e:
+            print("Chyba čtení projection_exposure ze SQLite:", e)
+            has_projection_exposure_in_sql = False
+
+    # Pokud height nebo polygony chybí, není co počítat → jen vrátíme (basal_area dopočítáme níže)
+    can_compute_exposure = (
+        height_col is not None
+        and "planar_projection_poly" in df_json.columns
+    )
+
+    # Budeme potřebovat geometrie i pro after_mgmt, tak je připravíme jen jednou
+    geoms = {}
+    areas = {}
+    heights = {}
+
+    if can_compute_exposure:
+        for idx, row in df_json.iterrows():
+            wkt_str = row.get("planar_projection_poly")
+            if not isinstance(wkt_str, str) or not wkt_str.strip():
+                continue
+            try:
+                g = shapely_wkt.loads(wkt_str)
+                if g.is_empty or not g.is_valid:
+                    continue
+                # pokud MultiPolygon → vezmeme největší část
+                if isinstance(g, shapely.geometry.MultiPolygon):
+                    g = max(g.geoms, key=lambda p: p.area)
+                a = g.area
+                if a <= 0:
+                    continue
+                geoms[idx] = g
+                areas[idx] = a
+                h_val = row.get(height_col)
+                try:
+                    heights[idx] = float(h_val) if pd.notna(h_val) else None
+                except:
+                    heights[idx] = None
+            except Exception:
+                continue
+
+    # --- 6a) projection_exposure: počítáme jen když není v SQL ---
+    if can_compute_exposure and not has_projection_exposure_in_sql and geoms:
+        ids = list(geoms.keys())
+
+        for i in ids:
+            h_i = heights.get(i)
+            geom_i = geoms.get(i)
+            area_i = areas.get(i)
+            if geom_i is None or area_i is None or area_i <= 0 or h_i is None or math.isnan(h_i):
+                continue
+
+            exp_geom = geom_i
+            # okolní vyšší stromy
+            for j in ids:
+                if j == i:
+                    continue
+                h_j = heights.get(j)
+                if h_j is None or math.isnan(h_j) or h_j <= h_i:
+                    continue
+                gj = geoms.get(j)
+                if gj is None:
+                    continue
+                if not exp_geom.intersects(gj):
+                    continue
+                try:
+                    exp_geom = exp_geom.difference(gj)
+                    if exp_geom.is_empty:
+                        break
+                except Exception:
+                    # když se něco rozbije, prostě skončíme s tím, co máme
+                    break
+
+            exposed_area = exp_geom.area if (exp_geom is not None and not exp_geom.is_empty) else 0.0
+            df_json.at[i, "projection_exposure"] = 100.0 * exposed_area / area_i
+
+        # uložíme do SQLite
+        try:
+            conn = sqlite3.connect(sqlite_path)
+            sql_cols = pd.read_sql(f"PRAGMA table_info({table_name});", conn)["name"].tolist()
+            if "projection_exposure" not in sql_cols:
+                conn.execute(f"ALTER TABLE {table_name} ADD COLUMN projection_exposure REAL;")
+                conn.commit()
+
+            for tid, row in df_json.iterrows():
+                val = row.get("projection_exposure")
+                if pd.isna(val):
+                    continue
+                conn.execute(
+                    f"UPDATE {table_name} SET projection_exposure = ? WHERE id = ?",
+                    (float(val), int(row["id"]))
+                )
+
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print("Chyba ukládání projection_exposure do SQLite:", e)
+
+    # --- 6b) projection_exposure_after_mgmt: jen v DF, bez SQL logiky ---
+    if can_compute_exposure and geoms and "management_status" in df_json.columns:
+        # povolené management statusy
+        allowed_status = {"Target tree", "Untouched"}
+
+        # indexy stromů, které do výpočtu vstupují
+        mgmt_ids = [
+            idx for idx, row in df_json.iterrows()
+            if row.get("management_status") in allowed_status and idx in geoms
+        ]
+
+        # ostatní mají NA
+        df_json["projection_exposure_after_mgmt"] = np.nan
+
+        for i in mgmt_ids:
+            h_i = heights.get(i)
+            geom_i = geoms.get(i)
+            area_i = areas.get(i)
+            if geom_i is None or area_i is None or area_i <= 0 or h_i is None or math.isnan(h_i):
+                continue
+
+            exp_geom = geom_i
+            # pouze okolní stromy, které také mají management_status v allowed_status
+            for j in mgmt_ids:
+                if j == i:
+                    continue
+                h_j = heights.get(j)
+                if h_j is None or math.isnan(h_j) or h_j <= h_i:
+                    continue
+                gj = geoms.get(j)
+                if gj is None:
+                    continue
+                if not exp_geom.intersects(gj):
+                    continue
+                try:
+                    exp_geom = exp_geom.difference(gj)
+                    if exp_geom.is_empty:
+                        break
+                except Exception:
+                    break
+
+            exposed_area = exp_geom.area if (exp_geom is not None and not exp_geom.is_empty) else 0.0
+            df_json.at[i, "projection_exposure_after_mgmt"] = 100.0 * exposed_area / area_i
+
+    # --------------------------------------------------------------------------------------
+    # 7) dopočet bazální plochy [m²] z DBH [cm]  -> BA = π * (dbh_cm / 200)^2
+    # --------------------------------------------------------------------------------------
+    if "dbh" in df_json.columns:
+        dbh_cm = pd.to_numeric(df_json["dbh"], errors="coerce")
+        df_json["basal_area_m2"] = np.pi * (dbh_cm / 200.0) ** 2
+    else:
+        df_json["basal_area_m2"] = np.nan
+
     # --------------------------------------------------------------------------------------
     return df_json.reset_index(drop=True)

@@ -2,38 +2,48 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import math
-import src.io_utils as iou
+import src.io_utils as iou  # if unused, you can safely remove
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+
+# --------------------------------------------------------------------------------------
+# Session-scoped helpers
+# --------------------------------------------------------------------------------------
 
 if "plot_uid" not in st.session_state:
     st.session_state.plot_uid = 0
 
 
 def get_uid():
+    """Return a unique plot key for Streamlit charts."""
     st.session_state.plot_uid += 1
     return st.session_state.plot_uid
 
 
-# --- colors & categories by mode ---
+# --------------------------------------------------------------------------------------
+# Global color mode setup (from session_state)
+# --------------------------------------------------------------------------------------
+
 colorBySpp = st.session_state.Species
 colorByMgmt = st.session_state.Management
 
 st.markdown("### Explore tree statistics:")
 
-
-
 df_raw: pd.DataFrame = st.session_state.trees.copy()
 
-# ========== SETTINGS ==========
-CHART_HEIGHT = 350  # chart height
+# Fixed chart height for all plots
+CHART_HEIGHT = 350
 
-# Columns excluded from Y-variable list (these are categorical/style drivers)
+# Columns excluded from some Y-variable lists (categorical / styling helpers)
 exclude_list = {"species", "speciesColorHex", "management_status", "managementColorHex"}
 
-# --- After/Removed masks ---
+# --------------------------------------------------------------------------------------
+# Masks for "after management" vs "removed"
+# --------------------------------------------------------------------------------------
+
 df = df_raw.copy()
 keep_status = {"Target tree", "Untouched"}
+
 mask_after = df.get("management_status", pd.Series(False, index=df.index)).isin(
     keep_status
 )
@@ -43,55 +53,64 @@ mask_removed = (
     else pd.Series(False, index=df.index)
 )
 
-# Standardize dtypes
-if "species" in df.columns:
-    df["species"] = df["species"].astype(str)
-if "speciesColorHex" in df.columns:
-    df["speciesColorHex"] = df["speciesColorHex"].astype(str)
-if "management_status" in df.columns:
-    df["management_status"] = df["management_status"].astype(str)
-if "managementColorHex" in df.columns:
-    df["managementColorHex"] = df["managementColorHex"].astype(str)
+# Standardize dtypes for categorical columns
+for col in ["species", "speciesColorHex", "management_status", "managementColorHex"]:
+    if col in df.columns:
+        df[col] = df[col].astype(str)
 
 
-# ========== HELPERS ==========
+# --------------------------------------------------------------------------------------
+# Numeric helpers and "nice" axis scaling
+# --------------------------------------------------------------------------------------
 
-def _y_upper_nice(vmax: float, min_upper: float = 1.0) -> float:
+def _y_upper_nice(vmax: float, y_label: str = "", min_upper: float = 1.0) -> float:
     """
-    Vrátí pěkně zaokrouhlenou horní mez osy Y pro grafy.
-    Dynamicky volí krok podle řádu velikosti hodnoty.
-    Škáluje dobře i pro malé hodnoty (< 1).
+    Unified Y-axis rounding:
+
+    - Basal Area:
+        if vmax < 5 → round up to nearest 0.1 (e.g., 1.62 → 1.7)
+        else → normal ceil
+
+    - Everything else → round UP to nearest 10
     """
+
     if vmax is None or np.isnan(vmax) or vmax <= 0:
         return min_upper
 
-    # Základní "nice" kroky
-    nice_steps = [1, 2, 5]
+    if vmax < 5:
+        return math.ceil(vmax * 10) / 10.0  # 1 desetina nahoru
+    else:
+        return math.ceil(vmax)  # běžné chování
 
-    # exponent řádu hodnoty
-    exp = math.floor(math.log10(vmax))
-    base = 10 ** exp
+    # ---- All other variables: round UP to nearest 10 ----
+    return math.ceil(vmax / 10) * 10
 
-    # znormalizovaná hodnota
-    norm = vmax / base
 
-    # najde nejbližší pěkný krok >= norm
-    step = None
-    for s in nice_steps:
-        if norm <= s:
-            step = s
-            break
-    if step is None:
-        step = 10
 
-    upper = step * base
+def auto_round_step(vmax: float) -> float:
+    """
+    Choose a reasonable round step for Y-axis based on data scale.
+    Used for violin plots with slider-controlled range.
+    """
+    if vmax <= 0:
+        return 1.0
+    if vmax <= 10:
+        return 1.0
+    if vmax <= 50:
+        return 5.0
+    if vmax <= 200:
+        return 10.0
+    if vmax <= 1000:
+        return 50.0
+    return 100.0
 
-    # garantujeme minimální horní mez
-    return max(min_upper, upper)
 
 def _make_bins_labels(
     df_all: pd.DataFrame, value_col: str, bin_size: float, unit_label: str
 ):
+    """
+    Compute bin edges and labels for class-based bar charts (DBH / height).
+    """
     vals = pd.to_numeric(df_all.get(value_col), errors="coerce")
     vals_ok = vals.dropna()
     if vals_ok.empty:
@@ -105,9 +124,18 @@ def _make_bins_labels(
     return bins, labels
 
 
+# --------------------------------------------------------------------------------------
+# Category + color helpers (species / management)
+# --------------------------------------------------------------------------------------
+
 def _species_categories_and_colors(df_all: pd.DataFrame):
+    """
+    Return (ordered_species_list, species_color_dict).
+    Order is based on frequency (most frequent first).
+    """
     if "species" not in df_all.columns:
         return [], {}
+
     order = (
         df_all["species"]
         .astype(str)
@@ -117,6 +145,7 @@ def _species_categories_and_colors(df_all: pd.DataFrame):
         .str.strip()
         .tolist()
     )
+
     if "speciesColorHex" in df_all.columns:
         col_lookup = (
             df_all.groupby("species", as_index=False)["speciesColorHex"]
@@ -126,14 +155,20 @@ def _species_categories_and_colors(df_all: pd.DataFrame):
         colors = dict(zip(col_lookup["species"], col_lookup["speciesColorHex"]))
     else:
         colors = {}
+
     colors = {c: colors.get(c, "#AAAAAA") for c in order}
     return order, colors
 
 
 def _management_categories_and_colors(df_all: pd.DataFrame):
+    """
+    Return (ordered_management_status_list, status_color_dict).
+    """
     if "management_status" not in df_all.columns:
         return [], {}
+
     order = pd.Index(df_all["management_status"].astype(str).dropna().unique()).tolist()
+
     if "managementColorHex" in df_all.columns:
         cmap = (
             df_all.assign(
@@ -146,6 +181,7 @@ def _management_categories_and_colors(df_all: pd.DataFrame):
         )
     else:
         cmap = {}
+
     cmap = {
         c: (
             cmap.get(c)
@@ -158,7 +194,11 @@ def _management_categories_and_colors(df_all: pd.DataFrame):
 
 
 def _hue_setup(df_all: pd.DataFrame, color_mode: str):
-    """Return (hue_col, categories, color_map, title_suffix)."""
+    """
+    Decide which column is used for color/hue and return:
+
+        (hue_col_name, categories_list, color_map_dict, title_suffix_str)
+    """
     if color_mode == colorByMgmt:
         cats, colors = _management_categories_and_colors(df_all)
         return "management_status", cats, colors, "(by Management)"
@@ -167,8 +207,12 @@ def _hue_setup(df_all: pd.DataFrame, color_mode: str):
         return "species", cats, colors, "(by Species)"
 
 
-# ---------- Stats helpers ----------
+# --------------------------------------------------------------------------------------
+# Generic stats helpers
+# --------------------------------------------------------------------------------------
+
 def _is_numeric_like(s: pd.Series) -> bool:
+    """Return True if Series can be treated as numeric (including bool)."""
     if pd.api.types.is_bool_dtype(s):
         return True
     try:
@@ -179,23 +223,31 @@ def _is_numeric_like(s: pd.Series) -> bool:
 
 
 def _aggfunc_name_for_hover(stat: str, y_col: str) -> str:
-    return "Count (rows)" if stat == "Count" else f"{stat} of {y_col}"
+    """Return human-readable label for hover text."""
+    return "Tree Count" if stat == "Count" else f"{stat} of {y_col}"
 
 
-# --- binned aggregation by hue + y_col/y_stats ---
+# --------------------------------------------------------------------------------------
+# Binned aggregation (for class-based bar plots)
+# --------------------------------------------------------------------------------------
+
 def _compute_binned_agg(
     df_sub: pd.DataFrame,
-    value_col: str,  # DBH / height (bins on X)
+    value_col: str,  # e.g. DBH / height (bins on X)
     bins: np.ndarray,
     labels: list[str],
     hue_col: str,
     y_col: str,
     y_stats: str,
 ) -> pd.DataFrame:
+    """
+    Compute aggregated values for each bin and hue category.
+
+    Returns long-format DataFrame with columns: ["bin", hue_col, "value", (optional)__error__]
+    """
     d = df_sub.copy()
     d[hue_col] = d[hue_col].astype(str)
 
-    # assign bin
     cats = pd.Categorical(
         pd.cut(
             pd.to_numeric(d[value_col], errors="coerce"),
@@ -218,6 +270,7 @@ def _compute_binned_agg(
 
     if y_col not in d.columns:
         return pd.DataFrame(columns=["bin", hue_col, "value", "__error__"])
+
     s = d[y_col]
     if not _is_numeric_like(s):
         return pd.DataFrame(columns=["bin", hue_col, "value", "__error__"]).assign(
@@ -267,6 +320,7 @@ def _compute_binned_agg(
 
 
 def _frame_max_value(df_long: pd.DataFrame) -> float:
+    """Return max value from 'value' column of long-format DF."""
     if df_long is None or df_long.empty or "value" not in df_long.columns:
         return 0.0
     v = pd.to_numeric(df_long["value"], errors="coerce")
@@ -275,10 +329,19 @@ def _frame_max_value(df_long: pd.DataFrame) -> float:
     return float(v.max())
 
 
-# ========== CATEGORY AGGREGATION (species / management) ==========
+# --------------------------------------------------------------------------------------
+# Aggregation by category (species / management) for bar plots
+# --------------------------------------------------------------------------------------
+
 def _aggregate_by_hue(
     sub: pd.DataFrame, hue_col: str, y_col: str, y_stats: str
 ) -> pd.DataFrame:
+    """
+    Aggregate per category in hue_col.
+
+    For Count → frequency.
+    For numeric y_col → Sum / Mean / Median / Min / Max accordingly.
+    """
     if hue_col not in sub.columns:
         return pd.DataFrame(columns=[hue_col, "value"])
 
@@ -321,6 +384,9 @@ def _aggregate_by_hue(
 def _ensure_all_categories(
     sub_counts: pd.DataFrame, hue_col: str, categories: list[str], color_lookup: dict
 ) -> pd.DataFrame:
+    """
+    Ensure output has all categories in correct order, with zero-filled missing rows.
+    """
     base = pd.DataFrame({hue_col: categories})
     sub = base.merge(
         sub_counts.assign(**{hue_col: sub_counts[hue_col].astype(str).str.strip()})
@@ -340,11 +406,17 @@ def _ensure_all_categories(
     return sub
 
 
-# ========== BY CATEGORY (bars – pro Tree count) ==========
+# --------------------------------------------------------------------------------------
+# Triple bar plot by category (Before / After / Removed)
+# --------------------------------------------------------------------------------------
+
 def render_triple_by_category(
     df_all: pd.DataFrame, y_col: str, y_stats: str, color_mode: str, stacked: bool
 ):
-    """Kategorie na X; sloupce – Count nebo další agregace (používáme pro Tree count)."""
+    """
+    Render 3-panel bar chart (Before / After / Removed) by category (species/management).
+    Used for Tree Count and other aggregated metrics by category.
+    """
     hue_col, categories, color_map, title_suffix = _hue_setup(df_all, color_mode)
     if not categories:
         st.info("No categories found for the selected color mode.")
@@ -368,7 +440,7 @@ def render_triple_by_category(
     y_max = max(
         before_df["value"].max(), after_df["value"].max(), removed_df["value"].max()
     )
-    y_upper = _y_upper_nice(float(y_max))
+    y_upper = _y_upper_nice(float(y_max), "Tree Count")
 
     fig = make_subplots(
         rows=1,
@@ -388,7 +460,11 @@ def render_triple_by_category(
                     marker_color=row["__color__"],
                     legendgroup=str(cat),
                     showlegend=False,
-                    hovertemplate=f"{hue_col}: {cat}<br>{_aggfunc_name_for_hover(y_stats, y_col)}: %{{y:.2f}}<extra></extra>",
+                    hovertemplate=(
+                        f"{hue_col}: {cat}<br>"
+                        "value: %{y:.2f}"
+                        "<extra></extra>"
+                    ),
                 ),
                 row=1,
                 col=col,
@@ -415,16 +491,44 @@ def render_triple_by_category(
             col=c,
         )
 
-    y_label = "Count (rows)" if y_stats == "Count" else f"{y_stats} of {y_col}"
-    fig.update_yaxes(title_text=y_label, row=1, col=1, tick0=0, range=[0, y_upper])
-    fig.update_yaxes(title_text=None, row=1, col=2, tick0=0, range=[0, y_upper])
-    fig.update_yaxes(title_text=None, row=1, col=3, tick0=0, range=[0, y_upper])
+    y_label = "Tree Count" if y_stats == "Count" else f"{y_stats} of {y_col}"
+    fig.update_yaxes(
+        title_text=y_label,
+        row=1,
+        col=1,
+        tick0=0,
+        range=[0, y_upper],
+        showticklabels=True,
+        tickmode="auto",
+    )
+    fig.update_yaxes(
+        title_text=None,
+        row=1,
+        col=2,
+        tick0=0,
+        range=[0, y_upper],
+        showticklabels=True,
+        tickmode="auto",
+    )
+    fig.update_yaxes(
+        title_text=None,
+        row=1,
+        col=3,
+        tick0=0,
+        range=[0, y_upper],
+        showticklabels=True,
+        tickmode="auto",
+    )
 
     st.plotly_chart(fig, use_container_width=True, key=f"category_{get_uid()}")
 
 
-# ========== BY DBH / HEIGHT CLASS (bars – pro Tree count) ==========
+# --------------------------------------------------------------------------------------
+# Triple bar plot by DBH / height classes
+# --------------------------------------------------------------------------------------
+
 def _panel_y_upper_for_long(long_df: pd.DataFrame, stacked: bool) -> float:
+    """Return suitable Y-max for stacked/grouped bar from long-format data."""
     if long_df is None or long_df.empty:
         return 0.0
     if stacked:
@@ -444,6 +548,10 @@ def render_triple_by_class(
     y_stats: str,
     stacked: bool,
 ):
+    """
+    Render 3-panel bar chart for DBH / height classes (Before / After / Removed).
+    Used for Tree Count per class.
+    """
     if value_col not in df_all.columns:
         st.warning(f"Missing column '{value_col}'.")
         return
@@ -458,7 +566,7 @@ def render_triple_by_class(
         st.info(f"No valid values for '{value_col}'.")
         return
 
-    # compute three long tables according to the requested stat
+    # Compute three long tables for the requested statistic
     long_before = _compute_binned_agg(
         df_all, value_col, bins, labels, hue_col, y_col, y_stats
     )
@@ -479,13 +587,12 @@ def render_triple_by_class(
     ):
         st.warning(f"Cannot {y_stats.lower()} non-numeric variable '{y_col}'.")
 
-    # Y-range according to stacked/grouped
     y_max = max(
         _panel_y_upper_for_long(long_before, stacked),
         _panel_y_upper_for_long(long_after, stacked),
         _panel_y_upper_for_long(long_removed, stacked),
     )
-    y_upper = _y_upper_nice(y_max)
+    y_upper = _y_upper_nice(y_max,y_label)
 
     def color_for(cat):
         return color_map.get(cat, "#AAAAAA")
@@ -502,7 +609,7 @@ def render_triple_by_class(
         horizontal_spacing=0.06,
     )
 
-    # volitelný styling titulků, pokud máš v session_state definovaný font
+    # Optional: custom styling from session_state (disabled by default)
     if "plot_title_font" in st.session_state:
         fig.update_layout(
             annotations=[
@@ -513,13 +620,11 @@ def render_triple_by_class(
                     xref=ann.xref,
                     yref=ann.yref,
                     showarrow=False,
-                    # font=st.session_state.plot_title_font,
                 )
                 for ann in fig.layout.annotations
             ]
         )
 
-    # traces
     def add_panel_traces(long_df: pd.DataFrame, col: int, show_legend_for: set[str]):
         for cat in categories:
             if long_df.empty:
@@ -540,7 +645,12 @@ def render_triple_by_class(
                     marker_color=color_for(cat),
                     legendgroup=str(cat),
                     showlegend=(cat in show_legend_for),
-                    hovertemplate=f"%{{x}}<br>{hue_col}: {cat}<br>{_aggfunc_name_for_hover(y_stats, y_col)}: %{{y:.2f}}<extra></extra>",
+                    hovertemplate=(
+                        "%{x}<br>"
+                        f"{hue_col}: {cat}<br>"
+                        "value: %{y:.2f}"
+                        "<extra></extra>"
+                    ),
                 ),
                 row=1,
                 col=col,
@@ -565,15 +675,49 @@ def render_triple_by_class(
         col=1,
         tick0=0,
         range=[0, y_upper],
+        showticklabels=True,
+        tickmode="auto",
     )
-    fig.update_yaxes(title_text=None, row=1, col=2, tick0=0, range=[0, y_upper])
-    fig.update_yaxes(title_text=None, row=1, col=3, tick0=0, range=[0, y_upper])
+    fig.update_yaxes(
+        title_text=None,
+        row=1,
+        col=2,
+        tick0=0,
+        range=[0, y_upper],
+        showticklabels=True,
+        tickmode="auto",
+    )
+    fig.update_yaxes(
+        title_text=None,
+        row=1,
+        col=3,
+        tick0=0,
+        range=[0, y_upper],
+        showticklabels=True,
+        tickmode="auto",
+    )
 
     st.plotly_chart(fig, use_container_width=True, key=f"class_{get_uid()}")
 
 
-# ========== TRIPLE VIOLIN PLOT (pro všechny metriky kromě Tree count) ==========
-def render_triple_violin(df_all: pd.DataFrame, value_col: str, color_mode: str):
+# --------------------------------------------------------------------------------------
+# Triple violin (generic metric, Before / After / Removed)
+# --------------------------------------------------------------------------------------
+
+def render_triple_violin(
+    df_all: pd.DataFrame,
+    value_col: str,
+    y_label: str,
+    color_mode: str,
+    slider_range: tuple[float, float] | None = None,
+):
+    """
+    Render 3-panel violin plot (Before / After / Removed) for any numeric metric.
+    Coloured by species / management.
+
+    If slider_range is provided, filter values to the given min/max range,
+    and scale Y-axis accordingly in a fixed step.
+    """
     if value_col not in df_all.columns:
         st.warning(f"Missing column '{value_col}'.")
         return
@@ -586,10 +730,25 @@ def render_triple_violin(df_all: pd.DataFrame, value_col: str, color_mode: str):
     def _clean_numeric(s: pd.Series) -> pd.Series:
         return pd.to_numeric(s, errors="coerce")
 
+    # Apply slider filter (if provided)
+    df_work = df_all.copy()
+    df_work[value_col] = _clean_numeric(df_work[value_col])
+    df_work = df_work.dropna(subset=[value_col])
+
+    if slider_range is not None:
+        lo, hi = slider_range
+        df_work = df_work[
+            (df_work[value_col] >= lo) & (df_work[value_col] <= hi)
+        ].copy()
+
+    if df_work.empty:
+        st.info("No data after applying value filter.")
+        return
+
     panels = [
-        (df_all, st.session_state.Before),
-        (df_all[mask_after], st.session_state.After),
-        (df_all[mask_removed], st.session_state.Removed),
+        (df_work, getattr(st.session_state, "Before", "Before")),
+        (df_work[mask_after], getattr(st.session_state, "After", "After")),
+        (df_work[mask_removed], getattr(st.session_state, "Removed", "Removed")),
     ]
 
     fig = make_subplots(
@@ -600,7 +759,7 @@ def render_triple_violin(df_all: pd.DataFrame, value_col: str, color_mode: str):
         horizontal_spacing=0.06,
     )
 
-    max_val = 0
+    max_val = 0.0
     for col_idx, (sub, title) in enumerate(panels, start=1):
         if sub.empty:
             continue
@@ -629,9 +788,13 @@ def render_triple_violin(df_all: pd.DataFrame, value_col: str, color_mode: str):
                     opacity=0.7,
                     box_visible=True,
                     meanline_visible=True,
-                    points=False,  # <<< odstranění bodů mimo violin
+                    points=False,  # hide individual points
                     showlegend=(col_idx == 1),
-                    hovertemplate=f"{hue_col}: {cat}<br>{value_col}: %{{y:.2f}}<extra></extra>",
+                    hovertemplate=(
+                        f"{hue_col}: {cat}<br>"
+                        "value: %{y:.2f}"
+                        "<extra></extra>"
+                    ),
                 ),
                 row=1,
                 col=col_idx,
@@ -643,36 +806,286 @@ def render_triple_violin(df_all: pd.DataFrame, value_col: str, color_mode: str):
         legend=dict(orientation="h", yanchor="top", y=-0.3, xanchor="center", x=0.5),
     )
 
-    y_upper = _y_upper_nice(max_val)
-    fig.update_yaxes(title_text=value_col, row=1, col=1, range=[0, y_upper])
-    fig.update_yaxes(title_text=None, row=1, col=2, range=[0, y_upper])
-    fig.update_yaxes(title_text=None, row=1, col=3, range=[0, y_upper])
+    if max_val <= 0:
+        max_val = 1.0
+
+    round_step = auto_round_step(max_val)
+    # ---- Basal Area: pokud maximum < 5, zaokrouhli nahoru na 1 desetinu ----
+
+    y_upper = _y_upper_nice(max_val, y_label)
+
+    final_ylabel = make_y_label(y_label)
+
+    # spodní hranice Y = spodní hodnota slideru (pokud existuje)
+    y_min = float(slider_range[0]) if slider_range is not None else 0.0
+
+    fig.update_yaxes(
+        title_text=final_ylabel,
+        row=1,
+        col=1,
+        range=[y_min, y_upper],
+        showticklabels=True,
+        tickmode="auto",
+    )
+    fig.update_yaxes(
+        title_text=None,
+        row=1,
+        col=2,
+        range=[y_min, y_upper],
+        showticklabels=True,
+        tickmode="auto",
+    )
+    fig.update_yaxes(
+        title_text=None,
+        row=1,
+        col=3,
+        range=[y_min, y_upper],
+        showticklabels=True,
+        tickmode="auto",
+    )
 
     st.plotly_chart(fig, use_container_width=True, key=f"violin_{get_uid()}")
 
 
-# ========== UI ==========
+# --------------------------------------------------------------------------------------
+# NEW: Triple violin for Projection Exposure (special case)
+# --------------------------------------------------------------------------------------
 
-# Mapování názvů v UI -> sloupců v datech
+def render_projection_exposure_page(
+    df: pd.DataFrame,
+    color_mode: str,
+    slider_range: tuple[float, float] | None = None,
+    y_label: str | None = None,
+):
+    """
+    Render three violin plots for Projection Exposure:
+
+    1) Before cut:
+       - All trees using 'projection_exposure'
+    2) After mgmt:
+       - Only trees with management_status in {Target tree, Untouched}
+         using 'projection_exposure_after_mgmt'
+    3) Removed:
+       - Trees with management_status NOT in {Target tree, Untouched}
+         using 'projection_exposure'
+    """
+    required_cols = {"projection_exposure", "management_status"}
+    missing = [c for c in required_cols if c not in df.columns]
+    if missing:
+        st.warning(
+            f"Missing required columns for Projection Exposure: {', '.join(missing)}"
+        )
+        return
+
+    hue_col, categories, color_map, title_suffix = _hue_setup(df, color_mode)
+    if not categories:
+        st.info("No categories found for selected color mode.")
+        return
+
+    keep_status = {"Target tree", "Untouched"}
+
+    def clean_vals(s):
+        return pd.to_numeric(s, errors="coerce")
+
+    # Panel 1: BEFORE CUT – all trees, projection_exposure
+    df_before = df.copy()
+    df_before["projection_exposure"] = clean_vals(df_before["projection_exposure"])
+    df_before = df_before.dropna(subset=["projection_exposure"])
+
+    # Panel 2: AFTER MGMT – only Target/Untouched, projection_exposure_after_mgmt
+    if "projection_exposure_after_mgmt" in df.columns:
+        df_after = df[df["management_status"].isin(keep_status)].copy()
+        df_after["projection_exposure_after_mgmt"] = clean_vals(
+            df_after["projection_exposure_after_mgmt"]
+        )
+        df_after = df_after.dropna(subset=["projection_exposure_after_mgmt"])
+    else:
+        df_after = pd.DataFrame()
+        st.info(
+            "Column 'projection_exposure_after_mgmt' not found, skipping 'After mgmt' panel."
+        )
+
+    # Panel 3: REMOVED – all other statuses, projection_exposure
+    df_removed = df[~df["management_status"].isin(keep_status)].copy()
+    df_removed["projection_exposure_removed"] = clean_vals(
+        df_removed["projection_exposure"]
+    )
+    df_removed = df_removed.dropna(subset=["projection_exposure_removed"])
+
+    # Apply slider filter if provided
+    if slider_range is not None:
+        lo, hi = slider_range
+        if not df_before.empty:
+            df_before = df_before[
+                (df_before["projection_exposure"] >= lo)
+                & (df_before["projection_exposure"] <= hi)
+            ]
+        if not df_after.empty and "projection_exposure_after_mgmt" in df_after.columns:
+            df_after = df_after[
+                (df_after["projection_exposure_after_mgmt"] >= lo)
+                & (df_after["projection_exposure_after_mgmt"] <= hi)
+            ]
+        if not df_removed.empty:
+            df_removed = df_removed[
+                (df_removed["projection_exposure_removed"] >= lo)
+                & (df_removed["projection_exposure_removed"] <= hi)
+            ]
+
+    if df_before.empty and df_after.empty and df_removed.empty:
+        st.info("No data for Projection Exposure after applying value filter.")
+        return
+
+    fig = make_subplots(
+        rows=1,
+        cols=3,
+        shared_yaxes=True,
+        subplot_titles=["Before cut", "After mgmt", "Removed"],
+        horizontal_spacing=0.06,
+    )
+
+    panels = [
+        ("projection_exposure", df_before, 1),
+        ("projection_exposure_after_mgmt", df_after, 2),
+        ("projection_exposure_removed", df_removed, 3),
+    ]
+
+    max_val = 0.0
+
+    for value_col, sub, col_idx in panels:
+        if sub.empty or value_col not in sub.columns:
+            continue
+
+        sub = sub.copy()
+        sub[hue_col] = sub[hue_col].astype(str)
+        sub[value_col] = clean_vals(sub[value_col])
+        sub = sub.dropna(subset=[value_col])
+
+        for cat in categories:
+            vals = sub.loc[sub[hue_col] == cat, value_col].dropna()
+            if vals.empty:
+                continue
+
+            max_val = max(max_val, float(vals.max()))
+
+            fig.add_trace(
+                go.Violin(
+                    x=[cat] * len(vals),
+                    y=vals,
+                    name=str(cat),
+                    legendgroup=str(cat),
+                    line_color="black",
+                    line_width=1,
+                    fillcolor=color_map.get(cat, "#AAAAAA"),
+                    opacity=0.7,
+                    box_visible=True,
+                    meanline_visible=True,
+                    points=False,
+                    showlegend=(col_idx == 1),
+                    hovertemplate=(
+                        f"{hue_col}: {cat}<br>"
+                        "value: %{y:.2f}"
+                        "<extra></extra>"
+                    ),
+                ),
+                row=1,
+                col=col_idx,
+            )
+
+    fig.update_layout(
+        height=CHART_HEIGHT,
+        margin=dict(l=10, r=10, t=60, b=80),
+        legend=dict(orientation="h", yanchor="top", y=-0.3, xanchor="center", x=0.5),
+    )
+
+    if max_val <= 0:
+        max_val = 1.0
+
+    round_step = auto_round_step(max_val)
+    y_upper = _y_upper_nice(max_val, y_label)
+
+    label_for_axis = y_label or "Projection Exposure"
+    final_ylabel = make_y_label(label_for_axis)
+
+    # spodní hranice Y = spodní hodnota slideru (pokud existuje)
+    y_min = float(slider_range[0]) if slider_range is not None else 0.0
+
+    fig.update_yaxes(
+        title_text=final_ylabel,
+        row=1,
+        col=1,
+        range=[y_min, y_upper],
+        showticklabels=True,
+        tickmode="auto",
+    )
+    fig.update_yaxes(
+        title_text=None,
+        row=1,
+        col=2,
+        range=[y_min, y_upper],
+        showticklabels=True,
+        tickmode="auto",
+    )
+    fig.update_yaxes(
+        title_text=None,
+        row=1,
+        col=3,
+        range=[y_min, y_upper],
+        showticklabels=True,
+        tickmode="auto",
+    )
+
+    st.plotly_chart(fig, use_container_width=True, key=f"projexp_{get_uid()}")
+
+
+# --------------------------------------------------------------------------------------
+# UI: metric mapping and controls
+# --------------------------------------------------------------------------------------
+
 VALUE_TREE_COUNT = "Tree Count"
 value_mapping = {
-    VALUE_TREE_COUNT: None,  # speciální hodnota (Count)
+    VALUE_TREE_COUNT: None,  # special case (Count)
     "DBH": "dbh",
     "Basal Area": "basal_area_m2",
     "Volume": "Volume_m3",
     "Tree Height": "height",
-    "Crown Base Height": "crown_base_height", # RENAME 2 crownStartHeight
+    "Crown Base Height": "crown_base_height",  # renamed in backend to crownStartHeight
     "Crown Centroid Height": "crown_centroid_height",
-    #    "crown diameter": "crown_diameter",
     "Crown Volume": "crown_volume",
     "Crown Surface Area": "crown_surface",
     "Horizontal Crown Projection Area": "horizontal_crown_proj",
     "Vertical Crown Projection Area": "vertical_crown_proj",
     "Crown Eccentricity": "crown_eccentricity",
     "Height-DBH Ratio": "heightXdbh",
+    "Projection Exposure": "projection_exposure",  # NEW special metric
 }
 
-# dostupné volby podle toho, co je v datech
+# Units for Y-axis based on metric label
+y_units = {
+    "DBH": "cm",
+    "Basal Area": "m²",
+    "Volume": "m³",
+    "Tree Height": "m",
+    "Crown Base Height": "m",
+    "Crown Centroid Height": "m",
+    "Crown Volume": "m³",
+    "Crown Surface Area": "m²",
+    "Horizontal Crown Projection Area": "m²",
+    "Vertical Crown Projection Area": "m²",
+    "Crown Eccentricity": "m",
+    "Height-DBH Ratio": "",
+    "Projection Exposure": "%",
+}
+
+
+def make_y_label(label: str) -> str:
+    """Construct final Y-axis label from metric name + unit."""
+    unit = y_units.get(label, "")
+    if unit:
+        return f"{label} [{unit}]"
+    return label
+
+
+# Only show metrics actually present in the DataFrame
 value_options = []
 for label, col in value_mapping.items():
     if label == VALUE_TREE_COUNT:
@@ -681,22 +1094,21 @@ for label, col in value_mapping.items():
         if col in df.columns:
             value_options.append(label)
 
-# "Plot by"
+# "Plot by" modes
 by_category = "Category"
 by_dbh = "DBH"
 by_height = "Height"
 mode_options = [by_dbh, by_height, by_category]
 
-# Defaultní bin velikosti (fixní, třídy jsou stále po pevné šířce)
-DBH_BIN_DEFAULT = 5.0  # cm
-H_BIN_DEFAULT = 2.0  # m
-
 color_mode_default = colorBySpp
 
-# Sloupce pro layout
+# Layout columns
 c_left, c_left_empty, c_mid, c_right_empty, c_right = st.columns([3, 1, 4, 1, 3])
 
-# --- LEFT: výběr proměnné ---
+# --------------------------------------------------------------------------------------
+# LEFT: Value selection
+# --------------------------------------------------------------------------------------
+
 with c_left:
     default_index = 0
     if VALUE_TREE_COUNT in value_options:
@@ -707,12 +1119,16 @@ with c_left:
         index=default_index,
         help=(
             "Choose variable to display:\n"
-            "- **Tree count** is plotted as barblot.\n"
-            "- Other variables are showed as violin plot."
+            "- **Tree count** is plotted as barplot.\n"
+            "- Other variables are shown as violin plot.\n"
+            "- **Projection Exposure** uses a dedicated triple violin layout."
         ),
     )
 
-# --- MID: Plot by + Color by + Stacked ---
+# --------------------------------------------------------------------------------------
+# MID: Plot by / Color by / Stacked toggle
+# --------------------------------------------------------------------------------------
+
 with c_mid:
     is_tree_count = y_label == VALUE_TREE_COUNT
 
@@ -730,7 +1146,7 @@ with c_mid:
             ),
         )
     else:
-        # pro ostatní proměnné je graf vždy podle kategorie, DBH/Height jsou jen vizuálně „zakázané“
+        # For all other metrics, including Projection Exposure, we always plot by category.
         x_mode = by_category
         st.segmented_control(
             "**Plot by:**",
@@ -746,28 +1162,27 @@ with c_mid:
         options=[colorBySpp, colorByMgmt],
         default=color_mode_default,
         width="stretch",
-        help="Select Category (Species / Management) to color plots by.",
+        help="Select category (Species / Management) to color plots by.",
     )
 
-    # Stacked dává smysl hlavně pro barploty (Tree count)
+    # Stacked makes sense only for barplots (Tree count)
     stacked = (
         st.toggle(
             "**Stacked bars**",
             value=True,
-            help=("Only for Tree count, switch between stacked and grouped mode."),
+            help=("Only for Tree Count, switch between stacked and grouped mode."),
         )
         if is_tree_count
         else False
     )
 
-# --- RIGHT: DBH / Height filtry ---
-# --- RIGHT: DBH / Height filtry ---
+# --------------------------------------------------------------------------------------
+# RIGHT: DBH / Height controls (either bin size for Tree Count, or filters for others)
+# --------------------------------------------------------------------------------------
+
 with c_right:
     if is_tree_count:
-        # -----------------------------
-        # CLASS RANGE (Tree count ONLY)
-        # -----------------------------
-
+        # Class width controls (used only for Tree Count)
         dbh_bins = [5, 10, 20]
         h_bins = [2, 5, 10]
 
@@ -788,9 +1203,7 @@ with c_right:
         height_range = None
 
     else:
-        # ---------------------------------
-        # MIN–MAX FILTER (NON Tree count)
-        # ---------------------------------
+        # Numeric filters (for all non-Tree-Count metrics, including Projection Exposure)
 
         # DBH FILTER
         if "dbh" in df.columns:
@@ -835,7 +1248,10 @@ with c_right:
         bin_size = None
         bin_size_h = None
 
-# --- aplikace filtrů na data ---
+# --------------------------------------------------------------------------------------
+# Apply DBH / Height filters
+# --------------------------------------------------------------------------------------
+
 df_filt = df.copy()
 
 # DBH filter
@@ -848,13 +1264,80 @@ if height_range is not None and "height" in df_filt.columns:
     vals_h = pd.to_numeric(df_filt["height"], errors="coerce")
     df_filt = df_filt[(vals_h >= height_range[0]) & (vals_h <= height_range[1])]
 
-# --- Render podle vybrané proměnné a režimu ---
+# --------------------------------------------------------------------------------------
+# Slider for metric values (only for non-Tree-Count metrics)
+# --------------------------------------------------------------------------------------
+
+metric_range = None
+
+if not is_tree_count and not df_filt.empty:
+    metric_col_for_slider = value_mapping.get(y_label)
+
+    with c_left:
+        vals_all = None
+
+        if y_label == "Projection Exposure":
+            cols = []
+            for c in ["projection_exposure", "projection_exposure_after_mgmt"]:
+                if c in df_filt.columns:
+                    cols.append(c)
+            if cols:
+                vals_all = pd.to_numeric(
+                    df_filt[cols].values.ravel(), errors="coerce"
+                )
+        else:
+            if metric_col_for_slider in df_filt.columns:
+                vals_all = pd.to_numeric(
+                    df_filt[metric_col_for_slider], errors="coerce"
+                ).dropna()
+
+        if vals_all is not None and len(vals_all) > 0:
+            vmin = float(np.nanmin(vals_all))
+            vmax = float(np.nanmax(vals_all))
+
+            if vmin < vmax:
+                # Projection Exposure: omezení na 0–100
+                if y_label == "Projection Exposure":
+                    vmin = max(0.0, vmin)
+                    vmax = min(100.0, vmax)
+
+                # Basal Area: 1 desetinné místo, krok 0.1
+                if y_label == "Basal Area":
+                    round_min = round(vmin, 1)
+                    round_max = round(vmax, 1)
+                    slider_step = 0.1
+                    default_min = round_min
+                    default_max = round_max
+                else:
+                    round_min = int(np.floor(vmin))
+                    round_max = int(np.ceil(vmax))
+                    slider_step = 1
+                    default_min = round_min
+                    default_max = round_max
+
+                metric_range = st.slider(
+                    "**Filter values:**",
+                    min_value=round_min,
+                    max_value=round_max,
+                    value=(default_min, default_max),
+                    step=slider_step,
+                    help=(
+                        "Filter range of metric values. "
+                        "This affects which data are shown and how Y-axis is scaled."
+                    ),
+                )
+
+# --------------------------------------------------------------------------------------
+# Main render logic
+# --------------------------------------------------------------------------------------
+
 if df_filt.empty:
     st.info("No data after applying DBH/Height filters.")
 else:
     if is_tree_count:
+        # Tree Count always uses "Count" statistic
         y_stats = "Count"
-        dummy_y_col = "dbh"
+        dummy_y_col = "dbh"  # any numeric placeholder – actual values are not used
 
         if x_mode == by_category:
             render_triple_by_category(
@@ -887,6 +1370,22 @@ else:
 
     else:
         metric_col = value_mapping[y_label]
-        render_triple_violin(
-            df_all=df_filt, value_col=metric_col, color_mode=color_mode
-        )
+
+        # Special handling for Projection Exposure – three dedicated violin plots
+        if y_label == "Projection Exposure":
+            render_projection_exposure_page(
+                df=df_filt,
+                color_mode=color_mode,
+                slider_range=metric_range,
+                y_label=y_label,
+            )
+
+        # Generic 3-panel violin for all other numeric metrics
+        else:
+            render_triple_violin(
+                df_all=df_filt,
+                value_col=metric_col,
+                y_label=y_label,
+                color_mode=color_mode,
+                slider_range=metric_range,
+            )
