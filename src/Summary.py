@@ -111,20 +111,6 @@ def _make_bins_labels(
     labels = [f"{int(b)}–{int(b + bin_size)} {unit_label}" for b in bins[:-1]]
     return bins, labels
 
-
-def _y_upper_for(
-    df_all: pd.DataFrame, value_col: str, bins: np.ndarray, labels: list[str]
-) -> int:
-    vals = pd.to_numeric(df_all.get(value_col), errors="coerce")
-    cats = pd.cut(
-        vals, bins=bins, labels=labels, include_lowest=True, right=False, ordered=True
-    )
-    vc = cats.value_counts()
-    if vc.empty:
-        return 10
-    return int(max(10, np.ceil(vc.max() / 10.0) * 10))
-
-
 # ---------- OVLÁDÁNÍ ----------
 c1, c2, c3, c4, c5, c6, c7 = st.columns([0.5, 3, 0.25, 4, 0.25, 2, 0.5])
 
@@ -305,12 +291,18 @@ def render_three_panel_with_shared_legend(
         if maxv <= 0:
             return 10
         magnitude = 10 ** int(np.floor(np.log10(maxv)))
-        step = magnitude / 2
+        step = 10
         upper = math.ceil(maxv / step) * step
         return upper
 
-    dbh_y_upper = upper_from_long(dbh_long, dbh_labels)
-    h_y_upper = upper_from_long(height_long, h_labels)
+    dbh_y_upper = upper_from_long(
+        long_binned(df, "dbh", dbh_bins, dbh_labels, hue_col, value_col),
+        dbh_labels
+    )
+    h_y_upper = upper_from_long(
+        long_binned(df, "height", h_bins, h_labels, hue_col, value_col),
+        h_labels
+    )
 
     # --- Subplots: pie | dbh | height
     fig = make_subplots(

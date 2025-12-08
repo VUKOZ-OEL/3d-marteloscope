@@ -1211,6 +1211,23 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
         df_json["basal_area_m2"] = np.pi * (dbh_cm / 200.0) ** 2
     else:
         df_json["basal_area_m2"] = np.nan
+    
+    # --------------------------------------------------------------------------------------
+    # 8) Štíhlostní koeficient heightXdbh = height / (dbh/100)  [height v m, dbh v cm → m]
+    # --------------------------------------------------------------------------------------
+    df_json["heightXdbh"] = np.nan
+
+    if height_col is not None and "dbh" in df_json.columns:
+        try:
+            h = pd.to_numeric(df_json[height_col], errors="coerce")
+            dbh_cm = pd.to_numeric(df_json["dbh"], errors="coerce")
+
+            # přepočet dbh cm → m
+            dbh_m = dbh_cm / 100.0
+
+            df_json["heightXdbh"] = h / dbh_m
+        except Exception as e:
+            print("Chyba výpočtu heightXdbh:", e)
 
     # --------------------------------------------------------------------------------------
     return df_json.reset_index(drop=True)
