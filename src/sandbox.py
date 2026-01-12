@@ -1,0 +1,732 @@
+# -*- coding: utf-8 -*-
+# ------------------------------------------------------------
+# Streamlit: Competition for Light (percent-based)
+# 1) Bubble: Avg available light (%)
+# 2) Bars by Species: who competes (sum of % shading by neighbors)
+# 3) Bars by Management: who competes (sum of % shading by neighbors)
+# Filters: Stand State + DBH + Height; Species & Management (multi-select) BELOW charts
+# ------------------------------------------------------------
+
+import json
+import math
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import streamlit as st
+import src.io_utils as iou
+
+# --- panel names from session ---
+Before = st.session_state.Before
+After = st.session_state.After
+Removed = st.session_state.Removed
+stand_stat_all = [Before, After]
+
+st.markdown("##### Competition for Light")
+
+# ---------- DATA ----------
+if "trees" not in st.session_state:
+    file_path = (
+        "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/"
+        "PokojnaHora_3df/PokojnaHora.json"
+    )
+    st.session_state.trees = iou.load_project_json(file_path)
+
+df: pd.DataFrame = st.session_state.trees.copy()
+
+# ---------- HELPERS ----------
+def _is_num(x) -> bool:
+    try:
+        float(x)
+        return True
+    except Exception:
+        return False
+
+
+def _to_comp_map(v) -> dict:
+    """Parse light_comp; supports dict, JSON-str, or None. Keys -> int(treeId), values -> float(%)."""
+    if v is None or (isinstance(v, float) and np.isnan(v)):
+        return {}
+    if isinstance(v, dict):
+        return {int(k): float(vv) for k, vv in v.items() if _is_num(vv)}
+    if isinstance(v, str):
+        try:
+            parsed = json.loads(v)
+            if isinstance(parsed, dict):
+                return {int(k): float(vv) for k, vv in parsed.items() if _is_num(vv)}
+        except Exception:
+            return {}
+    return {}
+
+
+def _species_colors(d: pd.DataFrame) -> dict:
+    if "species" not in d.columns or "speciesColorHex" not in d.columns:
+        return {}
+    return (
+        d.assign(species=lambda x: x["species"].astype(str))
+        .groupby("species")["speciesColorHex"]
+        .first()
+        .to_dict()
+    )
+
+
+def _management_colors(d: pd.DataFrame) -> dict:
+    if "management_status" not in d.columns or "managementColorHex" not in d.columns:
+        return {}
+    cmap = (
+        d.assign(ms=lambda x: x["management_status"].astype(str))
+        .groupby("ms")["managementColorHex"]
+        .first()
+        .to_dict()
+    )
+    return {
+        k: (v if isinstance(v, str) and v.strip() else "#AAAAAA")
+        for k, v in cmap.items()
+    }
+
+
+def _make_masks(d: pd.DataFrame):
+    """Stand state masks for focal-trees by their own management_status."""
+    keep_status = {"Target tree", "Untouched"}
+    mask_after = d.get("management_status", pd.Series(False, index=d.index)).isin(
+        keep_status
+    )
+    mask_removed = (
+        ~mask_after
+        if "management_status" in d.columns
+        else pd.Series(False, index=d.index)
+    )
+    mask_before = pd.Series(True, index=d.index)
+    return {Before: mask_before, After: mask_after, Removed: mask_removed}
+
+
+# ---------- STATIC LISTS ----------
+sp_all = iou._unique_sorted(df.get("species", pd.Series(dtype=object)))
+mg_all = iou._unique_sorted(df.get("management_status", pd.Series(dtype=object)))
+
+# ---------- CANONICALIZE COLUMNS ----------
+# Fallback pro starší export: 'alight_avail'
+if "light_avail" not in df.columns and "alight_avail" in df.columns:
+    df["light_avail"] = df["alight_avail"]
+
+# Zajistit existenci a rozsah 0..100 pro light_avail
+df["light_avail"] = (
+    pd.to_numeric(df.get("light_avail", 0.0), errors="coerce")
+    .fillna(0.0)
+    .clip(lower=0.0, upper=100.0)
+)
+
+# Bezpečné sestavení mapy sousedů (light_comp_map)
+if "light_comp" in df.columns:
+    _src_comp = df["light_comp"]
+else:
+    _src_comp = pd.Series([{}] * len(df), index=df.index)
+
+
+def _to_comp_map_safe(v):
+    try:
+        return _to_comp_map(v)
+    except Exception:
+        return {}
+
+
+df["light_comp_map"] = _src_comp.apply(_to_comp_map_safe)
+
+
+# ---------- DBH & HEIGHT FILTERS (hodnoty pro UI) ----------
+dbh_series = pd.to_numeric(df.get("dbh", np.nan), errors="coerce")
+dbh_series = dbh_series.dropna()
+if len(dbh_series) > 0 and np.isfinite(dbh_series.max()):
+    DBHmax = int(dbh_series.max())
+else:
+    DBHmax = 0
+DBHmax = max(DBHmax, 0)
+
+h_series = pd.to_numeric(df.get("height", np.nan), errors="coerce")
+if np.isfinite(np.nanmax(h_series)):
+    Hmax = int(np.nanmax(h_series))
+else:
+    Hmax = 0
+Hmax = max(0, Hmax)
+
+# ---------- TOP CONTROLS (Stand state, chart mode, DBH, Height) ----------
+_,c1,_, c2,_, c3,_, c4,_ = st.columns([0.5, 3, 0.5, 3, 0.5, 2,0.5, 2, 0.5])
+
+with c1:
+    stand_state = st.segmented_control(
+        "**Select Stand State to Show:**",
+        options=stand_stat_all,
+        default=Before,
+        selection_mode="single",
+        width="stretch",
+        help="Original / Managed / Removed.",
+    )
+
+with c2:
+    chart_mode = st.segmented_control(
+        "**Show:**",
+        options=["Who competes", "Sky View Values"],
+        default="Who competes",
+        selection_mode="single",
+        width="stretch",
+        help="Switch between competition bars and Sky View violin stats.",
+    )
+
+with c3:
+    dbh_min, dbh_max = st.slider(
+        "**DBH filter [cm]**",
+        min_value=0,
+        max_value=max(DBHmax, 0 if DBHmax > 0 else 1),
+        value=(0, max(DBHmax, 0 if DBHmax > 0 else 1)),
+        step=1,
+        help="Filtrovat stromy podle průměru (DBH).",
+    )
+
+with c4:
+    height_min, height_max = st.slider(
+        "**Height filter [m]**",
+        min_value=0,
+        max_value=Hmax,
+        value=(0, Hmax),
+        step=1,
+        help="Zobrazí pouze stromy v zadaném intervalu výšek.",
+    )
+
+# ---------- READ CURRENT FILTER VALUES FROM SESSION (species / mgmt) ----------
+species_sel = st.session_state.get("species_sel", sp_all if sp_all else ["(none)"])
+mgmt_sel = st.session_state.get("mgmt_sel", mg_all if mg_all else ["(none)"])
+
+species_sel = (
+    list(species_sel) if isinstance(species_sel, (list, tuple, set)) else [species_sel]
+)
+mg_sel_set = set(mgmt_sel) if isinstance(mgmt_sel, (list, set, tuple)) else {mgmt_sel}
+
+# ---------- BASE MASKS ----------
+state_masks = _make_masks(df)
+mask_state = state_masks.get(stand_state, pd.Series(True, index=df.index))
+
+# DBH mask
+mask_dbh = pd.Series(True, index=df.index)
+if "dbh" in df.columns:
+    d_vals = pd.to_numeric(df["dbh"], errors="coerce")
+    mask_dbh = (d_vals >= dbh_min) & (d_vals <= dbh_max)
+
+# HEIGHT mask
+mask_height = pd.Series(True, index=df.index)
+if "height" in df.columns:
+    h_vals = pd.to_numeric(df["height"], errors="coerce")
+    mask_height = (h_vals >= height_min) & (h_vals <= height_max)
+
+# Species mask
+mask_species = pd.Series(True, index=df.index)
+if species_sel and "(none)" not in species_sel:
+    mask_species = df["species"].astype(str).isin(species_sel)
+
+# Management mask
+mask_mgmt = pd.Series(True, index=df.index)
+if mg_sel_set and "(none)" not in mg_sel_set:
+    mask_mgmt = df["management_status"].astype(str).isin(mg_sel_set)
+
+# Výběr stromů (DBH → výška → stav → druhy/management)
+focal_mask = mask_dbh & mask_height & mask_state & mask_species & mask_mgmt
+df_focal = df.loc[focal_mask].copy()
+
+# Sada ID odstraněných stromů (globálně podle masky Removed)
+mask_removed_global = state_masks[Removed]
+removed_ids = set(
+    pd.to_numeric(df.loc[mask_removed_global, "id"], errors="coerce")
+    .dropna()
+    .astype(int)
+    .tolist()
+)
+
+# ---------- DEBUG BLOCK: sanity checks for After-light adjustment ----------
+
+def _summarize_comp_keys(series_of_dicts: pd.Series) -> pd.Series:
+    """Return a Series of all neighbor keys found in dicts (flattened)."""
+    keys = []
+    for d in series_of_dicts.dropna().tolist():
+        if isinstance(d, dict) and d:
+            keys.extend(list(d.keys()))
+    return pd.Series(keys, dtype="object")
+
+def _safe_int_series(s: pd.Series) -> pd.Series:
+    return pd.to_numeric(s, errors="coerce").dropna().astype(int)
+
+with st.expander("🛠 Debug: light availability adjustment checks", expanded=True):
+    st.write("### 0) Columns present")
+    st.write(list(df.columns))
+
+    # --- 1) How many focal trees per stand_state (with your current masks) ---
+    st.write("### 1) Counts of focal trees (state masks only)")
+    state_masks = _make_masks(df)
+    counts_state = {k: int(v.sum()) for k, v in state_masks.items()}
+    st.write(counts_state)
+
+    # Also show what happens when you add DBH/HEIGHT/species/mgmt filters:
+    st.write("### 1b) Counts of focal trees (FULL current filters)")
+    # rebuild the same masks you already use (assumes these vars exist at this point):
+    # mask_dbh, mask_height, mask_species, mask_mgmt must exist; if not, comment this block out.
+    try:
+        base_mask = mask_dbh & mask_height & mask_species & mask_mgmt
+        full_counts = {
+            Before: int((base_mask & state_masks[Before]).sum()),
+            After: int((base_mask & state_masks[After]).sum()),
+            Removed: int((base_mask & state_masks[Removed]).sum()),
+        }
+        st.write(full_counts)
+    except Exception as e:
+        st.warning(f"FULL-filter counts skipped (masks not available yet): {e}")
+
+    # --- 2) How many light_comp_map are empty after parsing? ---
+    st.write("### 2) light_comp_map emptiness after parsing")
+    if "light_comp_map" not in df.columns:
+        st.error("df['light_comp_map'] not found. Place this debug block after it's created.")
+    else:
+        comp_len = df["light_comp_map"].apply(lambda d: len(d) if isinstance(d, dict) else 0)
+        empty_cnt = int((comp_len == 0).sum())
+        nonempty_cnt = int((comp_len > 0).sum())
+        st.write({
+            "rows_total": int(len(df)),
+            "rows_with_empty_light_comp_map": empty_cnt,
+            "rows_with_nonempty_light_comp_map": nonempty_cnt,
+            "pct_empty": round(100.0 * empty_cnt / max(1, len(df)), 2),
+        })
+
+        # If you still have original 'light_comp' column, check for 'unknown' keys & parse failures
+        if "light_comp" in df.columns:
+            def _has_unknown_key(v) -> bool:
+                if v is None or (isinstance(v, float) and np.isnan(v)):
+                    return False
+                if isinstance(v, dict):
+                    return any(str(k).lower() == "unknown" for k in v.keys())
+                if isinstance(v, str):
+                    return ("unknown" in v.lower())
+                return False
+
+            unknown_rows = int(df["light_comp"].apply(_has_unknown_key).sum())
+            st.write({
+                "rows_where_light_comp_mentions_unknown": unknown_rows,
+                "note": "If parser tries int('unknown'), it can drop whole map -> empty.",
+            })
+
+        # show few examples: empty vs non-empty
+        st.write("#### Examples (first 5) where light_comp_map is empty")
+        st.dataframe(df.loc[comp_len == 0, ["id"] + (["ID"] if "ID" in df.columns else []) + (["light_comp"] if "light_comp" in df.columns else [])].head(5))
+
+        st.write("#### Examples (first 5) where light_comp_map is non-empty")
+        st.dataframe(df.loc[comp_len > 0, ["id"] + (["ID"] if "ID" in df.columns else []) + (["light_comp"] if "light_comp" in df.columns else [])].head(5))
+
+    # --- 3) Do neighbor IDs match df['id'] (and/or df['ID'])? ---
+    st.write("### 3) Neighbor-id alignment: keys in light_comp_map vs df ids")
+
+    # Collect neighbor keys
+    if "light_comp_map" in df.columns:
+        neighbor_keys = _summarize_comp_keys(df["light_comp_map"])
+        st.write({"neighbor_key_count_total": int(len(neighbor_keys))})
+
+        if len(neighbor_keys) == 0:
+            st.warning("No neighbor keys found in light_comp_map. Adjustment cannot work.")
+        else:
+            # Convert keys to int when possible
+            neighbor_keys_int = pd.to_numeric(neighbor_keys, errors="coerce").dropna().astype(int)
+            st.write({
+                "neighbor_keys_numeric_count": int(len(neighbor_keys_int)),
+                "neighbor_keys_non_numeric_count": int(len(neighbor_keys)) - int(len(neighbor_keys_int)),
+            })
+
+            ids_df_id = set(_safe_int_series(df["id"])) if "id" in df.columns else set()
+            ids_df_ID = set(_safe_int_series(df["ID"])) if "ID" in df.columns else set()
+
+            inter_id = len(set(neighbor_keys_int.tolist()) & ids_df_id) if ids_df_id else 0
+            inter_ID = len(set(neighbor_keys_int.tolist()) & ids_df_ID) if ids_df_ID else 0
+
+            st.write({
+                "df_has_column_id": "id" in df.columns,
+                "df_has_column_ID": "ID" in df.columns,
+                "unique_neighbor_keys_numeric": int(neighbor_keys_int.nunique()),
+                "unique_df_id": int(len(ids_df_id)),
+                "unique_df_ID": int(len(ids_df_ID)),
+                "intersection_with_df_id": int(inter_id),
+                "intersection_with_df_ID": int(inter_ID),
+                "hint": "If intersections are ~0, your neighbor ids are from a different id-system.",
+            })
+
+            # Show a few neighbor keys that don't match df['id'] or df['ID']
+            nk_set = set(neighbor_keys_int.tolist())
+            not_in_id = list(nk_set - ids_df_id)[:20] if ids_df_id else list(nk_set)[:20]
+            not_in_ID = list(nk_set - ids_df_ID)[:20] if ids_df_ID else list(nk_set)[:20]
+            st.write({"sample_neighbor_keys_not_in_df_id": not_in_id})
+            st.write({"sample_neighbor_keys_not_in_df_ID": not_in_ID})
+
+    st.write("### 4) Removed IDs sanity")
+    try:
+        st.write({
+            "removed_ids_count": int(len(removed_ids)),
+            "removed_ids_sample": list(sorted(list(removed_ids))[:20]),
+            "note": "If removed_ids_count is 0, After adjustment adds back nothing.",
+        })
+    except Exception as e:
+        st.warning(f"removed_ids not available yet (place debug after removed_ids creation): {e}")
+
+
+# ---------- RECOMPUTE light_avail / light_comp for After/Removed ----------
+def _adjust_light(row, do_adjust: bool):
+    """Vrátí (adj_light_avail, adj_comp_map) pro daný strom podle stavu stand_state."""
+    la = float(row.get("light_avail", 0.0))
+    cmap = row.get("light_comp_map", {})
+    if not isinstance(cmap, dict):
+        cmap = {}
+
+    if not do_adjust or not removed_ids:
+        return la, cmap
+
+    add_back = 0.0
+    kept = {}
+    for nid, pct in cmap.items():
+        try:
+            nid_int = int(nid)
+        except Exception:
+            continue
+        if nid_int in removed_ids:
+            add_back += float(pct)  # přičteme kolik stínil
+        else:
+            kept[nid_int] = float(pct)  # ponecháme v comp mapě
+    la_new = min(100.0, max(0.0, la + add_back))
+    return la_new, kept
+
+
+do_adjust = stand_state in (After, Removed)
+
+if not df_focal.empty:
+    adj_vals = df_focal.apply(lambda r: _adjust_light(r, do_adjust), axis=1)
+    df_focal["light_avail_adj"] = [v[0] for v in adj_vals]
+    df_focal["light_comp_adj"] = [v[1] for v in adj_vals]
+else:
+    df_focal["light_avail_adj"] = []
+    df_focal["light_comp_adj"] = []
+
+# ---------- NEIGHBOR ATTRS ----------
+neighbor_attrs = df[
+    ["id", "species", "management_status", "speciesColorHex", "managementColorHex"]
+].copy()
+neighbor_attrs["id"] = pd.to_numeric(neighbor_attrs["id"], errors="coerce").astype(
+    "Int64"
+)
+
+# ---------- EXPLODE adjusted light_comp -> df_comp ----------
+if not df_focal.empty:
+    df_comp = (
+        df_focal[["light_comp_adj"]]
+        .assign(tmp=lambda t: t["light_comp_adj"].apply(lambda d: list(d.items())))
+        .explode("tmp", ignore_index=True)
+    )
+    df_comp = df_comp.dropna(subset=["tmp"])
+    df_comp[["neighbor_id", "shade_pct"]] = pd.DataFrame(
+        df_comp["tmp"].tolist(), index=df_comp.index
+    )
+    df_comp = df_comp.drop(columns=["tmp"])
+    df_comp["neighbor_id"] = pd.to_numeric(
+        df_comp["neighbor_id"], errors="coerce"
+    ).astype("Int64")
+    df_comp["shade_pct"] = (
+        pd.to_numeric(df_comp["shade_pct"], errors="coerce").fillna(0.0).clip(lower=0.0)
+    )
+else:
+    df_comp = pd.DataFrame(columns=["neighbor_id", "shade_pct"])
+
+# Join na atributy sousedů
+df_comp = df_comp.merge(
+    neighbor_attrs, left_on="neighbor_id", right_on="id", how="left"
+)
+
+# ---------- AGREGACE PRO GRAFY „WHO COMPETES“ ----------
+spec_df = (
+    df_comp.groupby("species", as_index=False)["shade_pct"].sum()
+    if not df_comp.empty
+    else pd.DataFrame(columns=["species", "shade_pct"])
+).rename(columns={"shade_pct": "value"})
+
+mgmt_df = (
+    df_comp.groupby("management_status", as_index=False)["shade_pct"].sum()
+    if not df_comp.empty
+    else pd.DataFrame(columns=["management_status", "shade_pct"])
+).rename(columns={"shade_pct": "value"})
+
+species_all = (
+    sorted(df["species"].astype(str).unique().tolist())
+    if "species" in df.columns
+    else []
+)
+mgmt_all = (
+    df["management_status"].astype(str).unique().tolist()
+    if "management_status" in df.columns
+    else []
+)
+
+if species_all:
+    spec_df = (
+        spec_df.set_index("species").reindex(species_all, fill_value=0.0).reset_index()
+    )
+if mgmt_all:
+    mgmt_df = (
+        mgmt_df.set_index("management_status")
+        .reindex(mgmt_all, fill_value=0.0)
+        .reset_index()
+    )
+
+# color maps
+if not df_comp.empty and "speciesColorHex" in df_comp.columns:
+    species_cmap = (
+        df_comp.dropna(subset=["species"])
+        .groupby("species")["speciesColorHex"]
+        .first()
+        .to_dict()
+    )
+    for k, v in _species_colors(df).items():
+        species_cmap.setdefault(k, v)
+else:
+    species_cmap = _species_colors(df)
+
+if not df_comp.empty and "managementColorHex" in df_comp.columns:
+    mgmt_cmap = (
+        df_comp.dropna(subset=["management_status"])
+        .groupby("management_status")["managementColorHex"]
+        .first()
+        .to_dict()
+    )
+    for k, v in _management_colors(df).items():
+        mgmt_cmap.setdefault(k, v)
+else:
+    mgmt_cmap = _management_colors(df)
+
+# ---------- BUBBLE: Average available light ----------
+avg_light = float(df_focal["light_avail_adj"].mean()) if not df_focal.empty else 0.0
+p_light = max(0.0, min(100.0, avg_light)) / 100.0  # 0..1
+
+bubble_title = "Average Available Light"
+if chart_mode == "Who competes":
+    spec_title = "Who Competes by Species"
+    mgmt_title = "Who Competes by Management"
+else:
+    spec_title = "Sky View Values by Species"
+    mgmt_title = "Sky View Values by Management"
+
+fig = make_subplots(
+    rows=1,
+    cols=3,
+    specs=[[{"type": "xy"}, {"type": "xy"}, {"type": "xy"}]],
+    subplot_titles=(bubble_title, spec_title, mgmt_title),
+    horizontal_spacing=0.06,
+)
+
+# === 1) BUBBLE (outer 100%, inner area ~ avg light) ===
+R = 1.0
+r = math.sqrt(p_light) * R
+xg, yg = 0.0, 0.0
+xr, yr = 0.0, 0.0
+
+fig.add_shape(
+    type="circle",
+    xref="x1",
+    yref="y1",
+    x0=xg - R,
+    x1=xg + R,
+    y0=yg - R,
+    y1=yg + R,
+    line=dict(width=0),
+    fillcolor="#06402B",
+)
+fig.add_shape(
+    type="circle",
+    xref="x1",
+    yref="y1",
+    x0=xr - r,
+    x1=xr + r,
+    y0=yr - r,
+    y1=yr + r,
+    line=dict(width=0),
+    fillcolor="#87CEEB",
+)
+
+fig.add_annotation(
+    x=xg,
+    y=yg + R + 0.15,
+    xref="x1",
+    yref="y1",
+    text="Total: 100 %",
+    showarrow=False,
+    font=dict(size=13, color="#222"),
+)
+fig.add_annotation(
+    x=xr,
+    y=yr - r - 0.15,
+    xref="x1",
+    yref="y1",
+    text=f"Available: {avg_light:.0f} %",
+    showarrow=False,
+    font=dict(size=13, color="#FFFFFF"),
+)
+
+fig.update_xaxes(
+    row=1, col=1, visible=False, range=[-1.3, 1.3], scaleanchor="y1", scaleratio=1
+)
+fig.update_yaxes(row=1, col=1, visible=False, range=[-1.3, 1.3])
+
+# === 2 & 3) RIGHT CHARTS: MODE-DEPENDENT ===
+if chart_mode == "Who competes":
+    # === 2) BARS by SPECIES (values in %) ===
+    x_species = (
+        spec_df["species"].astype(str).tolist()
+        if not spec_df.empty
+        else (species_all or [])
+    )
+    y_species = (
+        spec_df["value"].tolist() if not spec_df.empty else ([0.0] * len(x_species))
+    )
+    colors_species = [species_cmap.get(s, "#AAAAAA") for s in x_species]
+    fig.add_trace(
+        go.Bar(
+            x=x_species,
+            y=y_species,
+            marker_color=colors_species,
+            hovertemplate="Species: %{x}<br>Shade: %{y:.2f} %<extra></extra>",
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
+    )
+
+    # === 3) BARS by MANAGEMENT (values in %) ===
+    x_mgmt = (
+        mgmt_df["management_status"].astype(str).tolist()
+        if not mgmt_df.empty
+        else (mgmt_all or [])
+    )
+    y_mgmt = mgmt_df["value"].tolist() if not mgmt_df.empty else ([0.0] * len(x_mgmt))
+    colors_mgmt = [mgmt_cmap.get(m, "#AAAAAA") for m in x_mgmt]
+    fig.add_trace(
+        go.Bar(
+            x=x_mgmt,
+            y=y_mgmt,
+            marker_color=colors_mgmt,
+            hovertemplate="Management: %{x}<br>Shade: %{y:.2f} %<extra></extra>",
+            showlegend=False,
+        ),
+        row=1,
+        col=3,
+    )
+
+    # Axes formatting for bars
+    for c in (2, 3):
+        fig.update_xaxes(title_text=None, tickangle=45, row=1, col=c)
+        col_vals = y_species if c == 2 else y_mgmt
+        ymax = float(max(col_vals)) if col_vals else 1.0
+        if ymax <= 0:
+            y_upper = 1.0
+        else:
+            magnitude = 10 ** int(np.floor(np.log10(ymax)))
+            step = magnitude / 2
+            y_upper = math.ceil(ymax / step) * step
+        fig.update_yaxes(
+            title_text="Shade contribution [%]", range=[0, y_upper], row=1, col=c
+        )
+
+else:
+    # === Sky View Stats: VIOLIN PLOTS of light_avail_adj ===
+    if not df_focal.empty and "light_avail_adj" in df_focal.columns:
+        # Species
+        if "species" in df_focal.columns:
+            for sp in df_focal["species"].astype(str).dropna().unique().tolist():
+                vals = (
+                    df_focal.loc[
+                        df_focal["species"].astype(str) == sp, "light_avail_adj"
+                    ]
+                    .dropna()
+                    .tolist()
+                )
+                if not vals:
+                    continue
+                fig.add_trace(
+                    go.Violin(
+                        x=[sp] * len(vals),
+                        y=vals,
+                        name=str(sp),
+                        box_visible=True,
+                        meanline_visible=False,
+                        points=False,
+                        fillcolor=species_cmap.get(sp, "#AAAAAA"),
+                        line=dict(color="black", width=1),
+                        showlegend=False,
+                    ),
+                    row=1,
+                    col=2,
+                )
+
+        # Management
+        if "management_status" in df_focal.columns:
+            for mg in (
+                df_focal["management_status"]
+                .astype(str)
+                .dropna()
+                .unique()
+                .tolist()
+            ):
+                vals = (
+                    df_focal.loc[
+                        df_focal["management_status"].astype(str) == mg,
+                        "light_avail_adj",
+                    ]
+                    .dropna()
+                    .tolist()
+                )
+                if not vals:
+                    continue
+                fig.add_trace(
+                    go.Violin(
+                        x=[mg] * len(vals),
+                        y=vals,
+                        name=str(mg),
+                        box_visible=True,
+                        meanline_visible=False,
+                        points=False,
+                        fillcolor=mgmt_cmap.get(mg, "#AAAAAA"),
+                        line=dict(color="black", width=1),
+                        showlegend=False,
+                    ),
+                    row=1,
+                    col=3,
+                )
+
+    # Axes formatting for violins
+    for c in (2, 3):
+        fig.update_xaxes(title_text=None, tickangle=45, row=1, col=c)
+        fig.update_yaxes(title_text="Available light [%]", range=[0, 100], row=1, col=c)
+
+# Layout
+fig.update_layout(height=460, margin=dict(l=10, r=10, t=60, b=40))
+
+# ---------- LAYOUT: CHART + FILTERS BELOW ----------
+c_bot1, c_bot2 = st.columns([2, 15])
+with c_bot1:
+    st.pills(
+        "**Filter Species:**",
+        options=sp_all if sp_all else ["(none)"],
+        default=species_sel,
+        selection_mode="multi",
+        help="Pick one or more species.",
+        key="species_sel",
+    )
+with c_bot2:
+    st.plotly_chart(fig, use_container_width=True)
+
+c31, c32 = st.columns([2, 15])
+with c32:
+    st.pills(
+        "**Filter Management:**",
+        options=mg_all if mg_all else ["(none)"],
+        default=list(mg_sel_set) if mg_sel_set else mg_all,
+        selection_mode="multi",
+        help="Select one or more management categories.",
+        key="mgmt_sel",
+    )

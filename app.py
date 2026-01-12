@@ -77,6 +77,7 @@ pages = {
     "Settings": [
         add_atts_page,
         colors_page,
+        test_page,
     ],
     # "Sanbox": [
     #    test_page2,
