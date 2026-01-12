@@ -33,7 +33,7 @@ test_page = st.Page("src/sandbox.py", title="sandbox")
 comment_page = st.Page("src/comments.py", title="comments")
 
 #file_path = "data/test_project.json"
-file_path = "data/pokojna_test.json"
+file_path = "data/pokojna_test_v2.json"
 # Init data
 if not st.session_state.get("data_initialized"):
     st.session_state.project_file = file_path
@@ -78,11 +78,11 @@ pages = {
         add_atts_page,
         colors_page,
     ],
-     "Sanbox": [
-        test_page2,
-        comment_page,
-        test_page,
-     ],
+    # "Sanbox": [
+    #    test_page2,
+    #    comment_page,
+    #    test_page,
+    # ],
 }
 
 pg = st.navigation(pages)

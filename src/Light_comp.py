@@ -434,7 +434,7 @@ fig.add_annotation(
     yref="y1",
     text=f"Available: {avg_light:.0f} %",
     showarrow=False,
-    font=dict(size=13, color="#222"),
+    font=dict(size=13, color="#FFFFFF"),
 )
 
 fig.update_xaxes(

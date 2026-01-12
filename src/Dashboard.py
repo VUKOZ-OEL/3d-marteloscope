@@ -44,11 +44,13 @@ with c2:
     uploaded_file = st.file_uploader("**Import management selection from external file:**", type="csv", help="""
                 Load file exported form ForDil mobile app if you have created management selection in field. 
                 """)
-    st.markdown("#####")
+    st.divider()
     st.selectbox("**Management examples:**",["some example","another"])
     st.button("**Load example**", icon=":material/model_training:")
     st.divider()
     st.markdown("##### Project controls:")
     st.button("Export results",icon=":material/file_save:")
     st.button("Clear management",icon=":material/delete:")
+    st.divider()
+    localization = st.segmented_control("**App localization:**", options=["English","Čeština"], default="English")
 
