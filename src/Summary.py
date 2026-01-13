@@ -55,6 +55,14 @@ try:
 except Exception:
     area_ha = 1.0
 
+# --- canopy cover (%) z projekce korun (surfaceAreaProjection v m2)
+# Canopy cover (%) = (součet projekcí korun / (plocha_ha * 10 000 m2)) * 100
+if "surfaceAreaProjection" in df.columns:
+    sap = pd.to_numeric(df["surfaceAreaProjection"], errors="coerce").fillna(0.0)
+    df["canopy_cover_pct"] = (sap / (area_ha * 10_000.0)) * 100.0
+else:
+    df["canopy_cover_pct"] = np.nan
+
 
 def _make_masks(d: pd.DataFrame):
     keep_status = {"Target tree", "Untouched"}
@@ -111,6 +119,7 @@ def _make_bins_labels(
     labels = [f"{int(b)}–{int(b + bin_size)} {unit_label}" for b in bins[:-1]]
     return bins, labels
 
+
 # ---------- OVLÁDÁNÍ ----------
 c1, c2, c3, c4, c5, c6, c7 = st.columns([0.5, 3, 0.25, 4, 0.25, 2, 0.5])
 
@@ -125,7 +134,7 @@ with c2:
 with c4:
     sum_metric_label = st.segmented_control(
         "**Sum values by:**",
-        options=["Tree count", "Volume (m³)", "Basal area (m²)", "Stocking"],
+        options=["Tree count", "Volume (m³)", "Basal area (m²)", "Canopy cover (%)"],
         default="Tree count",
         width="stretch",
     )
@@ -147,6 +156,8 @@ def _metric_meta(label: str):
         return "volume", "Volume (m³)", "m³/ha", "Volume (m³)"
     if label == "Basal area (m²)":
         return "basal_area_m2", "Basal area (m²)", "m²/ha", "Basal area (m²)"
+    if label == "Canopy cover (%)":
+        return "canopy_cover_pct", "Canopy cover (%)", "%", "Canopy cover"
     # fallback
     return None, "Trees", "trees/ha", "Trees"
 
@@ -212,11 +223,13 @@ def render_three_panel_with_shared_legend(
             return
         pie_agg = d.groupby(hue_col, as_index=False).agg(value=(value_col, "sum"))
         total_raw = float(pie_agg["value"].sum())
+
         unit_disp = (
-            "m³"
-            if value_col == "volume"
-            else ("m²" if value_col == "basal_area_m2" else "")
+            "m³" if value_col == "volume"
+            else ("m²" if value_col == "basal_area_m2"
+                  else ("%" if value_col == "canopy_cover_pct" else ""))
         )
+
         total_text = f"Σ =<br><b>{total_raw:,.1f}</b><br>{unit_disp}".replace(",", " ")
         hover_value_token = "%{value:.1f}"
 
@@ -290,7 +303,6 @@ def render_three_panel_with_shared_legend(
         maxv = float(totals.max())
         if maxv <= 0:
             return 10
-        magnitude = 10 ** int(np.floor(np.log10(maxv)))
         step = 10
         upper = math.ceil(maxv / step) * step
         return upper
@@ -329,7 +341,7 @@ def render_three_panel_with_shared_legend(
             ]
         )
 
-    # --- 1) PIE (hole=0.50) + filtrace nulových kategorií
+    # ---------------- PIE (doplněk do 100 % pro canopy cover) ----------------
     pie_plot = pie_agg[pie_agg["value"] > 0].copy()
     no_data = pie_plot.empty
 
@@ -337,35 +349,70 @@ def render_three_panel_with_shared_legend(
         pie_labels = ["No data"]
         pie_values = [1]
         pie_colors = ["#EEEEEE"]
-        hovertemplate = ""
         textinfo = "none"
         texttemplate = None
+        pie_text = None
+        pie_hover = ""
     else:
-        pie_labels = pie_plot[hue_col]  # pro hover
-        pie_values = pie_plot["value"]
+        pie_labels = pie_plot[hue_col].astype(str).tolist()
+        pie_values = pie_plot["value"].astype(float).tolist()
         pie_colors = [color_map.get(c, "#AAAAAA") for c in pie_plot[hue_col]]
-        # text na výsečích = vždy procenta
+
         textinfo = "text"
         texttemplate = "%{percent:.1%}"
-        # hover: jméno kategorie + skutečná hodnota + jednotka
-        hovertemplate = (
+
+        # hover pro všechny výseče (Uncovered vyřešíme níže seznamem)
+        base_hover = (
             f"{hue_col}: %{{label}}<br>"
             f"{pie_value_label}: {hover_value_token} {unit_disp}"
             "<extra></extra>"
         )
+
+        pie_text = None
+        pie_hover_list = [base_hover] * len(pie_values)
+
+        if value_col == "canopy_cover_pct":
+            total_cover = float(np.nansum(pie_values))
+            uncovered = max(0.0, 100.0 - total_cover)
+
+            if uncovered > 1e-6:
+                pie_labels.append("Uncovered")
+                pie_values.append(uncovered)
+                pie_colors.append("#FFFFFF")  # bílá
+
+                # schovej hover pro uncovered
+                pie_hover_list.append("<extra></extra>")
+
+            # --- TEXT: vlastní procenta, Uncovered = prázdné
+            total_for_percent = float(np.nansum(pie_values)) or 1.0  # normálně 100
+            pct_text = []
+            for lab, val in zip(pie_labels, pie_values):
+                if lab == "Uncovered":
+                    pct_text.append("")  # žádný popisek
+                else:
+                    pct_text.append(f"{(val / total_for_percent) * 100.0:.1f}%")
+
+            textinfo = "text"
+            texttemplate = None          # vypnout globální template
+            pie_text = pct_text          # použije se přímo "text"
+            pie_hover = pie_hover_list
+        else:
+            pie_hover = base_hover
+
 
     fig.add_trace(
         go.Pie(
             labels=pie_labels,
             values=pie_values,
             hole=0.50,
-            marker=dict(colors=pie_colors),
+            marker=dict(colors=pie_colors, line=dict(color="#FFFFFF", width=1)),
             textinfo=textinfo,
             texttemplate=texttemplate,
+            text=pie_text,                 # umožní schovat text pro Uncovered
             textposition="inside",
             insidetextorientation="radial",
             textfont=dict(size=11),
-            hovertemplate=hovertemplate,
+            hovertemplate=pie_hover,       # může být string nebo list
             showlegend=False,
             sort=False,
         ),
@@ -388,7 +435,7 @@ def render_three_panel_with_shared_legend(
         yref="paper",
         text=(total_text if not no_data else "Σ = 0 " + unit_disp),
         showarrow=False,
-        font=dict(size=26, color="black"),  # ← uprav velikost středového textu tady
+        font=dict(size=26, color="black"),
         xanchor="center",
         yanchor="middle",
     )

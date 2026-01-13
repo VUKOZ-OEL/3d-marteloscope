@@ -446,7 +446,7 @@ def render_triple_by_category(
         rows=1,
         cols=3,
         shared_yaxes=True,
-        subplot_titles=("Before", "After", "Removed"),
+        subplot_titles=(st.session_state.Before, st.session_state.After, st.session_state.Removed),
         horizontal_spacing=0.06,
     )
 
@@ -601,11 +601,7 @@ def render_triple_by_class(
         rows=1,
         cols=3,
         shared_yaxes=True,
-        subplot_titles=(
-            getattr(st.session_state, "Before", "Before"),
-            getattr(st.session_state, "After", "After"),
-            getattr(st.session_state, "Removed", "Removed"),
-        ),
+        subplot_titles=(st.session_state.Before, st.session_state.After, st.session_state.Removed),
         horizontal_spacing=0.06,
     )
 
@@ -939,7 +935,7 @@ def render_projection_exposure_page(
         rows=1,
         cols=3,
         shared_yaxes=True,
-        subplot_titles=["Before cut", "After mgmt", "Removed"],
+        subplot_titles=(st.session_state.Before, st.session_state.After, st.session_state.Removed),
         horizontal_spacing=0.06,
     )
 
