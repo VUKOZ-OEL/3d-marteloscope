@@ -1,0 +1,264 @@
+key;cz;en;file
+unit_percent;%;%;global
+error_missing_ids;{count} ID chybí v CSV (budou zobrazeny jako <NA>):;{count} IDs missing in CSV (will show <NA>):;Add_attributes_prj.py
+hover_primary_line;{group}: {value}\nVýška: {height} m\nObjem: {volume} m³;{group}: {value}\nHeight: {height} m\nVolume: {volume} m³;Canopy_stats.py
+sum_volume_title;{title} · ? {value} m³/ha;{title} · ? {value} m³/ha;Canopy_stats.py
+page_add_attributes;P?idat atributy;Add attributes;App.py
+page_add_attributes_title;P?idat atributy do aktuálního projektu;Add attributes to current project;Add_attributes_prj.py
+label_after;Po zásahu;After Cut;global
+altitude;Nadmo?ská výška:;Altitude:;Dashboard.py
+app_localization;Lokalizace aplikace;App localization:;Dashboard.py
+area;Rozloha:;Area:;Dashboard.py
+violin_ylabel_light;Dostupné sv?tlo [%];Available light [%];Light_comp.py
+available_light_label;Dostupné: {value} %;Available: {value} %;Light_comp.py
+avg_avail_light_label;Pr?m?rn? dostupné sv?tlo;Average Available Light;Light_comp.py
+average_temperature;Pr?m?rná teplota:;Average temperature:;Dashboard.py
+basal_area;Vý?etní kruhová základna;Basal Area;Tree_stats.py
+basal_area_m2;Vý?etní kruhová základna [m²];Basal Area [m²];Heatmap.py
+menu_basic;Základní výsledky;Basic Results;App.py
+label_before;P?ed zásahem;Before Cut;global
+warn_cannot_aggregate_non_numeric;Nelze {stat} nenumerický sloupec „{column}“.;Cannot {stat} non-numeric variable '{column}'.;Tree_stats.py
+page_canopy_occupancy;Vypln?ní prostoru;Canopy Occupancy;App.py
+clear_selection;Vymazat výb?r;Clear Selection;Dashboard.py
+unit_cm;cm;cm;global
+color_by;Barvy podle;Color by;global
+colorbar_title;Legenda barev;Color scale;Heatmap.py
+page_colors_settings;Barvy;Colors;App.py
+msg_colors_saved;Barvy byly uloženy do projektu.;Colors saved into project.;Colors_settings.py
+info_missing_projection_after_mgmt;Sloupec „projection_exposure_after_mgmt“ nebyl nalezen, panel „After mgmt“ bude vynechán.;Column 'projection_exposure_after_mgmt' not found, skipping 'After mgmt' panel.;Tree_stats.py
+light_comp_pg_title;Konkurence o sv?tlo;Competition for Light;Light_comp.py
+space_comp_pg_title;Konkurence o prostor – Sdílený objem korun;Competition for Space – Shared Volume of Crowns;Space_comp.py
+count_label;Po?et:;Count:;Heatmap.py
+legend_crown;Koruna – {value};Crown – {value};Map.py
+crown_base_height;Výška nasazení koruny [m];Crown Base Height [m];global
+scale_crown_centroid_height;Výška t?žišt? koruny;Crown Centroid Height;global
+crown_eccentricity;Excentricita koruny;Crown Eccentricity;global
+crown_projections;Projekce korun;Crown Projections;global
+crown_surface;Povrch koruny [m²];Crown Surface Area [m²];global
+crown_volume;Objem koruny [m³];Crown Volume [m³];global
+cestina;?eština;?eština;Dashboard.py
+dbh;DBH;DBH;Heatmap.py
+dbh_class;Tlouš?ková t?ída;DBH class;Summary.py
+dbh_class_range;Ší?ka DBH t?íd [cm];DBH class range [cm];Tree_stats.py
+dbh_filter;Filtr DBH [cm];DBH filter [cm];global
+;;;
+page_detailed_view;Detailní pohled;Detailed view;App.py
+styler_duplicate_column;Duplicitní sloupec – bude p?epsán;Duplicate column – will be overwritten;Add_attributes_prj.py
+english;Angli?tina;English;Dashboard.py
+established;Založeno:;Established:;Dashboard.py
+warn_overwrite_columns;Existující sloupce budou p?epsány:;Existing columns will be overwritten:;Add_attributes_prj.py
+menu_expert;Rozší?ené výsledky;Expert Results;App.py
+explore_canopy_stats;Využití nadzemního prostoru: Profil objemu koruny podle výšky nad terénem;Explore canopy statistics: Crown volume profiles by height above the ground;Canopy_stats.py
+explore_tree_stats;Statistika jednotlivých strom?:;Explore tree statistics:;Tree_stats.py
+export_results;Exportovat výsledky;Export results;Dashboard.py
+file_uploader_help;Formát souboru:;File format:;Add_attributes_prj.py
+;;;
+height_filter;Filtr výšky [m];Filter Height [m];global
+filter_selection;Filtr výb?ru;Filter Selection:;Space_comp.py
+filter_values_help;Omezit rozsah hodnot prom?nné. Ovlivní, která data se zobrazí a jak bude škálovaná osa Y.;Filter range of metric values. This affects which data are shown and how Y-axis is scaled.;Tree_stats.py
+filter_selection;Filtr výb?ru;Filter Selection;global
+filter_selection_heatmap;Filtr výb?ru (pouze heatmapa):;Filter Selection (heatmap only):;Heatmap.py
+filter_species;Filtr druh?;Filter Species;global
+filter_species_heatmap;Filtr druh? (pouze heatmapa):;Filter Species (heatmap only):;Heatmap.py
+bottom_filter_species;Filtr druh?:;Filter Species:;Space_comp.py
+dbh_filter_help;Filtrovat stromy podle pr?m?ru (DBH).;Filter trees by DBH.;Light_comp.py
+height_filter_help;Zobrazí pouze stromy v zadaném intervalu výšek.;Filter trees by height interval.;Light_comp.py
+filter_values_label;Filtr hodnot:;Filter values:;Tree_stats.py
+plot_by_help_category_only;Pro zvolenou prom?nnou je k dispozici pouze zobrazení podle kategorie.;For selected variable only display by Category is allowed.;Tree_stats.py
+page_simulation_title;Simulace r?stu lesa;Forest Growth Simulation;Simulation.py
+forest_type;Typ lesa:;Forest type:;Dashboard.py
+grid_label;Sí? 10 m;Grid 10 m;Map.py
+group_label;Skupina;Group;Intensity.py
+menu_growth;Simulace r?stu;Growth Simulation;App.py
+label_removed;Vyt?ženo;Harvested;global
+page_heatmaps;Heatmapy;Heatmaps;App.py
+page_title;Heatmapy vybraného atributu;Heatmaps for selected Attribute;Heatmap.py
+axis_height_above;Výška nad povrchem [m];Height above ground [m];Canopy_stats.py
+height_class;Výšková t?ída;Height class;Summary.py
+height_class_range;Ší?ka výškových t?íd [m];Height class range [m];Tree_stats.py
+height_filter;Filtr výšky [m];Height filter [m];global
+height_filter_label;Filtr výšky [m];Height filter [m];Tree_stats.py
+height_filter_heatmap;Filtr výšky [m] (pouze heatmapa);Height filter [m] | Heatmap only;Heatmap.py
+height_dbh_ratio;Štíhlostní koeficient;Height-DBH Ratio;Heatmap.py
+value_height_dbh_ratio;Pom?r výška–DBH;Height-DBH Ratio;Tree_stats.py
+scale_height_dbh_ratio;Pom?r výška–DBH;Height–DBH Ratio;Map.py
+horizontal_crown_proj;Horizontální projekce koruny [m²];Horizontal Crown Projection [m²];Heatmap.py
+value_horizontal_crown_projection;Horizontální projekce koruny;Horizontal Crown Projection Area;Tree_stats.py
+scale_horizontal_proj;Horizontální projekce;Horizontal Projection;Map.py
+choose_existing_selection;Výb?r existujícího zásahu;Choose existing selection:;Dashboard.py
+values_to_plot_help;Zvolte prom?nnou k zobrazení:\n- **Po?et strom?** se vykreslí jako sloupcový graf.\n- Ostatní prom?nné se zobrazí jako violin graf.\n- **Projection Exposure** používá speciální rozvržení se t?emi violin grafy.;Choose variable to display:\n- **Tree count** is plotted as barplot.\n- Other variables are shown as violin plot.\n- **Projection Exposure** uses a dedicated triple violin layout.;Tree_stats.py
+btn_import_attributes;Importovat atributy;Import attributes;Add_attributes_prj.py
+import_ext_selection;Importovat zásah z externího souboru:;Import Selection from external file:;Dashboard.py
+success_import;Importováno/aktualizováno {count} sloupc?: {cols};Imported/updated {count} column(s): {cols};Add_attributes_prj.py
+in_dbh_class;V tlouš?kových t?ídách;In DBH class;Summary.py
+in_height_class;Ve výškových t?ídách;In Height class;Summary.py
+page_info_controls;Info & ovládání;Info & controls;App.py
+page_intensity;Intenzita;Intensity;App.py
+intensity_based_on;Intenzita podle:;Intensity based on:;Intensity.py
+intensity_in_group_title;Intenzita výb?ru ve skupin?;Intensity of Selection in Group;Intensity.py
+warn_invalid_crown_voxel_size;Neplatná hodnota crownVoxelSize.;Invalid crownVoxelSize value.;Space_comp.py
+warn_invalid_light_data;Neplatná nebo chyb?jící data o sv?tle.;Invalid or missing light data.;Light_comp.py
+invalid_height_values;Neplatné hodnoty ve sloupci „height“.;Invalid values in 'height'.;Canopy_stats.py
+invert_crown_colors;Prohodit barvy koruny;Invert Crown Colors;Map.py
+show_label;Popisky;Label;Map.py
+legend_title;Legenda;Legend;global
+load_example;Na?íst p?íklad;Load example;Dashboard.py
+import_help_text;Na?íst soubor exportovaný z mobilní aplikace (ForDil), pokud jste vytvo?ili management výb?r v terénu.;Load file exported from mobile app (ForDil) if you created management selection in field.;Dashboard.py
+spinner_loading_sim;Na?ítání a zpracování výsledk? simulace r?stu lesa, prosím ?ekejte.;Loading and processing outcomes of forest growth simulation, please wait.;Simulation.py
+location;Poloha:;Location:;Dashboard.py
+unit_m;m;m;global
+unit_m2;m²;m²;global
+m2_per_ha;m²/ha;m²/ha;Summary.py
+unit_m3;m³;m³;global
+m3_per_ha;m³/ha;m³/ha;Summary.py
+menu_main;Hlavní;Main;App.py
+management_label;Management;Management;Space_comp.py
+intensity_header;Intenzita p?stebních zásah?;Management Intensity;Intensity.py
+hover_management;Management: %{x}<br>Hodnota: %{y:.2f};Management: %{x}<br>Value: %{y:.2f};Space_comp.py
+hover_management_pct;Management: %{x}<br>Hodnota: %{y:.2f} %;Management: %{x}<br>Value: %{y:.2f} %;Space_comp.py
+missing_column;Chybí sloupec;Missing column;Summary.py
+warn_missing_column;Chybí sloupec „{column}“.;Missing column '{column}'.;Tree_stats.py
+missing_columns_crown;Chybí požadované sloupce pro výpo?et profilu objemu koruny: {columns};Missing columns for crown volume profile: {columns};Canopy_stats.py
+warning_missing_columns;Chybí sloupce: {columns};Missing columns: {columns};Canopy_stats.py
+warn_missing_columns;Chyb?jící sloupce: {columns};Missing columns: {columns};Space_comp.py
+warn_missing_projection_cols;Chybí povinné sloupce pro Projection Exposure: {columns}.;Missing required columns for Projection Exposure: {columns}.;Tree_stats.py
+info_missing_shared_values;Chyb?jící hodnoty sdílených voxel?.;Missing shared voxel values.;Space_comp.py
+styler_missing_id;Hodnota chybí – ID není v importovaném CSV;Missing value – ID not present in imported CSV;Add_attributes_prj.py
+toggle_mortality;Mortalita;Mortality;Simulation.py
+info_no_categories_color_mode_simple;Nebyly nalezeny žádné kategorie pro zvolený zp?sob barvení.;No categories found for selected color mode.;Tree_stats.py
+info_no_categories_projection_color_mode;Nebyly nalezeny žádné kategorie pro zvolený zp?sob barvení (Projection Exposure).;No categories found for selected color mode.;Tree_stats.py
+info_no_categories_color_mode;Pro zvolený zp?sob barvení nebyly nalezeny žádné kategorie.;No categories found for the selected color mode.;Tree_stats.py
+no_data;Žádná data;No data;Summary.py
+info_no_data_dbh_height_filters;Po aplikaci filtr? DBH/výšky nez?stala žádná data.;No data after applying DBH/Height filters.;Tree_stats.py
+warn_no_focal_data;Žádná data po aplikaci filtr?.;No data after applying filters.;Light_comp.py
+info_no_data_value_filter;Po aplikaci filtru hodnot nez?stala žádná data.;No data after applying value filter.;Tree_stats.py
+no_data_filters;Žádná data pro zadané filtry.;No data for given filters.;Map.py
+info_no_data_projection_after_filter;Po aplikaci filtru nez?stala žádná data pro Projection Exposure.;No data for Projection Exposure after applying value filter.;Tree_stats.py
+info_no_skyview_data;Žádná dostupná data pro Sky View.;No data for Sky View values.;Light_comp.py
+info_no_columns_to_import;Žádné nové ani p?ekrývající se sloupce k importu.;No new or overlapping columns to import.;Add_attributes_prj.py
+info_no_shared_data;Žádná data pro sdílený objem po aplikaci filtr?.;No shared-volume data after applying filters.;Space_comp.py
+no_valid_xy;Nebyly nalezeny platné sou?adnice po filtrování.;No valid coordinates after filtering.;Heatmap.py
+info_no_valid_values;Žádné platné hodnoty pro „{column}“.;No valid values for '{column}'.;Tree_stats.py
+number_of_trees;Po?et strom?:;Number of trees:;Dashboard.py
+stacked_bars_help;Pouze pro po?et strom?: p?epíná mezi skládaným a seskupeným režimem.;Only for Tree Count, switch between stacked and grouped mode.;Tree_stats.py
+label_options;Možnosti;Options;Simulation.py
+original_managed_removed;Neporušený / Ošet?ený / Odstran?ný;Original / Managed / Removed;Light_comp.py
+overlay_color_by;Barvit p?ekrytí podle;Overlay color by;Heatmap.py
+overview_header;P?ehled:;Overview:;Dashboard.py
+owner;Vlastník;Owner:;Dashboard.py
+percent_label;Procenta;Percent;Intensity.py
+percentage_mode;Procenta (%);Percentage (%);Space_comp.py
+filter_species_help;Vyber jeden nebo více d?evin.;Pick one or more species.;Light_comp.py
+plot_by;Vykreslit podle:;Plot by:;Intensity.py
+plot_by_label;Vykreslit podle:;Plot by:;Tree_stats.py
+page_plot_map;Mapa plochy;Plot Map;App.py
+plot_summary;Souhrn: Hodnoty na hektar;Plot summary: Per Hectare Values;Summary.py
+precipitation;Srážky:;Precipitation:;Dashboard.py
+page_prediction;Predikce;Prediction;App.py
+preview_title;Náhled atribut? k importu (první 3 ?ádky);Preview of attributes to be imported (first 3 rows);Add_attributes_prj.py
+Kontrola projektu:;Projektové ovládání:;Project controls:;Dashboard.py
+scale_projection_exposure;Expozice projekce;Projection Exposure;Map.py
+value_projection_exposure;Projection Exposure;Projection Exposure;Tree_stats.py
+toggle_regeneration;Obnova;Regeneration;Simulation.py
+removal_percent_axis_title;Odstran?ní [%];Removal [%];Intensity.py
+removed_label;Odstran?no;Removed;Intensity.py
+btn_save_colors;Uložit barvy do projektu;Save colors to project;Colors_settings.py
+btn_save_project;Uložit projekt;Save project;Add_attributes_prj.py
+btn_save_project_as;Uložit projekt jako;Save project as;Add_attributes_prj.py
+scale_max_point_size;Maximální velikost bodu;Scale Max Point Size;Map.py
+scale_min_point_size;Minimální velikost bodu;Scale Min Point Size;Map.py
+scale_point_size_by;M??ítko velikosti bod? podle:;Scale point size by:;Map.py
+color_by_help;Vyberte kategorii (druh / management), podle které se budou barvy p?i?azovat.;Select category (Species / Management) to color plots by.;Tree_stats.py
+show_values_by_help;Vyberte jednu nebo ob? možnosti. Pokud jsou vybrány ob?, ob? budou vykresleny (Druh = plná ?ára, Management = ?árkovaná).;Select one or both. When both are selected, both are shown (Species = solid, Management = dashed).;Canopy_stats.py
+filter_management_help;Vyber jednu nebo více kategorií výb?ru.;Select one or more selection categories.;Light_comp.py
+select_stand_state;Zvolte stav porostu:;Select Stand State to Show:;Light_comp.py
+select_stand_state;Zvolte stav porostu:;Select Stand State:;Space_comp.py
+label_selection;Výb?r;Selection;global
+group_by_selection;Výb?r   ;Selection;Intensity.py
+page_colors_selection_title;Barvy výb?ru;Selection colors;Colors_settings.py
+management_examples;P?íklady zásah?:;Selection examples:;Dashboard.py
+hover_management_shade;Výb?r: %{x}<br>Stín?ní: %{y:.2f} %;Selection: %{x}<br>Shade: %{y:.2f} %;Light_comp.py
+label_set_length;Nastav délku simulace;Set length of simulation;Simulation.py
+btn_set_selection_color_default;Nastavit výchozí barvy výb?ru;Set management colors to default;Colors_settings.py
+btn_set_species_color_default;Nastavit výchozí barvy druh?;Set species colors to default;Colors_settings.py
+menu_settings;Nastavení;Settings;App.py
+bar_ylabel_shade;P?ísp?vek ke stín?ní [%];Shade contribution [%];Light_comp.py
+y_title_shared_space_pct;Podíl sdíleného prostoru [%];Share of shared space [%];Space_comp.py
+y_title_shared_space_m3;Sdílený prostor [m³];Shared space [m³];Space_comp.py
+shared_vs_total_title;Sdílený vs. celkový objem koruny;Shared vs Total Crown Volume;Space_comp.py
+shared_label_pct;Sdíleno: {value} %;Shared: {value} %;Space_comp.py
+shared_label;Sdíleno: {value} m³;Shared: {value} m³;Space_comp.py
+show;Zobrazit;Show;Map.py
+show_data_for;Zobrazit data pro:;Show Data for:;global
+preview_full;Zobrazit celý náhled;Show full preview;Add_attributes_prj.py
+plot_by_help_tree_count;Zobrazit po?et strom? podle:\n- **DBH** t?ídy\n- **Výškové** t?ídy\n- **Kategorie** (druh / management).;Show tree count according to:\n- **DBH** class\n- **Height** class\n- **Category** (Species/Management).;Tree_stats.py
+overlay_show_positions;Zobrazit pozice strom? (body);Show tree positions (small dots);Heatmap.py
+show_values_as;Zobrazit hodnoty jako:;Show Values as:;Space_comp.py
+show_values_by;Zobrazit hodnoty podle:;Show Values by:;Canopy_stats.py
+show_mode;Zobrazit:;Show:;Light_comp.py
+page_sky_view_factor;Dostupnost sv?tla;Sky View Factor;App.py
+sky_view_values;Hodnoty Sky View;Sky View Values;Light_comp.py
+sky_view_management_title;Hodnoty Sky View podle managementu;Sky View Values by Management;Light_comp.py
+sky_view_species_title;Hodnoty Sky View podle druhu;Sky View Values by Species;Light_comp.py
+page_space_competition;Prostorová konkurence;Space Competition;App.py
+label_species;Druh;Species;global
+group_by_species;D?evina;Species;Intensity.py
+species_label;Druhy;Species;Space_comp.py
+page_colors_species_title;Barvy d?evin;Species colors;Colors_settings.py
+hover_species_shade;Druh: %{x}<br>Stín?ní: %{y:.2f} %;Species: %{x}<br>Shade: %{y:.2f} %;Light_comp.py
+hover_species;Druh: %{x}<br>Hodnota: %{y:.2f};Species: %{x}<br>Value: %{y:.2f};Space_comp.py
+hover_species_pct;Druh: %{x}<br>Hodnota: %{y:.2f} %;Species: %{x}<br>Value: %{y:.2f} %;Space_comp.py
+stacked_bars_label;Skládané sloupce;Stacked bars;Tree_stats.py
+stand_composition;Složení porostu;Stand Composition;Summary.py
+btn_start_simulation;Spustit simulaci;Start simulation;Simulation.py
+stocking;Zastoupení;Stocking;Summary.py
+sum_label;Suma;Sum;global
+sum_symbol;Suma;Sum;Summary.py
+sum_values_by;Sou?ty podle:;Sum values by:;Summary.py
+hover_sum_line;Suma\nVýška: {height} m\nObjem: {volume} m³;Sum\nHeight: {height} m\nVolume: {volume} m³;Canopy_stats.py
+page_summary;Souhrn;Summary;App.py
+mgmt_status_target_tree;Cílový strom;Target tree;Intensity.py
+file_uploader_details;Soubor musí obsahovat hlavi?ku. Pokud sloupec ID není p?ítomen, první sloupec je považován za ID strom?. Používejte te?ku jako desetinnou ?árku.;The file must contain a header. If the ID column is not present, the first column is considered as Tree IDs. Use . as decimal separator.;Add_attributes_prj.py
+total_label;Celkem;Total;Intensity.py
+total_crown_label;Celkový objem koruny: {value} m³;Total crown: {value} m³;Space_comp.py
+total_crown_label_pct;Celkový objem koruny: 100 %;Total crown: 100 %;Space_comp.py
+summary_total_selection_intensity;Celková intenzita výb?ru: {value} %;Total Selection Intensity: {value} %;Intensity.py
+total_light_label;Celkem: 100 %;Total: 100 %;Light_comp.py
+tree_count;Po?et strom?;Tree Count;Heatmap.py
+metric_tree_count;Po?et strom?;Tree count;Intensity.py
+tree_count;Po?et strom?;Tree count;Summary.py
+value_tree_count;Po?et strom?;Tree Count;Tree_stats.py
+scale_tree_height;Výška stromu;Tree Height;Map.py
+value_tree_height;Výška stromu;Tree Height;Tree_stats.py
+tree_height;Výška stromu [m];Tree Height [m];Heatmap.py
+tree_points;Stromy;Tree Points;Map.py
+page_tree_statistics;Statistiky strom?;Tree Statistics;App.py
+unit_trees;Stromy;Trees;global
+pie_value_label_trees;Po?et strom?;Trees;Summary.py
+trees;Trees;Trees;Summary.py
+trees_per_ha;strom?/ha;trees/ha;Summary.py
+mgmt_status_untouched;Bez zásahu;Untouched;Intensity.py
+value_to_display;Zobrazená hodnota;Value to display;Heatmap.py
+heatmap_value_label;Hodnota:;Value:;Heatmap.py
+values_to_plot;Hodnoty k vykreslení:;Values to plot:;Tree_stats.py
+vertical_crown_proj;Vertikální projekce koruny [m²];Vertical Crown Projection [m²];Heatmap.py
+value_vertical_crown_projection;Vertikální projekce koruny;Vertical Crown Projection Area;Tree_stats.py
+scale_vertical_proj;Vertikální projekce;Vertical Projection;Map.py
+metric_volume;Objem;Volume;Intensity.py
+scale_volume;Objem;Volume;Map.py
+value_volume;Objem;Volume;Tree_stats.py
+volume_mode;Objem (m³);Volume (m³);Space_comp.py
+pie_value_label_volume;Objem (m³);Volume (m³);Summary.py
+volume_m3;Objem (m³);Volume (m³);Summary.py
+volume;Objem [m³];Volume [m³];Heatmap.py
+who_competes;Kdo sout?ží;Who competes;Light_comp.py
+who_competes_management;Kdo sout?ží · podle managementu;Who Competes · by Management;Space_comp.py
+who_competes_species;Kdo sout?ží · podle druhu;Who Competes · by Species;Space_comp.py
+bars_by_management_title;Kdo sout?ží podle výb?ru;Who Competes by Selection;Light_comp.py
+bars_by_species_title;Kdo sout?ží podle druhu;Who Competes by Species;Light_comp.py
+dbh_class_range_help;Ší?ka interval? DBH t?íd.;Width of DBH bands.;Tree_stats.py
+height_class_range_help;Ší?ka interval? výškových t?íd.;Width of Height bands.;Tree_stats.py
+wood_volume;Objem d?eva:;Wood volume:;Dashboard.py
+axis_x;Osa x [m];x [m];Heatmap.py
+axis_y;Osa y [m];y [m];Heatmap.py
+central_sum_text;?;?;Summary.py

@@ -1,0 +1,397 @@
+# i18n.py
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Iterable, Literal
+import re
+
+import streamlit as st
+
+Lang = Literal["cs", "en"]
+DEFAULT_LANG: Lang = "en"
+
+
+I18N: dict[str, dict[Lang, str]] = {
+    "altitude": {"cs": "Nadmořská výška:", "en": "Altitude:"},
+    "app_localization": {"cs": "Jazyk", "en": "Language:"},
+    "area": {"cs": "Rozloha:", "en": "Area:"},
+    "available_light_label": {"cs": "Dostupné: {value} %", "en": "Available: {value} %"},
+    "average_temperature": {"cs": "Průměrná teplota:", "en": "Average temperature:"},
+    "avg_avail_light_label": {"cs": "Průměrně dostupné světlo", "en": "Average Available Light"},
+    "axis_height_above": {"cs": "Výška nad povrchem [m]", "en": "Height above ground [m]"},
+    "axis_x": {"cs": "Osa x [m]", "en": "x [m]"},
+    "axis_y": {"cs": "Osa y [m]", "en": "y [m]"},
+    "bar_ylabel_shade": {"cs": "Příspěvek ke stínění [%]", "en": "Shade contribution [%]"},
+    "bars_by_management_title": {"cs": "Kdo soutěží podle výběru", "en": "Who Competes by Selection"},
+    "bars_by_species_title": {"cs": "Kdo soutěží podle dřeviny", "en": "Who Competes by Species"},
+    "basal_area": {"cs": "Výčetní kruhová základna", "en": "Basal Area"},
+    "basal_area_m2": {"cs": "Výčetní kruhová základna [m²]", "en": "Basal Area [m²]"},
+    "btn_import_attributes": {"cs": "Importovat atributy", "en": "Import attributes"},
+    "btn_save_colors": {"cs": "Uložit barvy do projektu", "en": "Save colors to project"},
+    "btn_save_project": {"cs": "Uložit projekt", "en": "Save project"},
+    "btn_save_project_as": {"cs": "Uložit projekt jako", "en": "Save project as"},
+    "btn_set_selection_color_default": {
+        "cs": "Nastavit výchozí barvy výběru",
+        "en": "Set management colors to default",
+    },
+    "btn_set_species_color_default": {
+        "cs": "Nastavit výchozí barvy druhů",
+        "en": "Set species colors to default",
+    },
+    "btn_start_simulation": {"cs": "Spustit simulaci", "en": "Start simulation"},
+    "cestina": {"cs": "Čeština", "en": "Czech"},
+    "clear_selection": {"cs": "Vymazat výběr", "en": "Clear Selection"},
+    "color_by": {"cs": "Barvy podle", "en": "Color by"},
+    "color_by_help": {
+        "cs": "Vyberte kategorii (druh / management), podle které se budou barvy přiřazovat.",
+        "en": "Select category (Species / Management) to color plots by.",
+    },
+    "colorbar_title": {"cs": "Legenda barev", "en": "Color scale"},
+    "colors": {"cs": "Barvy", "en": "Colors"},
+    "count_label": {"cs": "Počet:", "en": "Count:"},
+    "crown_base_height": {"cs": "Výška nasazení koruny [m]", "en": "Crown Base Height [m]"},
+    "crown_centroid_height": {"cs": "Výška těžiště koruny", "en": "Crown Centroid Height"},
+    "crown_eccentricity": {"cs": "Excentricita koruny", "en": "Crown Eccentricity"},
+    "crown_projections": {"cs": "Projekce korun", "en": "Crown Projections"},
+    "crown_surface": {"cs": "Povrch koruny [m²]", "en": "Crown Surface Area [m²]"},
+    "crown_volume_m3": {"cs": "Objem koruny [m³]", "en": "Crown Volume [m³]"},
+    "crown_volume": {"cs": "Objem koruny [m³]", "en": "Crown Volume"},
+    "dbh": {"cs": "Výčetní tloušťka", "en": "DBH"},
+    "dbh_class": {"cs": "Tloušťková třída", "en": "DBH class"},
+    "dbh_class_range": {"cs": "Šířka tloušťkových tříd [cm]", "en": "DBH class range [cm]"},
+    "dbh_filter": {"cs": "Filtr tlouštěk [cm]", "en": "DBH filter [cm]"},
+    "dbh_filter_help": {"cs": "Filtrovat stromy podle výčetní tloušťky.", "en": "Filter trees by DBH."},
+    "english": {"cs": "Angličtina", "en": "English"},
+    "error_missing_ids": {
+        "cs": "{count} ID chybí v CSV (budou zobrazeny jako <NA>):",
+        "en": "{count} IDs missing in CSV (will show <NA>):",
+    },
+    "established": {"cs": "Založeno:", "en": "Established:"},
+    "explore_canopy_stats": {
+        "cs": "Využití nadzemního prostoru: Profil objemu koruny podle výšky nad terénem",
+        "en": "Explore canopy statistics: Crown volume profiles by height above the ground",
+    },
+    "explore_tree_stats": {"cs": "Statistika jednotlivých stromů:", "en": "Explore tree statistics:"},
+    "export_results": {"cs": "Exportovat výsledky", "en": "Export results"},
+    "file_uploader_details": {
+        "cs": "Soubor musí obsahovat hlavičku. Pokud sloupec ID není přítomen, první sloupec je považován za ID stromů. Používejte tečku jako desetinnou čárku.",
+        "en": "The file must contain a header. If the ID column is not present, the first column is considered as Tree IDs. Use . as decimal separator.",
+    },
+    "file_uploader_help": {"cs": "Formát souboru:", "en": "File format:"},
+    "filter_management_help": {"cs": "Vyber jednu nebo více kategorií výběru.", "en": "Select one or more selection categories."},
+    "filter_selection": {"cs": "Filtr výběru", "en": "Filter Selection"},
+    "filter_selection_heatmap": {"cs": "Filtr výběru (pouze heatmapa):", "en": "Filter Selection (heatmap only):"},
+    "filter_species": {"cs": "Filtr druhů", "en": "Filter Species"},
+    "filter_species_heatmap": {"cs": "Filtr druhů (pouze heatmapa):", "en": "Filter Species (heatmap only):"},
+    "filter_species_help": {"cs": "Vyber jeden nebo více dřevin.", "en": "Pick one or more species."},
+    "filter_values_help": {
+        "cs": "Omezit rozsah hodnot proměnné. Ovlivní, která data se zobrazí a jak bude škálovaná osa Y.",
+        "en": "Filter range of metric values. This affects which data are shown and how Y-axis is scaled.",
+    },
+    "filter_values_label": {"cs": "Filtr hodnot:", "en": "Filter values:"},
+    "forest_type": {"cs": "Typ lesa:", "en": "Forest type:"},
+    "grid_label": {"cs": "Síť 10 m", "en": "Grid 10 m"},
+    "group_label": {"cs": "Skupina", "en": "Group"},
+    "heatmap_value_label": {"cs": "Hodnota:", "en": "Value:"},
+    "height_class": {"cs": "Výšková třída", "en": "Height class"},
+    "height_class_range": {"cs": "Šířka výškových tříd [m]", "en": "Height class range [m]"},
+    "height_dbh_ratio": {"cs": "Štíhlostní koeficient", "en": "Height-DBH Ratio"},
+    "height_filter": {"cs": "Filtr výšky [m]", "en": "Filter Height [m]"},
+    "height_filter_heatmap": {"cs": "Filtr výšky [m] (pouze heatmapa)", "en": "Height filter [m] | Heatmap only"},
+    "height_filter_help": {"cs": "Zobrazí pouze stromy v zadaném intervalu výšek.", "en": "Filter trees by height interval."},
+    "horizontal_crown_proj": {"cs": "Horizontální projekce koruny [m²]", "en": "Horizontal Crown Projection [m²]"},
+    "hover_management": {"cs": "Management: %{x}<br>Hodnota: %{y:.2f}", "en": "Management: %{x}<br>Value: %{y:.2f}"},
+    "hover_management_pct": {"cs": "Management: %{x}<br>Hodnota: %{y:.2f} %", "en": "Management: %{x}<br>Value: %{y:.2f} %"},
+    "hover_management_shade": {"cs": "Výběr: %{x}<br>Stínění: %{y:.2f} %", "en": "Selection: %{x}<br>Shade: %{y:.2f} %"},
+    "hover_primary_line": {
+        "cs": "{group}: {value}\nVýška: {height} m\nObjem: {volume} m³",
+        "en": "{group}: {value}\nHeight: {height} m\nVolume: {volume} m³",
+    },
+    "hover_species": {"cs": "Druh: %{x}<br>Hodnota: %{y:.2f}", "en": "Species: %{x}<br>Value: %{y:.2f}"},
+    "hover_species_pct": {"cs": "Druh: %{x}<br>Hodnota: %{y:.2f} %", "en": "Species: %{x}<br>Value: %{y:.2f} %"},
+    "hover_species_shade": {"cs": "Druh: %{x}<br>Stínění: %{y:.2f} %", "en": "Species: %{x}<br>Shade: %{y:.2f} %"},
+    "hover_sum_line": {"cs": "Suma\nVýška: {height} m\nObjem: {volume} m³", "en": "Sum\nHeight: {height} m\nVolume: {volume} m³"},
+    "choose_existing_selection": {"cs": "Výběr existujícího zásahu", "en": "Choose existing selection:"},
+    "import_ext_selection": {"cs": "Importovat zásah z externího souboru:", "en": "Import Selection from external file:"},
+    "import_help_text": {
+        "cs": "Načíst soubor exportovaný z mobilní aplikace (ForDil), pokud jste vytvořili management výběr v terénu.",
+        "en": "Load file exported from mobile app (ForDil) if you created management selection in field.",
+    },
+    "in_dbh_class": {"cs": "V tloušťkových třídách", "en": "In DBH class"},
+    "in_height_class": {"cs": "Ve výškových třídách", "en": "In Height class"},
+    "info_no_categories_color_mode_simple": {
+        "cs": "Nebyly nalezeny žádné kategorie pro zvolený způsob barvení.",
+        "en": "No categories found for selected color mode.",
+    },
+    "info_no_columns_to_import": {"cs": "Žádné nové ani překrývající se sloupce k importu.", "en": "No new or overlapping columns to import."},
+    "info_no_skyview_data": {"cs": "Žádná dostupná data pro Sky View.", "en": "No data for Sky View values."},
+    "info_no_valid_values": {"cs": "Žádné platné hodnoty pro „{column}“.", "en": "No valid values for '{column}'."},
+    "intensity_based_on": {"cs": "Intenzita podle:", "en": "Intensity based on:"},
+    "intensity_header": {"cs": "Intenzita pěstebních zásahů", "en": "Management Intensity"},
+    "intensity_in_group_title": {"cs": "Intenzita výběru ve skupině", "en": "Intensity of Selection in Group"},
+    "invalid_height_values": {"cs": "Neplatné hodnoty ve sloupci „height“.", "en": "Invalid values in 'height'."},
+    "invert_crown_colors": {"cs": "Prohodit barvy koruny", "en": "Invert Crown Colors"},
+    "project_controls:": {"cs": "Ovládání projektu:", "en": "Project controls:"},
+    "label_after": {"cs": "Po zásahu", "en": "After Cut"},
+    "label_before": {"cs": "Před zásahem", "en": "Before Cut"},
+    "label_options": {"cs": "Možnosti", "en": "Options"},
+    "label_removed": {"cs": "Vytěženo", "en": "Harvested"},
+    "label_selection": {"cs": "Výběr", "en": "Selection"},
+    "label_set_length": {"cs": "Nastav délku simulace", "en": "Set length of simulation"},
+    "legend_crown": {"cs": "Koruna – {value}", "en": "Crown – {value}"},
+    "legend_title": {"cs": "Legenda", "en": "Legend"},
+    "light_comp_pg_title": {"cs": "Konkurence o světlo", "en": "Competition for Light"},
+    "load_example": {"cs": "Načíst příklad", "en": "Load example"},
+    "location": {"cs": "Poloha:", "en": "Location:"},
+    "m2_per_ha": {"cs": "m²/ha", "en": "m²/ha"},
+    "m3_per_ha": {"cs": "m³/ha", "en": "m³/ha"},
+    "management_examples": {"cs": "Příklady zásahů:", "en": "Selection examples:"},
+    "management_label": {"cs": "Management", "en": "Management"},
+    "menu_basic": {"cs": "Základní výsledky", "en": "Basic Results"},
+    "menu_expert": {"cs": "Rozšířené výsledky", "en": "Expert Results"},
+    "menu_growth": {"cs": "Simulace růstu", "en": "Growth Simulation"},
+    "menu_main": {"cs": "Hlavní", "en": "Main"},
+    "menu_settings": {"cs": "Nastavení", "en": "Settings"},
+    "mgmt_status_target_tree": {"cs": "Cílový strom", "en": "Target tree"},
+    "mgmt_status_untouched": {"cs": "Bez zásahu", "en": "Untouched"},
+    "missing_column": {"cs": "Chybí sloupec", "en": "Missing column"},
+    "missing_columns_crown": {
+        "cs": "Chybí požadované sloupce pro výpočet profilu objemu koruny: {columns}",
+        "en": "Missing columns for crown volume profile: {columns}",
+    },
+    "msg_colors_saved": {"cs": "Barvy byly uloženy do projektu.", "en": "Colors saved into project."},
+    "no_valid_xy": {"cs": "Nebyly nalezeny platné souřadnice po filtrování.", "en": "No valid coordinates after filtering."},
+    "overlay_color_by": {"cs": "Barvit překrytí podle", "en": "Overlay color by"},
+    "overlay_show_positions": {"cs": "Zobrazit pozice stromů (body)", "en": "Show tree positions (small dots)"},
+    "overview_header": {"cs": "Přehled:", "en": "Overview:"},
+    "owner": {"cs": "Vlastník", "en": "Owner:"},
+    "page_add_attributes": {"cs": "Přidat atributy", "en": "Add attributes"},
+    "page_add_attributes_title": {"cs": "Přidat atributy do aktuálního projektu", "en": "Add attributes to current project"},
+    "page_canopy_occupancy": {"cs": "Vyplnění prostoru", "en": "Canopy Occupancy"},
+    "page_colors_selection_title": {"cs": "Barvy výběru", "en": "Selection colors"},
+    "page_colors_species_title": {"cs": "Barvy dřevin", "en": "Species colors"},
+    "page_detailed_view": {"cs": "Detailní pohled", "en": "Detailed view"},
+    "page_heatmaps": {"cs": "Heatmapy", "en": "Heatmaps"},
+    "page_info_controls": {"cs": "Info & ovládání", "en": "Info & controls"},
+    "page_intensity": {"cs": "Intenzita", "en": "Intensity"},
+    "page_plot_map": {"cs": "Mapa plochy", "en": "Plot Map"},
+    "page_prediction": {"cs": "Predikce", "en": "Prediction"},
+    "page_simulation_title": {"cs": "Simulace růstu lesa", "en": "Forest Growth Simulation"},
+    "page_sky_view_factor": {"cs": "Dostupnost světla", "en": "Sky View Factor"},
+    "page_space_competition": {"cs": "Prostorová konkurence", "en": "Space Competition"},
+    "page_summary": {"cs": "Souhrn", "en": "Summary"},
+    "page_title": {"cs": "Heatmapy vybraného atributu", "en": "Heatmaps for selected Attribute"},
+    "page_tree_statistics": {"cs": "Statistiky stromů", "en": "Tree Statistics"},
+    "percent_label": {"cs": "Procenta", "en": "Percent"},
+    "percentage_mode": {"cs": "Procenta (%)", "en": "Percentage (%)"},
+    "plot_by": {"cs": "Vykreslit podle:", "en": "Plot by:"},
+    "plot_by_help_category_only": {
+        "cs": "Pro zvolenou proměnnou je k dispozici pouze zobrazení podle kategorie.",
+        "en": "For selected variable only display by Category is allowed.",
+    },
+    "plot_by_help_tree_count": {
+        "cs": "Zobrazit počet stromů podle:\n- **DBH** třídy\n- **Výškové** třídy\n- **Kategorie** (druh / management).",
+        "en": "Show tree count according to:\n- **DBH** class\n- **Height** class\n- **Category** (Species/Management).",
+    },
+    "plot_summary": {"cs": "Souhrn: Hodnoty na hektar", "en": "Plot summary: Per Hectare Values"},
+    "precipitation": {"cs": "Srážky:", "en": "Precipitation:"},
+    "preview_full": {"cs": "Zobrazit celý náhled", "en": "Show full preview"},
+    "preview_title": {"cs": "Náhled atributů k importu (první 3 řádky)", "en": "Preview of attributes to be imported (first 3 rows)"},
+    "projection_exposure": {"cs": "Zápoj stromu", "en": "Projection Exposure"},
+    "removal_percent_axis_title": {"cs": "Odstranění [%]", "en": "Removal [%]"},
+    "removed_label": {"cs": "Odstraněno", "en": "Removed"},
+    "scale_horizontal_proj": {"cs": "Horizontální projekce", "en": "Horizontal Projection"},
+    "scale_max_point_size": {"cs": "Maximální velikost bodu", "en": "Scale Max Point Size"},
+    "scale_min_point_size": {"cs": "Minimální velikost bodu", "en": "Scale Min Point Size"},
+    "scale_point_size_by": {"cs": "Měřítko velikosti bodů podle:", "en": "Scale point size by:"},
+    "scale_vertical_proj": {"cs": "Vertikální projekce", "en": "Vertical Projection"},
+    "select_stand_state": {"cs": "Zvolte stav porostu:", "en": "Select Stand State:"},
+    "shared_label": {"cs": "Sdíleno: {value} m³", "en": "Shared: {value} m³"},
+    "shared_label_pct": {"cs": "Sdíleno: {value} %", "en": "Shared: {value} %"},
+    "shared_vs_total_title": {"cs": "Sdílený vs. celkový objem koruny", "en": "Shared vs Total Crown Volume"},
+    "show_data_for": {"cs": "Zobrazit data pro:", "en": "Show Data for:"},
+    "show_label": {"cs": "Popisky", "en": "Label"},
+    "show_mode": {"cs": "Zobrazit:", "en": "Show:"},
+    "show_values_as": {"cs": "Zobrazit hodnoty jako:", "en": "Show Values as:"},
+    "show_values_by": {"cs": "Zobrazit hodnoty podle:", "en": "Show Values by:"},
+    "show_values_by_help": {
+        "cs": "Vyberte jednu nebo obě možnosti. Pokud jsou vybrány obě, obě budou vykresleny (Druh = plná čára, Management = čárkovaná).",
+        "en": "Select one or both. When both are selected, both are shown (Species = solid, Management = dashed).",
+    },
+    "sky_view_management_title": {"cs": "Hodnoty dostupného světla podle managementu", "en": "Sky View Values by Management"},
+    "sky_view_species_title": {"cs": "Hodnoty dostupného světla podle druhu", "en": "Sky View Values by Species"},
+    "sky_view_values": {"cs": "Hodnoty dostupného světla", "en": "Sky View Values"},
+    "space_comp_pg_title": {"cs": "Konkurence o prostor – Sdílený objem korun", "en": "Competition for Space – Shared Volume of Crowns"},
+    "species": {"cs": "Dřevina", "en": "Species"},
+    "spinner_loading_sim": {
+        "cs": "Načítání a zpracování výsledků simulace růstu lesa, prosím čekejte.",
+        "en": "Loading and processing outcomes of forest growth simulation, please wait.",
+    },
+    "stacked_bars_help": {"cs": "Pouze pro počet stromů: přepíná mezi skládaným a seskupeným režimem.", "en": "Only for Tree Count, switch between stacked and grouped mode."},
+    "stacked_bars_label": {"cs": "Skládané sloupce", "en": "Stacked bars"},
+    "stand_composition": {"cs": "Složení porostu", "en": "Stand Composition"},
+    "stocking": {"cs": "Zastoupení", "en": "Stocking"},
+    "styler_duplicate_column": {"cs": "Duplicitní sloupec – bude přepsán", "en": "Duplicate column – will be overwritten"},
+    "styler_missing_id": {"cs": "Hodnota chybí – ID není v importovaném CSV", "en": "Missing value – ID not present in imported CSV"},
+    "success_import": {"cs": "Importováno/aktualizováno {count} sloupců: {cols}", "en": "Imported/updated {count} column(s): {cols}"},
+    "sum_label": {"cs": "Suma", "en": "Sum"},
+    "sum_symbol": {"cs": "Σ", "en": "Σ"},
+    "sum_values_by": {"cs": "Součty podle:", "en": "Sum values by:"},
+    "sum_volume_title": {"cs": "{title} · Σ {value} m³/ha", "en": "{title} · Σ {value} m³/ha"},
+    "summary_total_selection_intensity": {"cs": "Celková intenzita výběru: {value} %", "en": "Total Selection Intensity: {value} %"},
+    "toggle_mortality": {"cs": "Mortalita", "en": "Mortality"},
+    "toggle_regeneration": {"cs": "Obnova", "en": "Regeneration"},
+    "total_crown_label": {"cs": "Celkový objem koruny: {value} m³", "en": "Total crown: {value} m³"},
+    "total_crown_label_pct": {"cs": "Celkový objem koruny: 100 %", "en": "Total crown: 100 %"},
+    "total_label": {"cs": "Celkem", "en": "Total"},
+    "total_light_label": {"cs": "Celkem: 100 %", "en": "Total: 100 %"},
+    "tree_count": {"cs": "Počet stromů", "en": "Tree Count"},
+    "tree_height": {"cs": "Výška stromu [m]", "en": "Tree Height [m]"},
+    "trees": {"cs": "Stromy", "en": "Trees"},
+    "trees_per_ha": {"cs": "stromů/Ha", "en": "trees/Ha"},
+    "unit_cm": {"cs": "cm", "en": "cm"},
+    "unit_m": {"cs": "m", "en": "m"},
+    "unit_m2": {"cs": "m²", "en": "m²"},
+    "unit_m3": {"cs": "m³", "en": "m³"},
+    "unit_percent": {"cs": "%", "en": "%"},
+    "value_horizontal_crown_projection": {"cs": "Horizontální projekce koruny", "en": "Horizontal Crown Projection Area"},
+    "value_to_display": {"cs": "Zobrazená hodnota", "en": "Value to display"},
+    "value_vertical_crown_projection": {"cs": "Vertikální projekce koruny", "en": "Vertical Crown Projection Area"},
+    "value_volume": {"cs": "Objem", "en": "Volume"},
+    "values_to_plot": {"cs": "Hodnoty k vykreslení:", "en": "Values to plot:"},
+    "values_to_plot_help": {
+        "cs": "Zvolte proměnnou k zobrazení:\n- **Počet stromů** se vykreslí jako sloupcový graf.\n- Ostatní proměnné se zobrazí jako violin graf.\n- **Projection Exposure** používá speciální rozvržení se třemi violin grafy.",
+        "en": "Choose variable to display:\n- **Tree count** is plotted as barplot.\n- Other variables are shown as violin plot.\n- **Projection Exposure** uses a dedicated triple violin layout.",
+    },
+    "vertical_crown_proj": {"cs": "Vertikální projekce koruny [m²]", "en": "Vertical Crown Projection [m²]"},
+    "violin_ylabel_light": {"cs": "Dostupné světlo [%]", "en": "Available light [%]"},
+    "volume": {"cs": "Objem [m³]", "en": "Volume [m³]"},
+    "warn_cannot_aggregate_non_numeric": {"cs": "Nelze {stat} nenumerický sloupec „{column}“.", "en": "Cannot {stat} non-numeric variable '{column}'."},
+    "warn_invalid_crown_voxel_size": {"cs": "Neplatná hodnota crownVoxelSize.", "en": "Invalid crownVoxelSize value."},
+    "warn_invalid_light_data": {"cs": "Neplatná nebo chybějící data o světle.", "en": "Invalid or missing light data."},
+    "warn_missing_column": {"cs": "Chybí sloupec „{column}“.", "en": "Missing column '{column}'."},
+    "warn_no_focal_data": {"cs": "Žádná data po aplikaci filtrů.", "en": "No data after applying filters."},
+    "warn_overwrite_columns": {"cs": "Existující sloupce budou přepsány:", "en": "Existing columns will be overwritten:"},
+    "who_competes": {"cs": "Kdo soutěží", "en": "Who competes"},
+    "y_title_shared_space_m3": {"cs": "Sdílený prostor [m³]", "en": "Shared space [m³]"},
+    "y_title_shared_space_pct": {"cs": "Podíl sdíleného prostoru [%]", "en": "Share of shared space [%]"},
+    # --------------------------------------------- added later
+    # DASHBOARD
+    "number_of_trees_label": {"cs": "Počet stromů:", "en": "Number of trees:"},
+    "wood_volume_label": {"cs": "Objem dřeva:", "en": "Wood volume:"},
+    "btn_clear_management": {"cs": "Vymazat zásah", "en": "Clear management"},
+    "success_load_mgmt": {"cs": "Zásah načten", "en": "Selection loaded"},
+    # management examples keys - aliases of column name
+    "usr_mgmt": {"cs": "Výběr definovaný uživatelem", "en": "Users defined selection"},
+    "ph_mgmt_ex_1": {"cs": "Pokojná hora - modelový zásah", "en": "Pokojná hora - example"},
+
+    # Summary
+    "metric_tree_count": {"cs": "Počet stromů", "en": "Tree count"},
+    "metric_volume_m3": {"cs": "Objem (m³)", "en": "Volume (m³)"},
+    "metric_basal_area_m2": {"cs": "Výčetní kruhová základna (m²)", "en": "Basal area (m²)"},
+    "metric_canopy_cover_pct": {"cs": "Zápoj porostu (%)", "en": "Canopy cover (%)"},
+    "metric_canopy_cover": {"cs": "Zápoj porostu", "en": "Canopy cover"},
+    "no_data": {"cs": "Žádná data", "en": "No data"},
+    "uncovered": {"cs": "Nezakryto", "en": "Uncovered"},
+
+}
+
+
+# -----------------------------
+# i18n state + translation
+# -----------------------------
+def init_i18n(default_lang: Lang = DEFAULT_LANG) -> None:
+    """Call once early in the app (e.g., top of app.py)."""
+    if "lang" not in st.session_state:
+        st.session_state.lang = default_lang
+
+
+def set_lang(lang: Lang) -> None:
+    st.session_state.lang = lang
+
+
+def get_lang() -> Lang:
+    lang = st.session_state.get("lang", DEFAULT_LANG)
+    return lang if lang in ("cs", "en") else DEFAULT_LANG
+
+
+def t(key: str, **kwargs: Any) -> str:
+    """
+    Translate using global st.session_state.lang.
+    - fallback: en -> key
+    - safe formatting (won't crash on missing placeholders)
+    """
+    lang = get_lang()
+
+    entry = I18N.get(key)
+    if not entry:
+        return key
+
+    text = entry.get(lang) or entry.get("en") or key
+
+    if kwargs:
+        try:
+            return text.format(**kwargs)
+        except KeyError:
+            return text
+
+    return text
+
+
+# -----------------------------
+# Validation
+# -----------------------------
+_PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
+
+
+@dataclass(frozen=True)
+class I18nValidationResult:
+    ok: bool
+    warnings: list[str]
+
+
+def _placeholders(s: str) -> set[str]:
+    return set(_PLACEHOLDER_RE.findall(s))
+
+
+def validate_i18n(i18n: dict[str, dict[Lang, str]] | None = None) -> I18nValidationResult:
+    """
+    Validates:
+    - each key has both 'cs' and 'en'
+    - values are non-empty strings
+    - placeholder sets match between cs/en (e.g. {value} present in both)
+    - warns on suspicious keys (spaces/colon), which often indicates a bad key
+    """
+    i18n = i18n or I18N
+    warnings: list[str] = []
+
+    # dict already can't contain duplicate keys; but we can still validate structure + placeholders
+    for key, entry in i18n.items():
+        if not isinstance(key, str) or not key:
+            raise ValueError(f"Invalid i18n key: {key!r}")
+
+        if ":" in key or " " in key:
+            warnings.append(f"Suspicious key (contains space/colon): {key!r}")
+
+        if not isinstance(entry, dict):
+            raise ValueError(f"Key {key!r} value must be dict, got {type(entry)}")
+
+        if "cs" not in entry or "en" not in entry:
+            raise ValueError(f"Key {key!r} must contain both 'cs' and 'en' translations.")
+
+        cs = entry["cs"]
+        en = entry["en"]
+        if not isinstance(cs, str) or not cs.strip():
+            raise ValueError(f"Key {key!r} cs translation is empty or not a string.")
+        if not isinstance(en, str) or not en.strip():
+            raise ValueError(f"Key {key!r} en translation is empty or not a string.")
+
+        # placeholder consistency: cs and en must require the same named placeholders
+        ph_cs = _placeholders(cs)
+        ph_en = _placeholders(en)
+        if ph_cs != ph_en:
+            raise ValueError(
+                f"Placeholder mismatch for key {key!r}: cs={sorted(ph_cs)} vs en={sorted(ph_en)}"
+            )
+
+    return I18nValidationResult(ok=True, warnings=warnings)

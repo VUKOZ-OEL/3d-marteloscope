@@ -1,6 +1,6 @@
 import json
 import pandas as pd
-from typing import Dict, List, Union, Any
+from typing import Dict, List, Union, Any, Optional
 import streamlit as st
 from pathlib import Path
 import sqlite3
@@ -14,10 +14,11 @@ import shapely
 from shapely.ops import triangulate, unary_union, polygonize
 from shapely import wkt as shapely_wkt
 
+
 __all__ = [
     "load_project_json",
     "save_project_json",
-    "load_color_pallete",
+    "load_color_palette",
     "load_plot_info",
     "load_simulation_results",
     "heading_centered",
@@ -228,185 +229,42 @@ def heading_centered(text: str, color: str = "#2E7D32", level: int = 5):
 
 
 # --- Hlavní funkce ------------------------------------------------------------
-def load_color_pallete(file_path: str) -> pd.DataFrame:
-    with open(file_path, "r", encoding="utf-8") as f:
-        data: Dict[str, Union[Dict, List]] = json.load(f)
-
-    # --- 1) Lookupy pro barvy ---
-    # species_colors: {latin_name: color}
-    species_colors = data.get("species_colors") or []
-    sp_map: Dict[str, str] = {}  # norm(latin) -> '#RRGGBB'
-    if isinstance(species_colors, list):
-        for item in species_colors:
-            if not isinstance(item, dict):
-                continue
-            lat = item.get("latin")
-            col = item.get("color")
-            hexc = _to_hex(col)
-            if lat and hexc:
-                sp_map[norm(str(lat))] = hexc
-
-    return sp_map
-
-
-def load_project_json_old(file_path: str, exclude_from_sql_update: List[str] = None) -> pd.DataFrame:
+def load_color_palette(file_path: str) -> Dict[str, Dict[str, str]]:
     """
-    Načte JSON, zpracuje atributy a barvy, a synchronizuje s SQLite.
-    Hodnoty z JSONu (species, barvy) mají přednost a nejsou přepisovány z SQL.
+    Načte barvy ze секcí 'species' a 'managementStatus' v projektovém JSON.
+    Vrací dict:
+      {
+        "species": { "<latin>": "#RRGGBB", ... },
+        "management": { "<label>": "#RRGGBB", ... }
+      }
     """
-    st.write("LOADING PROJECT")
-
-    if exclude_from_sql_update is None:
-        exclude_from_sql_update = []
-
-    # Tyto sloupce jsou "svaté" - pochází z logiky JSONu a SQL je nesmí nikdy přepsat.
-    protected_cols = [
-        "species", 
-        "speciesColorHex", 
-        "management_status", 
-        "managementColorHex",
-        "label" # Label často chceme taky zachovat z JSONu, pokud to není v zadání jinak
-    ]
-    
-    # Rozšíříme seznam výjimek
-    exclude_final = list(set(exclude_from_sql_update + protected_cols))
-
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"Soubor {file_path} nebyl nalezen.")
-
-    # --- 1. Načtení a parsování JSON ---
     with open(file_path, "r", encoding="utf-8") as f:
         data: Dict[str, Any] = json.load(f)
 
-    # Lookupy s vynuceným int klíčem
-    species_list = data.get("species", [])
-    sp_id_map = {}
-    for item in species_list:
-        try: sp_id_map[int(item.get("id"))] = {"latin": item.get("latin", "Unknown"), "color": _to_hex(item.get("color"))}
-        except: pass
+    sp_map: Dict[str, str] = {}
+    mg_map: Dict[str, str] = {}
 
-    mgmt_list = data.get("managementStatus", [])
-    mg_id_map = {}
-    for item in mgmt_list:
-        try: mg_id_map[int(item.get("id"))] = {"label": item.get("label", "Unknown"), "color": _to_hex(item.get("color"))}
-        except: pass
+    # --- species: latin -> color ---
+    for item in data.get("species", []) or []:
+        if not isinstance(item, dict):
+            continue
+        latin = item.get("latin")
+        col = item.get("color")
+        hexc = _to_hex(col)
+        if latin and hexc:
+            sp_map[str(latin)] = hexc
 
-    # Zpracování segmentů
-    segments = data.get("segments", [])
-    rows = []
-    for seg in segments:
-        base = {}
-        base["id"] = seg.get("id")
-        base["label"] = seg.get("label", "")
+    # --- managementStatus: label -> color ---
+    for item in data.get("managementStatus", []) or []:
+        if not isinstance(item, dict):
+            continue
+        label = item.get("label")
+        col = item.get("color")
+        hexc = _to_hex(col)
+        if label and hexc:
+            mg_map[str(label)] = hexc
 
-        # IDs
-        try: s_id = int(seg.get("speciesId", -1))
-        except: s_id = -1
-        try: m_id = int(seg.get("managementStatusId", -1))
-        except: m_id = -1
-
-        # Data z lookupů
-        sp = sp_id_map.get(s_id, {})
-        mg = mg_id_map.get(m_id, {})
-
-        base["species"] = sp.get("latin", "Unknown")
-        base["speciesColorHex"] = sp.get("color") # Tady musí být HEX nebo None
-        
-        base["management_status"] = mg.get("label", "Unknown")
-        base["managementColorHex"] = mg.get("color")
-
-        SKIP_ATTRS = {"speciesColorHex", "managementColorHex", "species", "management_status"}
-        # Atributy
-        attrs = seg.get("treeAttributes", {}) or {}
-        print(attrs.items())
-        for k, v in attrs.items():
-            if k == "position":
-                continue
-            if k in SKIP_ATTRS:
-                continue    # ← TADY ZABRÁNÍME PŘEPISU
-            base[k] = v
-
-        # Pozice
-        pos = attrs.get("position")
-        if isinstance(pos, list) and len(pos) >= 2:
-            base["x"], base["y"] = float(pos[0]), float(pos[1])
-            if len(pos) > 2: base["z"] = float(pos[2])
-        else:
-            base["x"], base["y"] = 0.0, 0.0
-        rows.append(base)
-
-    # Vytvoření DataFrame
-    df_json = pd.DataFrame(rows)
-    
-    if df_json.empty:
-        return df_json
-
-    # Nastavení indexu a typů
-    df_json['id'] = df_json['id'].astype(int)
-    df_json.set_index('id', inplace=True, drop=False)
-
-    # Filtrace (Ground / Unsegmented)
-    if "label" in df_json.columns:
-        mask = df_json["label"].astype(str).str.contains("ground|unsegmented", case=False, na=False)
-        df_json = df_json.loc[~mask]
-
-    # --- 2. SQLite Logika ---
-    sqlite_path = os.path.splitext(file_path)[0] + ".sqlite"
-    table_name = "tree"
-
-    # A) Pokud neexistuje -> Vytvořit
-    if not os.path.exists(sqlite_path):
-        try:
-            conn = sqlite3.connect(sqlite_path)
-            # Uložíme jen základní sloupce
-            cols_to_save = [c for c in ["id", "label", "species"] if c in df_json.columns]
-            df_json[cols_to_save].to_sql(table_name, conn, if_exists="replace", index=False)
-            print(f"SQLite vytvořeno: {sqlite_path}")
-            conn.close()
-        except Exception as e:
-            print(f"Chyba při tvorbě SQLite: {e}")
-    
-    # B) Pokud existuje -> Merge (Update)
-    else:
-        try:
-            conn = sqlite3.connect(sqlite_path)
-            # Ověření tabulky
-            if pd.read_sql(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';", conn).empty:
-                conn.close()
-                return df_json.reset_index(drop=True)
-
-            # Načtení SQL dat
-            df_sql = pd.read_sql(f"SELECT * FROM {table_name}", conn)
-            conn.close()
-
-            if not df_sql.empty:
-                # Sjednotit index
-                df_sql['id'] = df_sql['id'].astype(int)
-                df_sql.set_index('id', inplace=True, drop=False)
-
-                # 1. Identifikace sloupců pro update
-                # Vezmeme sloupce z SQL, ale VYŘADÍME ty, které jsou v exclude_final (barvy, species, atd.)
-                # Tím zajistíme, že i kdyby v SQL sloupec 'speciesColorHex' byl (a byl prázdný), nepoužije se.
-                update_cols = [c for c in df_sql.columns if c in df_json.columns and c not in exclude_final]
-                
-                if update_cols:
-                    # Update přepíše hodnoty v df_json hodnotami z df_sql (tam kde se shoduje ID)
-                    df_json.update(df_sql[update_cols])
-
-                # 2. Identifikace nových sloupců (které jsou v SQL, ale ne v JSON)
-                # Např. uživatelské poznámky přidané v aplikaci
-                new_cols = [c for c in df_sql.columns if c not in df_json.columns]
-                
-                if new_cols:
-                    df_json = df_json.join(df_sql[new_cols])
-
-        except Exception as e:
-            print(f"Chyba při merge SQLite: {e}")
-        
-    st.write(df_json.columns)
-    
-    return df_json.reset_index(drop=True)
-
+    return {"species": sp_map, "management": mg_map}
 
 def load_plot_info(file_path: str) -> pd.DataFrame:
     with open(file_path, "r", encoding="utf-8") as f:
@@ -531,257 +389,6 @@ def save_project_json(
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-"""
-def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None) -> pd.DataFrame:
-
-    import os, json, sqlite3
-    import pandas as pd
-
-    # --------------------------------------------------------------------------------------
-    # 0) Sloupce, které SQL nesmí nikdy přepsat
-    # --------------------------------------------------------------------------------------
-    if exclude_from_sql_update is None:
-        exclude_from_sql_update = []
-
-    protected_cols = [
-        "species",
-        "speciesColorHex",
-        "management_status",
-        "managementColorHex",
-        "label",
-    ]
-
-    exclude_final = list(set(exclude_from_sql_update + protected_cols))
-
-
-    # --------------------------------------------------------------------------------------
-    # 1) Načtení JSON souboru
-    # --------------------------------------------------------------------------------------
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(file_path)
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-
-    # --------------------------------------------------------------------------------------
-    # 2) Lookup tabulky species + management
-    # --------------------------------------------------------------------------------------
-    sp_id_map = {}
-    for item in data.get("species", []):
-        try:
-            sid = int(item.get("id"))
-            sp_id_map[sid] = {
-                "latin": item.get("latin", "Unknown"),
-                "color": _to_hex(item.get("color")),
-            }
-        except:
-            pass
-
-    mg_id_map = {}
-    for item in data.get("managementStatus", []):
-        try:
-            mid = int(item.get("id"))
-            mg_id_map[mid] = {
-                "label": item.get("label", "Unknown"),
-                "color": _to_hex(item.get("color")),
-            }
-        except:
-            pass
-
-
-    # --------------------------------------------------------------------------------------
-    # 3) Segmenty → DataFrame
-    # --------------------------------------------------------------------------------------
-    rows = []
-
-    for seg in data.get("segments", []):
-        base = {}
-
-        base["id"] = seg.get("id")
-        base["label"] = seg.get("label", "")
-
-        # Lookup IDs
-        try: s_id = int(seg.get("speciesId"))
-        except: s_id = -1
-        try: m_id = int(seg.get("managementStatusId"))
-        except: m_id = -1
-
-        # Lookup data
-        sp = sp_id_map.get(s_id, {})
-        mg = mg_id_map.get(m_id, {})
-
-        base["species"] = sp.get("latin", "Unknown")
-        base["speciesColorHex"] = sp.get("color")
-        base["management_status"] = mg.get("label", "Unknown")
-        base["managementColorHex"] = mg.get("color")
-
-        # Atributy stromu
-        SKIP_ATTRS = {"speciesColorHex", "managementColorHex", "species", "management_status"}
-
-        attrs = seg.get("treeAttributes", {}) or {}
-        for k, v in attrs.items():
-            if k == "position":
-                continue
-            if k in SKIP_ATTRS:
-                continue
-            base[k] = v
-
-        # Pozice
-        pos = attrs.get("position")
-        if isinstance(pos, list) and len(pos) >= 2:
-            base["x"] = float(pos[0])
-            base["y"] = float(pos[1])
-            if len(pos) > 2:
-                base["z"] = float(pos[2])
-        else:
-            base["x"], base["y"] = 0.0, 0.0
-
-        rows.append(base)
-
-    df_json = pd.DataFrame(rows)
-
-    if df_json.empty:
-        return df_json
-
-    df_json["id"] = df_json["id"].astype(int)
-    df_json.set_index("id", inplace=True, drop=False)
-
-    # Odstranit ground/unsegmented
-    if "label" in df_json.columns:
-        df_json = df_json[
-            ~df_json["label"].astype(str).str.contains("ground|unsegmented", case=False, na=False)
-        ]
-
-
-    # --------------------------------------------------------------------------------------
-    # 4) SQLite MERGE
-    # --------------------------------------------------------------------------------------
-    sqlite_path = os.path.splitext(file_path)[0] + ".sqlite"
-    table_name = "tree"
-
-    # A) Pokud SQLite neexistuje → vytvořit základní tabulku
-    if not os.path.exists(sqlite_path):
-        try:
-            conn = sqlite3.connect(sqlite_path)
-            df_json[["id", "label", "species"]].to_sql(
-                table_name, conn, if_exists="replace", index=False
-            )
-            conn.close()
-        except Exception as e:
-            print("Chyba při tvorbě SQLite:", e)
-
-    # B) SQLite existuje → merge
-    if os.path.exists(sqlite_path):
-        try:
-            conn = sqlite3.connect(sqlite_path)
-
-            exists = not pd.read_sql(
-                f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';",
-                conn
-            ).empty
-
-            if exists:
-                df_sql = pd.read_sql(f"SELECT * FROM {table_name}", conn)
-
-                if not df_sql.empty:
-                    df_sql["id"] = df_sql["id"].astype(int)
-                    df_sql.set_index("id", inplace=True, drop=False)
-
-                    # Sloupce, které smíme přepsat
-                    update_cols = [
-                        c for c in df_sql.columns
-                        if c in df_json.columns and c not in exclude_final
-                    ]
-
-                    if update_cols:
-                        df_json.update(df_sql[update_cols])
-
-                    # Nové sloupce z SQL → přidat
-                    new_cols = [c for c in df_sql.columns if c not in df_json.columns]
-                    if new_cols:
-                        df_json = df_json.join(df_sql[new_cols])
-
-            conn.close()
-
-        except Exception as e:
-            print("Chyba merge SQLite:", e)
-
-
-    # --------------------------------------------------------------------------------------
-    # 5) POLYGONY (PLY → WKT → SQLite UPDATE)
-    # --------------------------------------------------------------------------------------
-    project_dir = os.path.dirname(file_path)
-    project_name = os.path.splitext(os.path.basename(file_path))[0]
-
-    # Sloupec v DF
-    if "planar_projection_poly" not in df_json.columns:
-        df_json["planar_projection_poly"] = None
-
-    # Načíst existující polygony ze SQL, pokud jsou
-    try:
-        conn = sqlite3.connect(sqlite_path)
-        sql_cols = pd.read_sql(f"PRAGMA table_info({table_name});", conn)["name"].tolist()
-
-        if "planar_projection_poly" in sql_cols:
-            df_poly = pd.read_sql(
-                f"SELECT id, planar_projection_poly FROM {table_name}", conn
-            )
-            df_poly["id"] = df_poly["id"].astype(int)
-            df_poly.set_index("id", inplace=True, drop=False)
-            df_json.update(df_poly[["planar_projection_poly"]])
-
-        conn.close()
-    except:
-        pass
-
-    # Najít chybějící WKT polygony
-    missing = df_json[df_json["planar_projection_poly"].isna()]
-
-    if not missing.empty:
-        # dopočítat WKT z PLY
-        for tid in missing["id"]:
-            ply_name = f"{project_name}.{tid}.concaveHullProjection.ply"
-            ply_path = os.path.join(project_dir, ply_name)
-
-            wkt = ply_to_wkt_polygon(ply_path)
-            if wkt:
-                df_json.loc[tid, "planar_projection_poly"] = wkt
-
-        # uložit do SQL pomocí UPDATE
-        try:
-            conn = sqlite3.connect(sqlite_path)
-
-            # přidat sloupec, pokud neexistuje
-            sql_cols = pd.read_sql(f"PRAGMA table_info({table_name});", conn)["name"].tolist()
-            if "planar_projection_poly" not in sql_cols:
-                conn.execute(f"ALTER TABLE {table_name} ADD COLUMN planar_projection_poly TEXT;")
-                conn.commit()
-
-            # UPDATE řádek po řádku
-            for tid, row in df_json.iterrows():
-                poly = row.get("planar_projection_poly")
-                if poly and isinstance(poly, str):
-                    conn.execute(
-                        f"UPDATE {table_name} SET planar_projection_poly = ? WHERE id = ?",
-                        (poly, int(tid))
-                    )
-
-            conn.commit()
-            conn.close()
-
-        except Exception as e:
-            print("Chyba ukládání polygonů do SQLite:", e)
-
-    # dopočet bazální plochy [m²] z DBH [cm]  -> BA = π * (dbh_cm / 200)^2
-    if "dbh" in df_json.columns:
-        dbh_cm = pd.to_numeric(df_json["dbh"], errors="coerce")
-        df_json["basal_area_m2"] = np.pi * (dbh_cm / 200.0) ** 2
-    else:
-        df_json["basal_area_m2"] = np.nan
-    # --------------------------------------------------------------------------------------
-    return df_json.reset_index(drop=True)
-"""
 
 def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None) -> pd.DataFrame:
     """
@@ -789,8 +396,6 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
     doplní chybějící 2D projekce koruny (PLY → WKT) do SQLite přes UPDATE
     a spočte metriky projection_exposure a projection_exposure_after_mgmt.
     """
-    import os, json, sqlite3
-    import pandas as pd
 
     # --------------------------------------------------------------------------------------
     # 0) Sloupce, které SQL nesmí nikdy přepsat
@@ -1231,3 +836,164 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
 
     # --------------------------------------------------------------------------------------
     return df_json.reset_index(drop=True)
+
+def load_mgmt_example_sqlite(file_path: str, table_name: str = "mgmt_example") -> pd.DataFrame:
+    """
+    Načte tabulku `mgmt_example` ze SQLite databáze, která patří k projektu (stejný základ názvu jako JSON).
+    Vrací obsah tabulky jako pandas DataFrame.
+    """
+    sqlite_path = os.path.splitext(file_path)[0] + ".sqlite"
+
+    if not os.path.exists(sqlite_path):
+        raise FileNotFoundError(f"SQLite DB neexistuje: {sqlite_path}")
+
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        # ověřit existenci tabulky
+        exists = not pd.read_sql(
+            f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';",
+            conn
+        ).empty
+
+        if not exists:
+            # když tabulka není, vrátíme prázdný DF
+            return pd.DataFrame()
+
+        df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
+        return df
+
+    finally:
+        conn.close()
+
+def _ensure_usr_mgmt_column(trees: pd.DataFrame, mgmt_example: pd.DataFrame) -> pd.DataFrame:
+    """
+    Zajistí, že mgmt_example má sloupec 'usr_mgmt' (a je naplněn z trees.management_status podle ID).
+    Vrací mgmt_example (může být kopie).
+    """
+    if mgmt_example is None or mgmt_example.empty:
+        # Když tabulka neexistuje, vytvoříme minimální s id + usr_mgmt
+        out = trees[["id", "management_status"]].copy()
+        out.rename(columns={"management_status": "usr_mgmt"}, inplace=True)
+        return out
+
+    out = mgmt_example.copy()
+
+    # sjednotit id jako int a mít index
+    if "id" not in out.columns:
+        raise ValueError("mgmt_example musí mít sloupec 'id'")
+
+    out["id"] = pd.to_numeric(out["id"], errors="coerce").astype("Int64")
+    out = out.dropna(subset=["id"]).copy()
+    out["id"] = out["id"].astype(int)
+    out.set_index("id", inplace=True, drop=False)
+
+    # trees id/index
+    tr = trees.copy()
+    if "id" not in tr.columns:
+        raise ValueError("trees musí mít sloupec 'id'")
+    tr["id"] = pd.to_numeric(tr["id"], errors="coerce").astype("Int64")
+    tr = tr.dropna(subset=["id"]).copy()
+    tr["id"] = tr["id"].astype(int)
+    tr.set_index("id", inplace=True, drop=False)
+
+    if "usr_mgmt" not in out.columns:
+        out["usr_mgmt"] = pd.NA
+
+    # doplnit usr_mgmt jen tam, kde je NA (abychom nepřepsali dřívější user volby)
+    missing_mask = out["usr_mgmt"].isna()
+    if missing_mask.any() and "management_status" in tr.columns:
+        out.loc[missing_mask, "usr_mgmt"] = tr.loc[out.index[missing_mask], "management_status"].reindex(out.index[missing_mask])
+
+    return out.reset_index(drop=True)
+
+def apply_mgmt_selection(
+    selection_key: str,
+    trees_key: str = "trees",
+    mgmt_key: str = "mgmt_example",
+    mgmt_status_col: str = "management_status",
+    usr_col: str = "usr_mgmt",
+) -> None:
+    """
+    Přepne trees[management_status] podle selection_key:
+    - 'usr_mgmt' => obnoví z mgmt_example['usr_mgmt']
+    - jinak => uloží aktuální trees management_status do mgmt_example['usr_mgmt'] a přepíše z mgmt_example[selection_key]
+    """
+    trees = st.session_state[trees_key]
+    mgmt_example = st.session_state[mgmt_key]
+
+    # zajistit usr_mgmt
+    mgmt_example = _ensure_usr_mgmt_column(trees, mgmt_example)
+
+    # připravit indexy
+    tr = trees.copy()
+    tr["id"] = pd.to_numeric(tr["id"], errors="coerce").astype("Int64")
+    tr = tr.dropna(subset=["id"]).copy()
+    tr["id"] = tr["id"].astype(int)
+    tr.set_index("id", inplace=True, drop=False)
+
+    mg = mgmt_example.copy()
+    mg["id"] = pd.to_numeric(mg["id"], errors="coerce").astype("Int64")
+    mg = mg.dropna(subset=["id"]).copy()
+    mg["id"] = mg["id"].astype(int)
+    mg.set_index("id", inplace=True, drop=False)
+
+    # jen společná ID
+    common_ids = tr.index.intersection(mg.index)
+
+    if selection_key == usr_col:
+        # restore user-defined
+        if usr_col not in mg.columns:
+            # nic k obnovení
+            st.session_state[mgmt_key] = mg.reset_index(drop=True)
+            st.session_state[trees_key] = tr.reset_index(drop=True)
+            return
+
+        restored = mg.loc[common_ids, usr_col]
+        # přepis jen tam, kde restored není NA
+        mask = restored.notna()
+        tr.loc[common_ids[mask], mgmt_status_col] = restored.loc[common_ids[mask]].astype(object)
+
+    else:
+        # switching to example -> uložit current do usr_mgmt
+        if mgmt_status_col in tr.columns:
+            mg.loc[common_ids, usr_col] = tr.loc[common_ids, mgmt_status_col].astype(object)
+
+        # aplikovat example sloupec
+        if selection_key not in mg.columns:
+            st.warning(f"Sloupec '{selection_key}' není v mgmt_example.")
+        else:
+            ex = mg.loc[common_ids, selection_key]
+            mask = ex.notna()
+            tr.loc[common_ids[mask], mgmt_status_col] = ex.loc[common_ids[mask]].astype(object)
+
+    # Refresh colors
+    palette = st.session_state.get("color_palette", {})
+    tr = refresh_management_colors(tr, palette)
+    # uložit zpět
+    st.session_state[mgmt_key] = mg.reset_index(drop=True)
+    st.session_state[trees_key] = tr.reset_index(drop=True)
+    st.session_state["active_mgmt_selection"] = selection_key
+
+def refresh_management_colors(
+    trees: pd.DataFrame,
+    color_palette: dict,
+    status_col: str = "management_status",
+    color_col: str = "managementColorHex",
+    default_color: str = "#A6A6A6",  # fallback, kdyby label nebyl v paletě
+) -> pd.DataFrame:
+    """
+    Aktualizuje trees[managementColorHex] podle trees[management_status] a palety.
+    Vrací kopii DF.
+    """
+    out = trees.copy()
+
+    mg_map = (color_palette or {}).get("management", {}) if isinstance(color_palette, dict) else {}
+
+    if status_col not in out.columns:
+        return out
+
+    out[color_col] = out[status_col].astype(str).map(mg_map).fillna(default_color)
+    return out
+
+
+

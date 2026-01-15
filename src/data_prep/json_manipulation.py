@@ -156,3 +156,29 @@ settings_file = (
     "C:/Users/krucek/Documents/GitHub/3d-marteloscope/settings_with_colors.json"
 )
 # c2j.add_palettes(file_path2,out_file2,settings_file)
+
+
+
+
+
+
+trees3 = iou.load_project_json("C:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/pokojna_test_v2.json")
+print(trees3)
+trees3.to_feather("C:/Users/krucek/Documents/GitHub/VUK/3d-marteloscope/data/pokojna_test_v2.json.feather")
+
+
+df_martelo = iou.load_project_json("data/pokojna_test_v2.json")
+df_3df = iou.load_project_json("C:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/pokojna_test_v2.json")
+
+print(df_martelo)
+print(df_3df)
+
+df_3df["species"] = df_martelo["species"]
+df_3df["management_status"] = df_martelo["management_status"]
+
+write_json("C:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/pokojna_test_v2.json",
+            df_3df,
+            "C:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/pokojna_test_v3.json")
+
+
+view(df_3df)
