@@ -94,7 +94,7 @@ pages = {
     ],
     t("menu_settings"): [
         add_atts_page,
-        colors_page,
+       # colors_page,
         sandbox_page,
     ],
 
