@@ -54900,7 +54900,8 @@
       "established": 2023,
       "altitude": 490,
       "precipitation": 660,
-      "temperature": 6.6
+      "temperature": 6.6,
+      "scan_date":2024
     }
   ]
 }

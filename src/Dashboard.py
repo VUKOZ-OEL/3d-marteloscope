@@ -9,6 +9,7 @@ from src.i18n import t, set_lang, get_lang
 plot_info = st.session_state.plot_info
 df: pd.DataFrame = st.session_state.trees.copy()
 
+print(plot_info)
 
 # ---------- OVLÁDÁNÍ ----------
 c1, c2 = st.columns([2, 2])
@@ -33,6 +34,7 @@ with c1:
 - **{t('established')}** {plot_info['established'].iloc[0]}
 - **{t('location')}** {plot_info['state'].iloc[0]}
 - **{t('owner')}** {plot_info['owner'].iloc[0]}
+- **{t('scan_date')}** {plot_info['scan_date'].iloc[0]}
 """
     )
 
@@ -87,7 +89,7 @@ with c2:
 
     st.divider()
 
-    st.markdown(f"##### {t('project_controls:')}")
+    st.markdown(f"##### {t('project_controls')}")
 
     st.button(t("export_results"), icon=":material/file_save:")
     st.button(t("btn_clear_management"), icon=":material/delete:")

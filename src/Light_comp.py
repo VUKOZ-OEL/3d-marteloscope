@@ -16,13 +16,15 @@ from plotly.subplots import make_subplots
 import streamlit as st
 import src.io_utils as iou
 
-# --- panel names from session ---
+from src.i18n import t  # uses st.session_state.lang :contentReference[oaicite:1]{index=1}
+
+# --- panel names from session (already localized elsewhere) ---
 Before = st.session_state.Before
 After = st.session_state.After
 Removed = st.session_state.Removed
 stand_stat_all = [Before, After]
 
-st.markdown("##### Competition for Light")
+st.markdown(f"##### {t('light_comp_pg_title')}")
 
 # ---------- DATA ----------
 if "trees" not in st.session_state:
@@ -79,23 +81,14 @@ def _management_colors(d: pd.DataFrame) -> dict:
         .first()
         .to_dict()
     )
-    return {
-        k: (v if isinstance(v, str) and v.strip() else "#AAAAAA")
-        for k, v in cmap.items()
-    }
+    return {k: (v if isinstance(v, str) and v.strip() else "#AAAAAA") for k, v in cmap.items()}
 
 
 def _make_masks(d: pd.DataFrame):
     """Stand state masks for focal-trees by their own management_status."""
     keep_status = {"Target tree", "Untouched"}
-    mask_after = d.get("management_status", pd.Series(False, index=d.index)).isin(
-        keep_status
-    )
-    mask_removed = (
-        ~mask_after
-        if "management_status" in d.columns
-        else pd.Series(False, index=d.index)
-    )
+    mask_after = d.get("management_status", pd.Series(False, index=d.index)).isin(keep_status)
+    mask_removed = ~mask_after if "management_status" in d.columns else pd.Series(False, index=d.index)
     mask_before = pd.Series(True, index=d.index)
     return {Before: mask_before, After: mask_after, Removed: mask_removed}
 
@@ -117,11 +110,7 @@ df["light_avail"] = (
 )
 
 # Bezpečné sestavení mapy sousedů (light_comp_map)
-if "light_comp" in df.columns:
-    _src_comp = df["light_comp"]
-else:
-    _src_comp = pd.Series([{}] * len(df), index=df.index)
-
+_src_comp = df["light_comp"] if "light_comp" in df.columns else pd.Series([{}] * len(df), index=df.index)
 
 def _to_comp_map_safe(v):
     try:
@@ -129,75 +118,65 @@ def _to_comp_map_safe(v):
     except Exception:
         return {}
 
-
 df["light_comp_map"] = _src_comp.apply(_to_comp_map_safe)
 
-# ---------- DBH & HEIGHT FILTERS (hodnoty pro UI) ----------
-dbh_series = pd.to_numeric(df.get("dbh", np.nan), errors="coerce")
-dbh_series = dbh_series.dropna()
-if len(dbh_series) > 0 and np.isfinite(dbh_series.max()):
-    DBHmax = int(dbh_series.max())
-else:
-    DBHmax = 0
+# ---------- DBH & HEIGHT FILTERS (values for UI) ----------
+dbh_series = pd.to_numeric(df.get("dbh", np.nan), errors="coerce").dropna()
+DBHmax = int(dbh_series.max()) if len(dbh_series) > 0 and np.isfinite(dbh_series.max()) else 0
 DBHmax = max(DBHmax, 0)
 
 h_series = pd.to_numeric(df.get("height", np.nan), errors="coerce")
-if np.isfinite(np.nanmax(h_series)):
-    Hmax = int(np.nanmax(h_series))
-else:
-    Hmax = 0
+Hmax = int(np.nanmax(h_series)) if np.isfinite(np.nanmax(h_series)) else 0
 Hmax = max(0, Hmax)
 
-# ---------- TOP CONTROLS (Stand state, chart mode, DBH, Height) ----------
-_,c1,_, c2,_, c3,_, c4,_ = st.columns([0.5, 3, 0.5, 3, 0.5, 2,0.5, 2, 0.5])
+# ---------- TOP CONTROLS ----------
+_, c1, _, c2, _, c3, _, c4, _ = st.columns([0.5, 3, 0.5, 3, 0.5, 2, 0.5, 2, 0.5])
 
 with c1:
     stand_state = st.segmented_control(
-        "**Select Stand State to Show:**",
+        f"**{t('select_stand_state')}**",
         options=stand_stat_all,
         default=Before,
         selection_mode="single",
         width="stretch",
-        help="Original / Managed / Removed.",
+        help=t("help_select_stand_state_light"),  # NEW KEY
     )
 
 with c2:
     chart_mode = st.segmented_control(
-        "**Show:**",
-        options=["Who competes", "Sky View Values"],
-        default="Who competes",
+        f"**{t('show_mode')}**",
+        options=[t("who_competes"), t("sky_view_values")],
+        default=t("who_competes"),
         selection_mode="single",
         width="stretch",
-        help="Switch between competition bars and Sky View violin stats.",
+        help=t("help_chart_mode_light"),  # NEW KEY
     )
 
 with c3:
     dbh_min, dbh_max = st.slider(
-        "**DBH filter [cm]**",
+        f"**{t('dbh_filter')}**",
         min_value=0,
         max_value=max(DBHmax, 0 if DBHmax > 0 else 1),
         value=(0, max(DBHmax, 0 if DBHmax > 0 else 1)),
         step=1,
-        help="Filtrovat stromy podle průměru (DBH).",
+        help=t("dbh_filter_help"),
     )
 
 with c4:
     height_min, height_max = st.slider(
-        "**Height filter [m]**",
+        f"**{t('height_filter')}**",
         min_value=0,
         max_value=Hmax,
         value=(0, Hmax),
         step=1,
-        help="Zobrazí pouze stromy v zadaném intervalu výšek.",
+        help=t("height_filter_help"),
     )
 
 # ---------- READ CURRENT FILTER VALUES FROM SESSION (species / mgmt) ----------
 species_sel = st.session_state.get("species_sel", sp_all if sp_all else ["(none)"])
 mgmt_sel = st.session_state.get("mgmt_sel", mg_all if mg_all else ["(none)"])
 
-species_sel = (
-    list(species_sel) if isinstance(species_sel, (list, tuple, set)) else [species_sel]
-)
+species_sel = list(species_sel) if isinstance(species_sel, (list, tuple, set)) else [species_sel]
 mg_sel_set = set(mgmt_sel) if isinstance(mgmt_sel, (list, set, tuple)) else {mgmt_sel}
 
 # ---------- BASE MASKS ----------
@@ -218,15 +197,15 @@ if "height" in df.columns:
 
 # Species mask
 mask_species = pd.Series(True, index=df.index)
-if species_sel and "(none)" not in species_sel:
+if species_sel and "(none)" not in species_sel and "species" in df.columns:
     mask_species = df["species"].astype(str).isin(species_sel)
 
 # Management mask
 mask_mgmt = pd.Series(True, index=df.index)
-if mg_sel_set and "(none)" not in mg_sel_set:
+if mg_sel_set and "(none)" not in mg_sel_set and "management_status" in df.columns:
     mask_mgmt = df["management_status"].astype(str).isin(mg_sel_set)
 
-# Výběr stromů (DBH → výška → stav → druhy/management)
+# Focal trees
 focal_mask = mask_dbh & mask_height & mask_state & mask_species & mask_mgmt
 df_focal = df.loc[focal_mask].copy()
 
@@ -234,14 +213,12 @@ df_focal = df.loc[focal_mask].copy()
 mask_removed_global = state_masks[Removed]
 removed_ids = set(
     pd.to_numeric(df.loc[mask_removed_global, "id"], errors="coerce")
-    .dropna()
-    .astype(int)
-    .tolist()
+    .dropna().astype(int).tolist()
 )
 
 # ---------- RECOMPUTE light_avail / light_comp for After/Removed ----------
 def _adjust_light(row, do_adjust: bool):
-    """Vrátí (adj_light_avail, adj_comp_map) pro daný strom podle stavu stand_state."""
+    """Return (adj_light_avail, adj_comp_map) for row based on stand_state."""
     la = float(row.get("light_avail", 0.0))
     cmap = row.get("light_comp_map", {})
     if not isinstance(cmap, dict):
@@ -258,12 +235,11 @@ def _adjust_light(row, do_adjust: bool):
         except Exception:
             continue
         if nid_int in removed_ids:
-            add_back += float(pct)  # přičteme kolik stínil
+            add_back += float(pct)
         else:
-            kept[nid_int] = float(pct)  # ponecháme v comp mapě
+            kept[nid_int] = float(pct)
     la_new = min(100.0, max(0.0, la + add_back))
     return la_new, kept
-
 
 do_adjust = stand_state in (After, Removed)
 
@@ -276,114 +252,64 @@ else:
     df_focal["light_comp_adj"] = []
 
 # ---------- NEIGHBOR ATTRS ----------
-neighbor_attrs = df[
-    ["id", "species", "management_status", "speciesColorHex", "managementColorHex"]
-].copy()
-neighbor_attrs["id"] = pd.to_numeric(neighbor_attrs["id"], errors="coerce").astype(
-    "Int64"
-)
+neighbor_attrs = df[["id", "species", "management_status", "speciesColorHex", "managementColorHex"]].copy()
+neighbor_attrs["id"] = pd.to_numeric(neighbor_attrs["id"], errors="coerce").astype("Int64")
 
 # ---------- EXPLODE adjusted light_comp -> df_comp ----------
 if not df_focal.empty:
     df_comp = (
         df_focal[["light_comp_adj"]]
-        .assign(tmp=lambda t: t["light_comp_adj"].apply(lambda d: list(d.items())))
+        .assign(tmp=lambda tdf: tdf["light_comp_adj"].apply(lambda d: list(d.items())))
         .explode("tmp", ignore_index=True)
     )
     df_comp = df_comp.dropna(subset=["tmp"])
-    df_comp[["neighbor_id", "shade_pct"]] = pd.DataFrame(
-        df_comp["tmp"].tolist(), index=df_comp.index
-    )
+    df_comp[["neighbor_id", "shade_pct"]] = pd.DataFrame(df_comp["tmp"].tolist(), index=df_comp.index)
     df_comp = df_comp.drop(columns=["tmp"])
-    df_comp["neighbor_id"] = pd.to_numeric(
-        df_comp["neighbor_id"], errors="coerce"
-    ).astype("Int64")
-    df_comp["shade_pct"] = (
-        pd.to_numeric(df_comp["shade_pct"], errors="coerce").fillna(0.0).clip(lower=0.0)
-    )
+    df_comp["neighbor_id"] = pd.to_numeric(df_comp["neighbor_id"], errors="coerce").astype("Int64")
+    df_comp["shade_pct"] = pd.to_numeric(df_comp["shade_pct"], errors="coerce").fillna(0.0).clip(lower=0.0)
 else:
     df_comp = pd.DataFrame(columns=["neighbor_id", "shade_pct"])
 
-# Join na atributy sousedů
-df_comp = df_comp.merge(
-    neighbor_attrs, left_on="neighbor_id", right_on="id", how="left"
-)
+df_comp = df_comp.merge(neighbor_attrs, left_on="neighbor_id", right_on="id", how="left")
 
-# ---------- AGREGACE PRO GRAFY „WHO COMPETES“ ----------
+# ---------- AGGREGATION (WHO COMPETES) ----------
 spec_df = (
     df_comp.groupby("species", as_index=False)["shade_pct"].sum()
-    if not df_comp.empty
-    else pd.DataFrame(columns=["species", "shade_pct"])
+    if not df_comp.empty else pd.DataFrame(columns=["species", "shade_pct"])
 ).rename(columns={"shade_pct": "value"})
 
 mgmt_df = (
     df_comp.groupby("management_status", as_index=False)["shade_pct"].sum()
-    if not df_comp.empty
-    else pd.DataFrame(columns=["management_status", "shade_pct"])
+    if not df_comp.empty else pd.DataFrame(columns=["management_status", "shade_pct"])
 ).rename(columns={"shade_pct": "value"})
 
-species_all = (
-    sorted(df["species"].astype(str).unique().tolist())
-    if "species" in df.columns
-    else []
-)
-mgmt_all = (
-    df["management_status"].astype(str).unique().tolist()
-    if "management_status" in df.columns
-    else []
-)
+species_all = sorted(df["species"].astype(str).unique().tolist()) if "species" in df.columns else []
+mgmt_all = df["management_status"].astype(str).unique().tolist() if "management_status" in df.columns else []
 
 if species_all:
-    spec_df = (
-        spec_df.set_index("species").reindex(species_all, fill_value=0.0).reset_index()
-    )
+    spec_df = spec_df.set_index("species").reindex(species_all, fill_value=0.0).reset_index()
 if mgmt_all:
-    mgmt_df = (
-        mgmt_df.set_index("management_status")
-        .reindex(mgmt_all, fill_value=0.0)
-        .reset_index()
-    )
+    mgmt_df = mgmt_df.set_index("management_status").reindex(mgmt_all, fill_value=0.0).reset_index()
 
 # color maps
-if not df_comp.empty and "speciesColorHex" in df_comp.columns:
-    species_cmap = (
-        df_comp.dropna(subset=["species"])
-        .groupby("species")["speciesColorHex"]
-        .first()
-        .to_dict()
-    )
-    for k, v in _species_colors(df).items():
-        species_cmap.setdefault(k, v)
-else:
-    species_cmap = _species_colors(df)
-
-if not df_comp.empty and "managementColorHex" in df_comp.columns:
-    mgmt_cmap = (
-        df_comp.dropna(subset=["management_status"])
-        .groupby("management_status")["managementColorHex"]
-        .first()
-        .to_dict()
-    )
-    for k, v in _management_colors(df).items():
-        mgmt_cmap.setdefault(k, v)
-else:
-    mgmt_cmap = _management_colors(df)
+species_cmap = _species_colors(df)
+mgmt_cmap = _management_colors(df)
 
 # ---------- BUBBLE: Average available light ----------
 avg_light = float(df_focal["light_avail_adj"].mean()) if not df_focal.empty else 0.0
-p_light = max(0.0, min(100.0, avg_light)) / 100.0  # 0..1
+p_light = max(0.0, min(100.0, avg_light)) / 100.0
 
-bubble_title = "Average Available Light"
-if chart_mode == "Who competes":
-    spec_title = "Who Competes by Species"
-    mgmt_title = "Who Competes by Management"
+bubble_title = t("avg_avail_light_label")
+
+if chart_mode == t("who_competes"):
+    spec_title = t("bars_by_species_title")
+    mgmt_title = t("bars_by_management_title")
 else:
-    spec_title = "Sky View Values by Species"
-    mgmt_title = "Sky View Values by Management"
+    spec_title = t("sky_view_species_title")
+    mgmt_title = t("sky_view_management_title")
 
 fig = make_subplots(
-    rows=1,
-    cols=3,
+    rows=1, cols=3,
     specs=[[{"type": "xy"}, {"type": "xy"}, {"type": "xy"}]],
     subplot_titles=(bubble_title, spec_title, mgmt_title),
     horizontal_spacing=0.06,
@@ -397,81 +323,49 @@ xr, yr = 0.0, 0.0
 
 fig.add_shape(
     type="circle",
-    xref="x1",
-    yref="y1",
-    x0=xg - R,
-    x1=xg + R,
-    y0=yg - R,
-    y1=yg + R,
+    xref="x1", yref="y1",
+    x0=xg - R, x1=xg + R, y0=yg - R, y1=yg + R,
     line=dict(width=0),
     fillcolor="#06402B",
 )
 fig.add_shape(
     type="circle",
-    xref="x1",
-    yref="y1",
-    x0=xr - r,
-    x1=xr + r,
-    y0=yr - r,
-    y1=yr + r,
+    xref="x1", yref="y1",
+    x0=xr - r, x1=xr + r, y0=yr - r, y1=yr + r,
     line=dict(width=0),
     fillcolor="#87CEEB",
 )
 
+
 fig.add_annotation(
-    x=xg,
-    y=yg + R + 0.15,
-    xref="x1",
-    yref="y1",
-    text="Total: 100 %",
+    x=xg, y=yg , xref="x1", yref="y1",
+    text=f"<b>{t('available_light_label', value=f'{avg_light:.0f}')}</b>",
     showarrow=False,
-    font=dict(size=13, color="#222"),
-)
-fig.add_annotation(
-    x=xr,
-    y=yr - r - 0.15,
-    xref="x1",
-    yref="y1",
-    text=f"Available: {avg_light:.0f} %",
-    showarrow=False,
-    font=dict(size=13, color="#000000"),
+    font=dict(size=20, color="#000000"),
 )
 
-fig.update_xaxes(
-    row=1, col=1, visible=False, range=[-1.3, 1.3], scaleanchor="y1", scaleratio=1
-)
+fig.update_xaxes(row=1, col=1, visible=False, range=[-1.3, 1.3], scaleanchor="y1", scaleratio=1)
 fig.update_yaxes(row=1, col=1, visible=False, range=[-1.3, 1.3])
 
 # === 2 & 3) RIGHT CHARTS: MODE-DEPENDENT ===
-if chart_mode == "Who competes":
-    # === 2) BARS by SPECIES (values in %) ===
-    x_species = (
-        spec_df["species"].astype(str).tolist()
-        if not spec_df.empty
-        else (species_all or [])
-    )
-    y_species = (
-        spec_df["value"].tolist() if not spec_df.empty else ([0.0] * len(x_species))
-    )
+if chart_mode == t("who_competes"):
+    # 2) BARS by SPECIES (values in %)
+    x_species = spec_df["species"].astype(str).tolist() if not spec_df.empty else (species_all or [])
+    y_species = spec_df["value"].tolist() if not spec_df.empty else ([0.0] * len(x_species))
     colors_species = [species_cmap.get(s, "#AAAAAA") for s in x_species]
     fig.add_trace(
         go.Bar(
             x=x_species,
             y=y_species,
             marker_color=colors_species,
-            hovertemplate="Species: %{x}<br>Shade: %{y:.2f} %<extra></extra>",
+            hovertemplate=t("hover_species_shade") + "<extra></extra>",
             showlegend=False,
         ),
-        row=1,
-        col=2,
+        row=1, col=2,
     )
 
-    # === 3) BARS by MANAGEMENT (values in %) ===
-    x_mgmt = (
-        mgmt_df["management_status"].astype(str).tolist()
-        if not mgmt_df.empty
-        else (mgmt_all or [])
-    )
+    # 3) BARS by MANAGEMENT (values in %)
+    x_mgmt = mgmt_df["management_status"].astype(str).tolist() if not mgmt_df.empty else (mgmt_all or [])
     y_mgmt = mgmt_df["value"].tolist() if not mgmt_df.empty else ([0.0] * len(x_mgmt))
     colors_mgmt = [mgmt_cmap.get(m, "#AAAAAA") for m in x_mgmt]
     fig.add_trace(
@@ -479,11 +373,10 @@ if chart_mode == "Who competes":
             x=x_mgmt,
             y=y_mgmt,
             marker_color=colors_mgmt,
-            hovertemplate="Management: %{x}<br>Shade: %{y:.2f} %<extra></extra>",
+            hovertemplate=t("hover_management_shade") + "<extra></extra>",
             showlegend=False,
         ),
-        row=1,
-        col=3,
+        row=1, col=3,
     )
 
     # Axes formatting for bars
@@ -497,22 +390,17 @@ if chart_mode == "Who competes":
             magnitude = 10 ** int(np.floor(np.log10(ymax)))
             step = magnitude / 2
             y_upper = math.ceil(ymax / step) * step
-        fig.update_yaxes(
-            title_text="Shade contribution [%]", range=[0, y_upper], row=1, col=c
-        )
+        fig.update_yaxes(title_text=t("bar_ylabel_shade"), range=[0, y_upper], row=1, col=c)
 
 else:
-    # === Sky View Stats: VIOLIN PLOTS of light_avail_adj ===
+    # Sky View Stats: VIOLIN PLOTS of light_avail_adj
     if not df_focal.empty and "light_avail_adj" in df_focal.columns:
         # Species
         if "species" in df_focal.columns:
             for sp in df_focal["species"].astype(str).dropna().unique().tolist():
                 vals = (
-                    df_focal.loc[
-                        df_focal["species"].astype(str) == sp, "light_avail_adj"
-                    ]
-                    .dropna()
-                    .tolist()
+                    df_focal.loc[df_focal["species"].astype(str) == sp, "light_avail_adj"]
+                    .dropna().tolist()
                 )
                 if not vals:
                     continue
@@ -528,26 +416,15 @@ else:
                         line=dict(color="black", width=1),
                         showlegend=False,
                     ),
-                    row=1,
-                    col=2,
+                    row=1, col=2,
                 )
 
         # Management
         if "management_status" in df_focal.columns:
-            for mg in (
-                df_focal["management_status"]
-                .astype(str)
-                .dropna()
-                .unique()
-                .tolist()
-            ):
+            for mg in df_focal["management_status"].astype(str).dropna().unique().tolist():
                 vals = (
-                    df_focal.loc[
-                        df_focal["management_status"].astype(str) == mg,
-                        "light_avail_adj",
-                    ]
-                    .dropna()
-                    .tolist()
+                    df_focal.loc[df_focal["management_status"].astype(str) == mg, "light_avail_adj"]
+                    .dropna().tolist()
                 )
                 if not vals:
                     continue
@@ -563,27 +440,24 @@ else:
                         line=dict(color="black", width=1),
                         showlegend=False,
                     ),
-                    row=1,
-                    col=3,
+                    row=1, col=3,
                 )
 
-    # Axes formatting for violins
     for c in (2, 3):
         fig.update_xaxes(title_text=None, tickangle=45, row=1, col=c)
-        fig.update_yaxes(title_text="Available light [%]", range=[0, 100], row=1, col=c)
+        fig.update_yaxes(title_text=t("violin_ylabel_light"), range=[0, 100], row=1, col=c)
 
-# Layout
 fig.update_layout(height=460, margin=dict(l=10, r=10, t=60, b=40))
 
 # ---------- LAYOUT: CHART + FILTERS BELOW ----------
 c_bot1, c_bot2 = st.columns([2, 15])
 with c_bot1:
     st.pills(
-        "**Filter Species:**",
+        f"**{t('filter_species')}:**",
         options=sp_all if sp_all else ["(none)"],
         default=species_sel,
         selection_mode="multi",
-        help="Pick one or more species.",
+        help=t("filter_species_help"),
         key="species_sel",
     )
 with c_bot2:
@@ -592,10 +466,10 @@ with c_bot2:
 c31, c32 = st.columns([2, 15])
 with c32:
     st.pills(
-        "**Filter Management:**",
+        f"**{t('filter_management')}:**",
         options=mg_all if mg_all else ["(none)"],
         default=list(mg_sel_set) if mg_sel_set else mg_all,
         selection_mode="multi",
-        help="Select one or more management categories.",
+        help=t("filter_management_help"),
         key="mgmt_sel",
     )

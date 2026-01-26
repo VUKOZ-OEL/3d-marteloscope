@@ -15,7 +15,8 @@ I18N: dict[str, dict[Lang, str]] = {
     "altitude": {"cs": "Nadmořská výška:", "en": "Altitude:"},
     "app_localization": {"cs": "Jazyk", "en": "Language:"},
     "area": {"cs": "Rozloha:", "en": "Area:"},
-    "available_light_label": {"cs": "Dostupné: {value} %", "en": "Available: {value} %"},
+    "available_light_label": {"cs": "{value} %", "en": "{value} %"},
+  #  "available_light_label": {"cs": "Dostupné: {value} %", "en": "Available: {value} %"},
     "average_temperature": {"cs": "Průměrná teplota:", "en": "Average temperature:"},
     "avg_avail_light_label": {"cs": "Průměrně dostupné světlo", "en": "Average Available Light"},
     "axis_height_above": {"cs": "Výška nad povrchem [m]", "en": "Height above ground [m]"},
@@ -107,9 +108,9 @@ I18N: dict[str, dict[Lang, str]] = {
         "cs": "{group}: {value}\nVýška: {height} m\nObjem: {volume} m³",
         "en": "{group}: {value}\nHeight: {height} m\nVolume: {volume} m³",
     },
-    "hover_species": {"cs": "Druh: %{x}<br>Hodnota: %{y:.2f}", "en": "Species: %{x}<br>Value: %{y:.2f}"},
-    "hover_species_pct": {"cs": "Druh: %{x}<br>Hodnota: %{y:.2f} %", "en": "Species: %{x}<br>Value: %{y:.2f} %"},
-    "hover_species_shade": {"cs": "Druh: %{x}<br>Stínění: %{y:.2f} %", "en": "Species: %{x}<br>Shade: %{y:.2f} %"},
+    "hover_species": {"cs": "Dřevina: %{x}<br>Hodnota: %{y:.2f}", "en": "Species: %{x}<br>Value: %{y:.2f}"},
+    "hover_species_pct": {"cs": "Dřevina: %{x}<br>Hodnota: %{y:.2f} %", "en": "Species: %{x}<br>Value: %{y:.2f} %"},
+    "hover_species_shade": {"cs": "Dřevina: %{x}<br>Stínění: %{y:.2f} %", "en": "Species: %{x}<br>Shade: %{y:.2f} %"},
     "hover_sum_line": {"cs": "Suma\nVýška: {height} m\nObjem: {volume} m³", "en": "Sum\nHeight: {height} m\nVolume: {volume} m³"},
     "choose_existing_selection": {"cs": "Výběr existujícího zásahu", "en": "Choose existing selection:"},
     "import_ext_selection": {"cs": "Importovat zásah z externího souboru:", "en": "Import Selection from external file:"},
@@ -131,7 +132,7 @@ I18N: dict[str, dict[Lang, str]] = {
     "intensity_in_group_title": {"cs": "Intenzita výběru ve skupině", "en": "Intensity of Selection in Group"},
     "invalid_height_values": {"cs": "Neplatné hodnoty ve sloupci „height“.", "en": "Invalid values in 'height'."},
     "invert_crown_colors": {"cs": "Prohodit barvy koruny", "en": "Invert Crown Colors"},
-    "project_controls:": {"cs": "Ovládání projektu:", "en": "Project controls:"},
+    "project_controls": {"cs": "Ovládání projektu:", "en": "Project controls:"},
     "label_after": {"cs": "Po zásahu", "en": "After Cut"},
     "label_before": {"cs": "Před zásahem", "en": "Before Cut"},
     "label_options": {"cs": "Možnosti", "en": "Options"},
@@ -146,7 +147,7 @@ I18N: dict[str, dict[Lang, str]] = {
     "m2_per_ha": {"cs": "m²/ha", "en": "m²/ha"},
     "m3_per_ha": {"cs": "m³/ha", "en": "m³/ha"},
     "management_examples": {"cs": "Příklady zásahů:", "en": "Selection examples:"},
-    "management_label": {"cs": "Management", "en": "Management"},
+    "management_label": {"cs": "Volba zásahu", "en": "Treatment selection"},
     "menu_basic": {"cs": "Základní výsledky", "en": "Basic Results"},
     "menu_expert": {"cs": "Rozšířené výsledky", "en": "Expert Results"},
     "menu_growth": {"cs": "Simulace růstu", "en": "Growth Simulation"},
@@ -164,7 +165,7 @@ I18N: dict[str, dict[Lang, str]] = {
     "overlay_color_by": {"cs": "Barvit překrytí podle", "en": "Overlay color by"},
     "overlay_show_positions": {"cs": "Zobrazit pozice stromů (body)", "en": "Show tree positions (small dots)"},
     "overview_header": {"cs": "Přehled:", "en": "Overview:"},
-    "owner": {"cs": "Vlastník", "en": "Owner:"},
+    "owner": {"cs": "Vlastník:", "en": "Owner:"},
     "page_add_attributes": {"cs": "Přidat atributy", "en": "Add attributes"},
     "page_add_attributes_title": {"cs": "Přidat atributy do aktuálního projektu", "en": "Add attributes to current project"},
     "page_canopy_occupancy": {"cs": "Vyplnění prostoru", "en": "Canopy Occupancy"},
@@ -284,6 +285,7 @@ I18N: dict[str, dict[Lang, str]] = {
     # management examples keys - aliases of column name
     "usr_mgmt": {"cs": "Výběr definovaný uživatelem", "en": "Users defined selection"},
     "ph_mgmt_ex_1": {"cs": "Pokojná hora - modelový zásah", "en": "Pokojná hora - example"},
+    "scan_date": {"cs": "Lidarová data sebrána v:", "en": "Lidar data collection:"},
 
     # Summary
     "metric_tree_count": {"cs": "Počet stromů", "en": "Tree count"},
@@ -293,6 +295,148 @@ I18N: dict[str, dict[Lang, str]] = {
     "metric_canopy_cover": {"cs": "Zápoj porostu", "en": "Canopy cover"},
     "no_data": {"cs": "Žádná data", "en": "No data"},
     "uncovered": {"cs": "Nezakryto", "en": "Uncovered"},
+    "column_sum": {"cs": "Suma v kategorii", "en": "Category sum"},
+
+    "warn_no_data_for_filters": {
+        "cs": "Pro zvolenou kombinaci filtrů nejsou k dispozici žádná data. Upravte prosím filtry a zkuste to znovu.",
+        "en": "No data available for the selected filters. Please adjust the filters and try again.",
+    },
+
+    "dbh_filter_heatmap": {
+        "cs": "Filtr tlouštěk [cm] (pouze heatmapa)",
+        "en": "DBH filter [cm] | Heatmap only",
+    },
+
+    "show_tree_positions": {
+        "cs": "Zobrazit pozice stromů (body)",
+        "en": "Show tree positions (points)",
+    },
+
+    "no_data": {
+        "cs": "Žádná data",
+        "en": "No data",
+    },
+
+    ## Tree statistics
+    "explore_tree_statistics": {
+        "cs": "Prozkoumat statistiky stromů",
+        "en": "Explore tree statistics",
+    },
+
+    "values_to_plot": {
+        "cs": "Zobrazované hodnoty",
+        "en": "Values to plot",
+    },
+    "values_to_plot_help": {
+        "cs": "Vyber proměnnou k zobrazení:\n- Počet stromů se zobrazuje jako sloupcový graf.\n- Ostatní proměnné jako violin plot.\n- Projection Exposure používá speciální rozložení.",
+        "en": "Choose variable to display:\n- Tree count is shown as a bar plot.\n- Other variables are shown as violin plot.\n- Projection Exposure uses a dedicated layout.",
+     },
+
+    "plot_by_help_count": {
+        "cs": "Zobrazí počet stromů podle:\n- tříd DBH\n- tříd výšky\n- kategorií (dřevina / zásah).",
+        "en": "Show tree count by:\n- DBH classes\n- Height classes\n- Category (Species/Management).",
+    },
+    "plot_by_help_category_only": {
+        "cs": "Pro tuto proměnnou je povoleno pouze zobrazení podle kategorií.",
+        "en": "For this variable only Category display is allowed.",
+    },
+    "color_by_help": {
+        "cs": "Zvol, podle čeho se mají grafy barevně rozlišovat (dřevina / zásah).",
+        "en": "Select how to color plots (Species / Management).",
+    },
+
+    "stacked_bars": {
+        "cs": "Skládané sloupce",
+        "en": "Stacked bars",
+    },
+    "stacked_bars_help": {
+        "cs": "Pouze pro Počet stromů: přepíná mezi skládaným a seskupeným zobrazením.",
+        "en": "Only for Tree Count: switch between stacked and grouped mode.",
+    },
+
+    "dbh_class_range": {
+        "cs": "Šířka tříd DBH [cm]",
+        "en": "DBH class range [cm]",
+    },
+    "dbh_class_range_help": {
+        "cs": "Šířka intervalů DBH pro třídění do sloupců.",
+        "en": "Width of DBH bands for class-based bars.",
+    },
+    "height_class_range": {
+        "cs": "Šířka tříd výšky [m]",
+        "en": "Height class range [m]",
+    },
+    "height_class_range_help": {
+        "cs": "Šířka intervalů výšky pro třídění do sloupců.",
+        "en": "Width of height bands for class-based bars.",
+    },
+
+    "dbh_filter_help": {
+        "cs": "Filtrovat stromy podle DBH.",
+        "en": "Filter trees by DBH.",
+    },
+    "height_filter_help": {
+        "cs": "Filtrovat stromy podle výšky.",
+        "en": "Filter trees by height.",
+    },
+
+    "filter_values": {
+        "cs": "Filtr hodnot",
+        "en": "Filter values",
+    },
+    "filter_values_help": {
+        "cs": "Nastaví rozsah hodnot proměnné. Ovlivní, která data se zobrazí a také měřítko osy Y.",
+        "en": "Set the metric value range. Affects which data are shown and Y-axis scaling.",
+    },
+
+    "warn_no_categories": {
+        "cs": "Pro zvolený režim barvení nebyly nalezeny žádné kategorie.",
+        "en": "No categories found for the selected color mode.",
+    },
+
+    "warn_non_numeric_stat": {
+        "cs": "Nelze vypočítat {stat} pro nečíselnou proměnnou „{var}“.",
+        "en": "Cannot compute {stat} for non-numeric variable '{var}'.",
+    },
+
+    "warn_no_valid_values": {
+        "cs": "Pro „{column}“ nejsou k dispozici platné hodnoty.",
+        "en": "No valid values for '{column}'.",
+    },
+
+    "stat_of_variable": {
+        "cs": "{stat} z {var}",
+        "en": "{stat} of {var}",
+    },
+
+    "category": {
+        "cs": "Kategorie",
+        "en": "Category",
+    },
+
+    "warn_projection_exposure_special": {
+        "cs": "Projection Exposure používá speciální vykreslení (triple violin).",
+        "en": "Projection Exposure uses a dedicated rendering (triple violin).",
+    },
+
+    "canopy_profiles_layers_help": {
+        "cs": "Vyber jednu nebo obě vrstvy. Pokud zvolíš obě, druhá se vykreslí jako překryv (čárkovaná).",
+        "en": "Select one or both layers. If both are selected, the second one is drawn as an overlay (dashed).",
+    },
+
+    "filter_management": {
+        "cs": "Filtr volby zásahu",
+        "en": "Filter Treatment Selection"
+    },
+
+    "help_select_stand_state_light": {
+        "cs": "Vyber, pro jaký stav porostu se mají data zobrazit.",
+        "en": "Choose which stand state to display."
+    },
+    "help_chart_mode_light": {
+        "cs": "Přepíná mezi sloupci konkurence (kdo stíní) a houslovým grafem hodnt Sky View.",
+        "en": "Switch between competition bars (who shades) and Sky View violin statistics."
+    },
 
 }
 

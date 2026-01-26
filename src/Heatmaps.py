@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------
-# XY Heatmaps (Before | After | Removed)
+# XY Heatmaps (Before | After | Removed) — i18n version
 # ------------------------------------------------------------
 
 import streamlit as st
@@ -11,10 +11,14 @@ from plotly.subplots import make_subplots
 import src.io_utils as iou
 import re
 
+from src.i18n import t
+
+
 # ------------------------------------------------------------
 # PAGE TITLE
 # ------------------------------------------------------------
-st.markdown("### Heatmaps for selected Attribute")
+st.markdown(f"### {t('page_title')}")  # "Heatmaps for selected Attribute" :contentReference[oaicite:0]{index=0}
+
 
 # ------------------------------------------------------------
 # LOAD + NORMALIZE DATA
@@ -32,6 +36,7 @@ df0 = st.session_state.trees.copy()
 df0["x"] = df0["x"] - df0["x"].min()
 df0["y"] = df0["y"] - df0["y"].min()
 
+
 # ------------------------------------------------------------
 # CONSTANTS
 # ------------------------------------------------------------
@@ -39,31 +44,34 @@ CHART_HEIGHT = 500
 HEATMAP_NBINS = 50
 keep_status = {"Target tree", "Untouched"}
 
+# labely z session_state (už přeložené UI)
 COLOR_SPP = st.session_state.Species
 COLOR_MGMT = st.session_state.Management
 
+
 # ------------------------------------------------------------
-# VALUE MAPPING (nice labels → dataframe columns)
+# VALUE MAPPING (stable IDs -> dataframe columns)
 # ------------------------------------------------------------
-VALUE_TREE_COUNT = "Tree Count"
+VALUE_TREE_COUNT = "tree_count"  # exists :contentReference[oaicite:1]{index=1}
 
 value_mapping = {
     VALUE_TREE_COUNT: None,
-    "DBH": "dbh",
-    "Basal Area [m²]": "BasalArea_m2",
-    "Volume [m³]": "Volume_m3",
-    "Tree Height [m]": "height",
-    "Crown Base Height [m]": "crown_base_height",
-    "Crown Centroid Height [m]": "crown_centroid_height",
-    "Crown Volume [m³]": "crown_volume",
-    "Crown Surface Area [m²]": "crown_surface",
-    "Horizontal Crown Projection [m²]": "horizontal_crown_proj",
-    "Vertical Crown Projection [m²]": "vertical_crown_proj",
-    "Crown Eccentricity": "crown_eccentricity",
-    "Height-DBH Ratio": "heightXdbh",
+    "dbh": "dbh",                          # exists :contentReference[oaicite:2]{index=2}
+    "basal_area_m2": "BasalArea_m2",       # exists :contentReference[oaicite:3]{index=3}
+    "volume": "Volume_m3",                 # exists :contentReference[oaicite:4]{index=4}
+    "tree_height": "height",               # exists :contentReference[oaicite:5]{index=5}
+    "crown_base_height": "crown_base_height",          # exists :contentReference[oaicite:6]{index=6}
+    "crown_centroid_height": "crown_centroid_height",  # exists :contentReference[oaicite:7]{index=7}
+    "crown_volume_m3": "crown_volume",                 # exists :contentReference[oaicite:8]{index=8}
+    "crown_surface": "crown_surface",                  # exists :contentReference[oaicite:9]{index=9}
+    "horizontal_crown_proj": "horizontal_crown_proj",  # exists :contentReference[oaicite:10]{index=10}
+    "vertical_crown_proj": "vertical_crown_proj",      # exists :contentReference[oaicite:11]{index=11}
+    "crown_eccentricity": "crown_eccentricity",        # exists :contentReference[oaicite:12]{index=12}
+    "height_dbh_ratio": "heightXdbh",                  # exists :contentReference[oaicite:13]{index=13}
 }
 
 value_options = list(value_mapping.keys())
+
 
 # ------------------------------------------------------------
 # HELPERS
@@ -76,7 +84,6 @@ def _normalize_list(lst):
     return [] if (not lst or "(none)" in lst) else lst
 
 
-# smoothing helpers
 def _gaussian_kernel_1d(sigma_bins: float) -> np.ndarray:
     if sigma_bins <= 0 or not np.isfinite(sigma_bins):
         return np.array([1.0])
@@ -113,19 +120,29 @@ def _blur2d(A, sx_bins, sy_bins):
 sp_all = sorted(df0["species"].astype(str).unique())
 mg_all = sorted(df0["management_status"].astype(str).unique())
 
+
 # ------------------------------------------------------------
 # UI — TOP
 # ------------------------------------------------------------
 c1, c2, c3, c4 = st.columns([4, 4, 4, 4])
 
 with c1:
-    value_label = st.selectbox("**Value to display**", options=value_options)
-    z_col = value_mapping[value_label]  # None -> Count
+    value_id = st.selectbox(
+        f"**{t('heatmap_value_label')}**",  # exists :contentReference[oaicite:14]{index=14}
+        options=value_options,
+        format_func=lambda k: t(k),
+        index=0,
+    )
+    z_col = value_mapping[value_id]  # None -> Count
 
 with c2:
     dbh_vals = _safe_num(df0["dbh"]).dropna()
+    if dbh_vals.empty:
+        st.warning(t("warn_no_data_for_filters"))  # exists :contentReference[oaicite:15]{index=15}
+        st.stop()
+
     dbh_range = st.slider(
-        "**DBH filter [cm] | Heatmap only**",
+        f"**{t('dbh_filter_heatmap')}**",  # NEW KEY (návrh níže)
         int(dbh_vals.min()),
         int(dbh_vals.max()),
         (int(dbh_vals.min()), int(dbh_vals.max())),
@@ -133,8 +150,12 @@ with c2:
 
 with c3:
     hvals = _safe_num(df0["height"]).dropna()
+    if hvals.empty:
+        st.warning(t("warn_no_data_for_filters"))  # exists :contentReference[oaicite:16]{index=16}
+        st.stop()
+
     height_range = st.slider(
-        "**Height filter [m] | Heatmap only**",
+        f"**{t('height_filter_heatmap')}**",  # exists :contentReference[oaicite:17]{index=17}
         int(hvals.min()),
         int(hvals.max()),
         (int(hvals.min()), int(hvals.max())),
@@ -142,10 +163,16 @@ with c3:
 
 with c4:
     color_mode = st.segmented_control(
-        "**Overlay color by**", options=[COLOR_SPP, COLOR_MGMT], default=COLOR_SPP
+        f"**{t('color_by')}**",  # exists :contentReference[oaicite:18]{index=18}
+        options=[COLOR_SPP, COLOR_MGMT],
+        default=COLOR_SPP,
     )
 
-show_overlay = st.checkbox("**Show tree positions (small dots)**", value=True)
+show_overlay = st.checkbox(
+    f"**{t('show_tree_positions')}**",  # NEW KEY (návrh níže)
+    value=True,
+)
+
 
 # ------------------------------------------------------------
 # UI — BOTTOM (heatmap-only filters)
@@ -153,18 +180,19 @@ show_overlay = st.checkbox("**Show tree positions (small dots)**", value=True)
 cA, cB = st.columns([2, 15])
 with cA:
     species_sel = st.pills(
-        "**Filter Species (heatmap only):**",
+        f"**{t('filter_species_heatmap')}**",  # exists :contentReference[oaicite:19]{index=19}
         sp_all,
         default=sp_all,
         selection_mode="multi",
     )
+
 with cB:
     plot_container = st.container()
 
 _, _, cC = st.columns([1, 1, 15])
 with cC:
     mgmt_sel = st.pills(
-        "**Filter Management (heatmap only):**",
+        f"**{t('filter_selection_heatmap')}**",  # exists :contentReference[oaicite:20]{index=20}
         mg_all,
         default=mg_all,
         selection_mode="multi",
@@ -172,6 +200,7 @@ with cC:
 
 species_sel = _normalize_list(species_sel)
 mgmt_sel = _normalize_list(mgmt_sel)
+
 
 # ------------------------------------------------------------
 # APPLY FILTERS FOR HEATMAP ONLY
@@ -189,10 +218,9 @@ def _apply_filters_heatmap(df):
 
 df_f = _apply_filters_heatmap(df0)   # ONLY heatmap is filtered
 
-# ------------------------------------------------------------
-# OVERLAY POINTS (NEFILTROVANÉ)
-# ------------------------------------------------------------
-df_overlay = df0.copy()  # overlay dots ALWAYS use full dataset
+# overlay dots ALWAYS use full dataset
+df_overlay = df0.copy()
+
 
 # ------------------------------------------------------------
 # VALID XY FOR HEATMAP
@@ -202,8 +230,9 @@ y_f = _safe_num(df_f["y"])
 valid_xy = x_f.notna() & y_f.notna()
 
 if not valid_xy.any():
-    st.info("No valid (x,y) after filtering.")
+    st.info(t("warn_no_data_for_filters"))  # NEW KEY (návrh níže)
     st.stop()
+
 
 # ------------------------------------------------------------
 # XY RANGE (square panels)
@@ -214,15 +243,17 @@ xmax = float(df0["x"].max()) + buffer
 ymin = float(df0["y"].min()) - buffer
 ymax = float(df0["y"].max()) + buffer
 
+
 # ------------------------------------------------------------
 # WEIGHTS
 # ------------------------------------------------------------
 if z_col is None:
     w = pd.Series(1.0, index=df_f.index)
-    colorbar_title = VALUE_TREE_COUNT
+    colorbar_title = t("tree_count")  # exists :contentReference[oaicite:21]{index=21}
 else:
     w = _safe_num(df_f[z_col]).fillna(0)
-    colorbar_title = value_label
+    colorbar_title = t(value_id)
+
 
 # ------------------------------------------------------------
 # GRID
@@ -236,6 +267,7 @@ y_cent = (y_edges[:-1] + y_edges[1:]) / 2
 bin_wx = (xmax - xmin) / HEATMAP_NBINS
 bin_wy = (ymax - ymin) / HEATMAP_NBINS
 
+
 # ------------------------------------------------------------
 # PANEL BUILDER
 # ------------------------------------------------------------
@@ -244,7 +276,7 @@ def _panel(mask):
 
     if not m.any():
         Z = np.zeros((HEATMAP_NBINS, HEATMAP_NBINS))
-        H = np.full_like(Z, "No data", dtype=object)
+        H = np.full_like(Z, t("no_data"), dtype=object)  # NEW KEY (návrh níže)
         return Z, H
 
     Z, _, _ = np.histogram2d(
@@ -261,11 +293,12 @@ def _panel(mask):
         for ix in range(Z.shape[1]):
             val = Z[iy, ix]
             if z_col is None:
-                H[iy, ix] = f"Count: {val:.0f}"
+                H[iy, ix] = f"{t('count_label')} {val:.0f}"  # exists :contentReference[oaicite:22]{index=22}
             else:
                 H[iy, ix] = f"{colorbar_title}: {val:.2f}"
 
     return Z, H
+
 
 # ------------------------------------------------------------
 # COMPUTE PANELS
@@ -279,6 +312,7 @@ Za, Ha = _panel(m_after)
 Zr, Hr = _panel(m_removed)
 
 zmax = max(Zb.max(), Za.max(), Zr.max())
+
 
 # ------------------------------------------------------------
 # PLOT INIT
@@ -295,7 +329,7 @@ fig = make_subplots(
     horizontal_spacing=0.003,
 )
 
-# add panels
+
 def _add(Z, H, col):
     fig.add_trace(
         go.Heatmap(
@@ -310,9 +344,11 @@ def _add(Z, H, col):
         col=col,
     )
 
+
 _add(Zb, Hb, 1)
 _add(Za, Ha, 2)
 _add(Zr, Hr, 3)
+
 
 # ------------------------------------------------------------
 # OVERLAY POINTS (UNFILTERED)
@@ -358,13 +394,17 @@ if show_overlay:
                 col=c,
             )
 
+
 # ------------------------------------------------------------
 # AXES (SQUARE PANELS)
 # ------------------------------------------------------------
+x_title = f"x [{t('unit_m')}]"
+y_title = f"y [{t('unit_m')}]"
+
 for c in (1, 2, 3):
     fig.update_xaxes(
         range=[xmin, xmax],
-        title="x [m]",
+        title=x_title,
         row=1,
         col=c,
         ticks="outside",
@@ -375,7 +415,7 @@ for c in (1, 2, 3):
     if c == 1:
         fig.update_yaxes(
             range=[ymin, ymax],
-            title="y [m]",
+            title=y_title,
             showgrid=False,
             scaleanchor="x1",
             scaleratio=1,
@@ -396,6 +436,7 @@ for c in (1, 2, 3):
             row=1,
             col=c,
         )
+
 
 # ------------------------------------------------------------
 # LAYOUT
@@ -432,6 +473,7 @@ fig.update_layout(
         ),
     ),
 )
+
 
 # ------------------------------------------------------------
 # RENDER

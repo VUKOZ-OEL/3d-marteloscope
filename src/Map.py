@@ -5,6 +5,7 @@ import numpy as np
 import plotly.graph_objects as go
 import src.io_utils as iou
 
+from src.i18n import t
 from src.map_helpers import (
     parse_polygon,
     hex_to_rgba,
@@ -14,21 +15,14 @@ from src.map_helpers import (
 )
 
 # =========================================================
-# LABELY → Z SESSION STATE
+# CONSTANTS
 # =========================================================
-label_before = st.session_state.Before
-label_after = st.session_state.After
-label_removed = st.session_state.Removed
-colorBySpp_label = st.session_state.Species
-colorByMgmt_label = st.session_state.Management
-
 FILTER_BEFORE = "before"
 FILTER_AFTER = "after"
 FILTER_REMOVED = "removed"
 
 COLOR_SPP = "color_species"
 COLOR_MGMT = "color_mgmt"
-
 
 # =========================================================
 # LOAD DATA
@@ -50,19 +44,19 @@ original_y_min = df_all["y"].min()
 df_all["x"] = df_all["x"] - original_x_min
 df_all["y"] = df_all["y"] - original_y_min
 
-for col in ["species", "speciesColorHex", "management_status",
-            "managementColorHex", "label"]:
+for col in ["species", "speciesColorHex", "management_status", "managementColorHex", "label"]:
     if col in df_all.columns:
         df_all[col] = df_all[col].astype(str)
 
 df_all["dbh"] = pd.to_numeric(df_all["dbh"], errors="coerce")
 df_all["height"] = pd.to_numeric(df_all["height"], errors="coerce")
 
-# masky
+# masks
 masks = make_masks(df_all)
 
-
+# =========================================================
 # SCALE POINT SIZE BY – dropdown
+# =========================================================
 scale_candidates = [
     "dbh",
     "height",
@@ -77,11 +71,30 @@ scale_candidates = [
     "projection_exposure",
 ]
 available_scale_vars = [c for c in scale_candidates if c in df_all.columns]
-if "dbh" in available_scale_vars:
-    default_scale_index = available_scale_vars.index("dbh")
-else:
-    default_scale_index = 0 if available_scale_vars else 0
+default_scale_index = available_scale_vars.index("dbh") if "dbh" in available_scale_vars else (0 if available_scale_vars else 0)
 
+def _scale_var_label(v: str) -> str:
+    # map variable -> i18n key (use existing keys wherever possible)
+    mapping = {
+        "dbh": "dbh",
+        "height": "tree_height",
+        "Volume_m3": "volume",
+        "crown_base_height": "crown_base_height",
+        "crown_centroid_height": "crown_centroid_height",
+        "crown_volume": "crown_volume",
+        "crown_surface": "crown_surface",
+        "horizontal_crown_proj": "scale_horizontal_proj",   # label without units exists
+        "vertical_crown_proj": "vertical_crown_proj",
+        "heightXdbh": "height_dbh_ratio",
+        "projection_exposure": "projection_exposure",
+    }
+    key = mapping.get(v)
+    return t(key) if key else v
+
+# =========================================================
+# HEADER (optional)
+# =========================================================
+st.markdown(f"### **{t('page_plot_map')}**")  # :contentReference[oaicite:3]{index=3}
 
 # =========================================================
 # TOP UI
@@ -90,49 +103,36 @@ c1, c2, c3, c4, c5, c6, c7 = st.columns([0.5, 3, 0.25, 3, 0.25, 2, 0.5])
 
 with c2:
     dist_mode = st.segmented_control(
-        "**Show Data for:**",
+        f"**{t('show_data_for')}**",  # :contentReference[oaicite:4]{index=4} (key exists in i18n)
         [FILTER_BEFORE, FILTER_AFTER, FILTER_REMOVED],
         default=FILTER_BEFORE,
         format_func=lambda v: {
-            FILTER_BEFORE: label_before,
-            FILTER_AFTER: label_after,
-            FILTER_REMOVED: label_removed,
+            FILTER_BEFORE: t("label_before"),
+            FILTER_AFTER: t("label_after"),
+            FILTER_REMOVED: t("label_removed"),
         }.get(v, v),
         width="stretch",
     )
 
 with c4:
     color_mode = st.segmented_control(
-        "**Color by**",
+        f"**{t('color_by')}**",  # :contentReference[oaicite:5]{index=5}
         [COLOR_SPP, COLOR_MGMT],
         default=COLOR_SPP,
         format_func=lambda v: {
-            COLOR_SPP: colorBySpp_label,
-            COLOR_MGMT: colorByMgmt_label,
+            COLOR_SPP: t("species"),
+            COLOR_MGMT: t("management_label"),
         }.get(v, v),
         width="stretch",
     )
 
 with c6:
     scale_var = st.selectbox(
-        "**Scale point size by:**",
+        f"**{t('scale_point_size_by')}**",  # :contentReference[oaicite:6]{index=6}
         options=available_scale_vars,
         index=default_scale_index,
-        format_func=lambda v: {
-            "dbh": "DBH",
-            "height": "Tree Height",
-            "Volume_m3": "Volume",
-            "crown_base_height": "Crown Base Height",
-            "crown_centroid_height": "Crown Centroid Height",
-            "crown_volume": "Crown Volume",
-            "crown_surface": "Crown Surface Area",
-            "horizontal_crown_proj": "Horizontal Projection",
-            "vertical_crown_proj": "Vertical Projection",
-            "heightXdbh": "Height–DBH Ratio",
-            "projection_exposure": "Projection Exposure",
-        }.get(v, v),
+        format_func=_scale_var_label,
     )
-
 
 # =========================================================
 # LEFT SIDE PANEL
@@ -143,46 +143,33 @@ df = df_all[mask].copy()
 c21, _, c23, _ = st.columns([2, 0.5, 10, 0.5])
 
 with c21:
-    st.markdown("**Show:**")
-    show_text = st.checkbox("**Label**", value=False)
-    show_polys = st.checkbox("**Crown Projections**", value=False)
-    invert_colors = st.checkbox("**Invert Crown Colors**", value=False)
+    st.markdown(f"**{t('show_mode')}**")  # :contentReference[oaicite:7]{index=7}
+    show_text = st.checkbox(f"**{t('show_label')}**", value=False)  # :contentReference[oaicite:8]{index=8}
+    show_polys = st.checkbox(f"**{t('crown_projections')}**", value=False)  # :contentReference[oaicite:9]{index=9}
+    invert_colors = st.checkbox(f"**{t('invert_crown_colors')}**", value=False)  # :contentReference[oaicite:10]{index=10}
 
     # DBH filter
     dbh_vals = df_all["dbh"].dropna()
-    if dbh_vals.empty:
-        min_dbh, max_dbh = 0, 100
-    else:
-        min_dbh, max_dbh = int(dbh_vals.min()), int(dbh_vals.max())
-
-    dbh_range = st.slider(
-        "**Filter DBH [cm]**", min_dbh, max_dbh, (min_dbh, max_dbh)
-    )
+    min_dbh, max_dbh = (0, 100) if dbh_vals.empty else (int(dbh_vals.min()), int(dbh_vals.max()))
+    dbh_range = st.slider(f"**{t('dbh_filter')}**", min_dbh, max_dbh, (min_dbh, max_dbh))  # :contentReference[oaicite:11]{index=11}
 
     # Height filter
     h_vals = df_all["height"].dropna()
-    if h_vals.empty:
-        min_h, max_h = 0, 50
-    else:
-        min_h, max_h = int(h_vals.min()), int(h_vals.max())
-
-    height_range = st.slider(
-        "**Filter Height [m]**", min_h, max_h, (min_h, max_h)
-    )
+    min_h, max_h = (0, 50) if h_vals.empty else (int(h_vals.min()), int(h_vals.max()))
+    height_range = st.slider(f"**{t('height_filter')}**", min_h, max_h, (min_h, max_h))  # pokud klíč chybí, viz návrhy níže
 
     size_min = st.slider(
-        "Scale Min Point Size",
+        t("scale_min_point_size"),  # :contentReference[oaicite:12]{index=12}
         1,
         10,
         st.session_state.get("size_min", 3),
     )
     size_max = st.slider(
-        "Scale Max Point Size",
+        t("scale_max_point_size"),  # :contentReference[oaicite:13]{index=13}
         10,
         30,
         st.session_state.get("size_max", 15),
     )
-
 
 # =========================================================
 # APPLY FILTERS TO DF
@@ -194,7 +181,8 @@ with c23:
     ]
 
     if df.empty:
-        st.info("No data for given filters.")
+        # můžeš použít i warn_no_data_for_filters (detailnější text)
+        st.warning(t("warn_no_focal_data"))  # :contentReference[oaicite:14]{index=14}
         st.stop()
 
     color_col = "speciesColorHex" if color_mode == COLOR_SPP else "managementColorHex"
@@ -205,10 +193,10 @@ with c23:
 
     colors = df[color_col].apply(_valid_hex)
 
-    # ---- POINT SIZES podle scale_var (decily) ----
+    # ---- POINT SIZES ----
     sizes = compute_point_sizes(df, scale_var, size_min, size_max, default_var="dbh")
 
-    # ---- HOVER DATA (vše zaokrouhleno jak potřebuješ) ----
+    # ---- HOVER DATA ----
     customdata, hovertemplate = make_hover_data(df)
 
     # =========================================================
@@ -219,10 +207,7 @@ with c23:
     # =========================================================
     # POLYGONS (CROWN PROJECTIONS)
     # =========================================================
-    poly_x_min_vals = []
-    poly_x_max_vals = []
-    poly_y_min_vals = []
-    poly_y_max_vals = []
+    poly_x_min_vals, poly_x_max_vals, poly_y_min_vals, poly_y_max_vals = [], [], [], []
 
     if show_polys and "planar_projection_poly" in df_all.columns:
         poly_df = df_all[masks[dist_mode]].dropna(subset=["planar_projection_poly"])
@@ -254,11 +239,8 @@ with c23:
             xs = np.array(xs) - original_x_min
             ys = np.array(ys) - original_y_min
 
-            # collect polygon extents
-            poly_x_min_vals.append(xs.min())
-            poly_x_max_vals.append(xs.max())
-            poly_y_min_vals.append(ys.min())
-            poly_y_max_vals.append(ys.max())
+            poly_x_min_vals.append(xs.min()); poly_x_max_vals.append(xs.max())
+            poly_y_min_vals.append(ys.min()); poly_y_max_vals.append(ys.max())
 
             key = row[poly_group_col]
             base_color = cmap.get(key, "#77AADD")
@@ -292,45 +274,29 @@ with c23:
                         x=[-9999],
                         y=[-9999],
                         mode="markers",
-                        marker=dict(
-                            size=14,
-                            color=rgba,
-                            line=dict(width=0),
-                        ),
-                        name=f"Crown – {key}",
+                        marker=dict(size=14, color=rgba, line=dict(width=0)),
+                        name=t("legend_crown", value=key),  # :contentReference[oaicite:15]{index=15}
                         hoverinfo="skip",
                         showlegend=True,
                     )
                 )
 
     # =========================================================
-    # GRID 10 m (extends into negative space)
+    # GRID 10 m
     # =========================================================
-    # EXTENTS from tree points
-    tree_x_min = df_all["x"].min()
-    tree_x_max = df_all["x"].max()
-    tree_y_min = df_all["y"].min()
-    tree_y_max = df_all["y"].max()
+    tree_x_min, tree_x_max = df_all["x"].min(), df_all["x"].max()
+    tree_y_min, tree_y_max = df_all["y"].min(), df_all["y"].max()
 
-    # EXTENTS from polygons
     if poly_x_min_vals:
-        poly_x_min = min(poly_x_min_vals)
-        poly_x_max = max(poly_x_max_vals)
-        poly_y_min = min(poly_y_min_vals)
-        poly_y_max = max(poly_y_max_vals)
+        poly_x_min, poly_x_max = min(poly_x_min_vals), max(poly_x_max_vals)
+        poly_y_min, poly_y_max = min(poly_y_min_vals), max(poly_y_max_vals)
     else:
-        poly_x_min = tree_x_min
-        poly_x_max = tree_x_max
-        poly_y_min = tree_y_min
-        poly_y_max = tree_y_max
+        poly_x_min, poly_x_max = tree_x_min, tree_x_max
+        poly_y_min, poly_y_max = tree_y_min, tree_y_max
 
-    # Combine
-    x_min_full = min(tree_x_min, poly_x_min)
-    x_max_full = max(tree_x_max, poly_x_max)
-    y_min_full = min(tree_y_min, poly_y_min)
-    y_max_full = max(tree_y_max, poly_y_max)
+    x_min_full, x_max_full = min(tree_x_min, poly_x_min), max(tree_x_max, poly_x_max)
+    y_min_full, y_max_full = min(tree_y_min, poly_y_min), max(tree_y_max, poly_y_max)
 
-    # Expand to nearest tens and add buffer
     gx_min = np.floor(x_min_full / 10.0) * 10 - 10
     gx_max = np.ceil(x_max_full / 10.0) * 10 + 10
     gy_min = np.floor(y_min_full / 10.0) * 10 - 10
@@ -339,39 +305,21 @@ with c23:
     grid_x = np.arange(gx_min, gx_max + 1, 10)
     grid_y = np.arange(gy_min, gy_max + 1, 10)
 
-    # DRAW GRID
     for gx in grid_x:
-        fig.add_trace(
-            go.Scatter(
-                x=[gx, gx],
-                y=[gy_min, gy_max],
-                mode="lines",
-                line=dict(color="lightgray", width=1),
-                hoverinfo="skip",
-                showlegend=False,
-            )
-        )
-
+        fig.add_trace(go.Scatter(
+            x=[gx, gx], y=[gy_min, gy_max],
+            mode="lines", line=dict(color="lightgray", width=1),
+            hoverinfo="skip", showlegend=False,
+        ))
     for gy in grid_y:
-        fig.add_trace(
-            go.Scatter(
-                x=[gx_min, gx_max],
-                y=[gy, gy],
-                mode="lines",
-                line=dict(color="lightgray", width=1),
-                hoverinfo="skip",
-                showlegend=False,
-            )
-        )
+        fig.add_trace(go.Scatter(
+            x=[gx_min, gx_max], y=[gy, gy],
+            mode="lines", line=dict(color="lightgray", width=1),
+            hoverinfo="skip", showlegend=False,
+        ))
 
-    # Update axes so full grid is visible
     fig.update_xaxes(range=[gx_min, gx_max], showgrid=False)
-    fig.update_yaxes(
-        range=[gy_min, gy_max],
-        showgrid=False,
-        scaleanchor="x",
-        scaleratio=1,
-    )
+    fig.update_yaxes(range=[gy_min, gy_max], showgrid=False, scaleanchor="x", scaleratio=1)
 
     # =========================================================
     # TREE POINTS
@@ -380,7 +328,6 @@ with c23:
     mode = "markers+text" if show_text else "markers"
 
     from collections import defaultdict
-
     buckets = defaultdict(list)
     for idx, (gv, col) in enumerate(zip(df[group_col], colors)):
         buckets[(str(gv), col)].append(idx)
@@ -394,11 +341,7 @@ with c23:
                 name=legend_name,
                 text=df["label"].iloc[idxs] if show_text else None,
                 textposition="top center",
-                marker=dict(
-                    size=sizes[idxs],
-                    color=hex_color,
-                    line=dict(width=0),
-                ),
+                marker=dict(size=sizes[idxs], color=hex_color, line=dict(width=0)),
                 customdata=customdata[idxs],
                 hovertemplate=hovertemplate,
             )

@@ -62,8 +62,8 @@ STATUS_BEFORE = "label_before"
 STATUS_AFTER = "label_after"
 STATUS_REMOVED = "label_removed"
 
-COLOR_BY_SPECIES = "species"          # existující key ve slovníku
-COLOR_BY_MANAGEMENT = "management_label"  # existující key ve slovníku
+COLOR_BY_SPECIES = "species"               # existující key ve slovníku
+COLOR_BY_MANAGEMENT = "management_label"   # existující key ve slovníku
 
 METRIC_TREE_COUNT = "metric_tree_count"
 METRIC_VOLUME = "metric_volume_m3"
@@ -194,6 +194,7 @@ def render_three_panel_with_shared_legend(
     # --- hue / kategorie / barvy
     if color_mode_key == COLOR_BY_MANAGEMENT:
         hue_col = "management_status"
+        hue_label = t("hover_management") if "hover_management" in getattr(t, "__globals__", {}) else "Management"
         categories = (
             pd.Index(df_all[hue_col].astype(str).dropna().unique()).tolist()
             if hue_col in df_all.columns
@@ -203,6 +204,7 @@ def render_three_panel_with_shared_legend(
         color_map = {c: color_map.get(c, "#AAAAAA") for c in categories}
     else:
         hue_col = "species"
+        hue_label = t("hover_species") if "hover_species" in getattr(t, "__globals__", {}) else "Species"
         categories = sorted(
             df_all.get("species", pd.Series([], dtype=str))
             .astype(str)
@@ -219,12 +221,26 @@ def render_three_panel_with_shared_legend(
         return
     d[hue_col] = d[hue_col].astype(str).str.strip()
 
+    # --- formátování pro hover (hodnoty + suma sloupce)
+    if value_col is None:
+        fmt_val = ".0f"
+        fmt_sum = ".0f"
+        hover_value_token = "%{value:.0f}"
+    else:
+        # canopy cover je procento, ostatní jsou "m3 / m2" apod.
+        if value_col == "canopy_cover_pct":
+            fmt_val = ".1f"
+            fmt_sum = ".1f"
+        else:
+            fmt_val = ".1f"
+            fmt_sum = ".1f"
+        hover_value_token = f"%{{value:{fmt_val}}}"
+
     # --- PIE agregace + Σ do středu
     if value_col is None:
         pie_agg = d.groupby(hue_col, as_index=False).agg(value=(hue_col, "size"))
         total_raw = int(pie_agg["value"].sum())
         total_text = f"Σ =<br><b>{total_raw}</b><br>{unit_disp}"
-        hover_value_token = "%{value:.0f}"
     else:
         if value_col not in d.columns:
             st.warning(t("warn_missing_column", column=value_col))
@@ -232,7 +248,6 @@ def render_three_panel_with_shared_legend(
         pie_agg = d.groupby(hue_col, as_index=False).agg(value=(value_col, "sum"))
         total_raw = float(pie_agg["value"].sum())
         total_text = f"Σ =<br><b>{total_raw:,.1f}</b><br>{unit_disp}".replace(",", " ")
-        hover_value_token = "%{value:.1f}"
 
     if categories:
         pie_agg = pie_agg.set_index(hue_col).reindex(categories).fillna(0).reset_index()
@@ -286,6 +301,23 @@ def render_three_panel_with_shared_legend(
         if "height" in df_sub.columns
         else pd.DataFrame(columns=["bin", hue_col, "value"])
     )
+
+    # --- COLUMN SUM pro hover (suma stacku v daném binu) ---
+    # DBH
+    dbh_colsum = (
+        dbh_long.groupby("bin")["value"].sum().reindex(dbh_labels).fillna(0).to_dict()
+        if not dbh_long.empty
+        else {lab: 0 for lab in dbh_labels}
+    )
+    dbh_colsum_list = [float(dbh_colsum.get(lab, 0.0)) for lab in dbh_labels]
+
+    # HEIGHT
+    h_colsum = (
+        height_long.groupby("bin")["value"].sum().reindex(h_labels).fillna(0).to_dict()
+        if not height_long.empty
+        else {lab: 0 for lab in h_labels}
+    )
+    h_colsum_list = [float(h_colsum.get(lab, 0.0)) for lab in h_labels]
 
     # --- Y-osa: horní hranice
     def upper_from_long(long_df: pd.DataFrame, labels: list[str]) -> float:
@@ -426,6 +458,15 @@ def render_three_panel_with_shared_legend(
         yanchor="middle",
     )
 
+    # --- Hover template pro sloupce: (1) bin, (2) column sum, prázdný řádek, (3) kategorie, (4) hodnota
+    # Pozn.: poslední dva řádky jsou oddělené jedním prázdným řádkem (<br><br>)
+    if value_col is None:
+        sum_line = f"{t('column_sum')}: %{{customdata[0]:.0f}} {unit_disp}"
+        val_line = f"{y_title}: %{{y:.0f}}"
+    else:
+        sum_line = f"{t('column_sum')}: %{{customdata[0]:.1f}} {unit_disp}"
+        val_line = f"{y_title}: %{{y:.1f}}"
+
     # --- DBH
     for cat in categories:
         y_vals = (
@@ -443,7 +484,15 @@ def render_three_panel_with_shared_legend(
                 marker_color=color_map.get(cat, "#AAAAAA"),
                 legendgroup=cat,
                 showlegend=True,
-                hovertemplate=f"%{{x}}<br>{hue_col}: {cat}<br>{y_title}: %{{y}}<extra></extra>",
+                customdata=np.array(dbh_colsum_list, dtype=float).reshape(-1, 1),
+                hovertemplate=(
+                    "%{x}<br>"
+                    + sum_line
+                    + "<br><br>"
+                    + f"{hue_label}: {cat}<br>"
+                    + val_line
+                    + "<extra></extra>"
+                ),
             ),
             row=1,
             col=2,
@@ -467,7 +516,15 @@ def render_three_panel_with_shared_legend(
                     marker_color=color_map.get(cat, "#AAAAAA"),
                     legendgroup=cat,
                     showlegend=False,
-                    hovertemplate=f"%{{x}}<br>{hue_col}: {cat}<br>{y_title}: %{{y}}<extra></extra>",
+                    customdata=np.array(h_colsum_list, dtype=float).reshape(-1, 1),
+                    hovertemplate=(
+                        "%{x}<br>"
+                        + sum_line
+                        + "<br><br>"
+                        + f"{hue_label}: {cat}<br>"
+                        + val_line
+                        + "<extra></extra>"
+                    ),
                 ),
                 row=1,
                 col=3,

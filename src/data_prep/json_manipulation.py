@@ -1,3 +1,4 @@
+from pydeck import View
 import pandas as pd
 import json
 import src.io_utils as iou
@@ -182,3 +183,32 @@ write_json("C:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/Pokojna
 
 
 view(df_3df)
+
+
+df_martelo = iou.load_project_json("C:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/pokojna_test_v2.json")
+df_martelo.to_feather("data/test_project.json.feather")
+
+print(df_martelo)
+species_id = pd.read_feather("data/id_label_species_id.feather")
+print(species_id)
+df_martelo["label"] = species_id["label"]
+
+
+write_json("C:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/pokojna_test_v2.json",
+            df_martelo,
+            "C:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/pokojna_test_v3.json")
+
+
+pp1 = "d:/_gs_lcr/pokojna_hora/pokojna_hora_v2.json"
+#pp2 = "data/test_project_v2.json"
+pp2 = "d:/_gs_lcr/pokojna_hora/pokojna_hora.json"
+prj = iou.load_project_json(pp1)
+prj2 = iou.load_project_json(pp2)
+
+
+view(prj)
+view(prj2)
+
+prj["dbhPosition"] = prj2["dbhPosition"]
+prj["position"] = prj2["position"]
+write_json(pp1, prj, "d:/_gs_lcr/pokojna_hora/pokojna_hora_v3.json")
