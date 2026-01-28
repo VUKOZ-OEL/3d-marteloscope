@@ -9,7 +9,6 @@ from src.i18n import t, set_lang, get_lang
 plot_info = st.session_state.plot_info
 df: pd.DataFrame = st.session_state.trees.copy()
 
-print(plot_info)
 
 # ---------- OVLÁDÁNÍ ----------
 c1, c2 = st.columns([2, 2])

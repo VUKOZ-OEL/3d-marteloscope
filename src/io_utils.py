@@ -844,6 +844,9 @@ def load_mgmt_example_sqlite(file_path: str, table_name: str = "mgmt_example") -
     """
     sqlite_path = os.path.splitext(file_path)[0] + ".sqlite"
 
+    print(sqlite_path)
+    print(table_name)
+
     if not os.path.exists(sqlite_path):
         raise FileNotFoundError(f"SQLite DB neexistuje: {sqlite_path}")
 
@@ -860,6 +863,7 @@ def load_mgmt_example_sqlite(file_path: str, table_name: str = "mgmt_example") -
             return pd.DataFrame()
 
         df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
+        print(df)
         return df
 
     finally:
