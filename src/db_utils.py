@@ -1,208 +1,214 @@
+# db_utils.py
 from __future__ import annotations
 
-import re
+import os
 import sqlite3
-from datetime import datetime, timezone
-from typing import Dict
+from typing import Dict, Iterable, Optional, Tuple
 
 import pandas as pd
 
 
-# ------------------------------------------------------------
-# DB helpers (uprav cestu/conn podle projektu)
-# ------------------------------------------------------------
-
-def get_conn() -> sqlite3.Connection:
-    return sqlite3.connect("app.sqlite", check_same_thread=False)
-
-def ensure_mgmt_schema(conn: sqlite3.Connection) -> None:
-    cur = conn.cursor()
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS mgmt_streams (
-        plot_id     TEXT NOT NULL,
-        stream_key  TEXT NOT NULL,
-        label       TEXT NOT NULL,
-        created_at  TEXT NOT NULL,
-        PRIMARY KEY (plot_id, stream_key)
-    )
-    """)
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS mgmt_stream_values (
-        plot_id     TEXT NOT NULL,
-        stream_key  TEXT NOT NULL,
-        tree_id     TEXT NOT NULL,
-        value       REAL,
-        PRIMARY KEY (plot_id, stream_key, tree_id)
-    )
-    """)
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_msv_plot_key ON mgmt_stream_values(plot_id, stream_key)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_msv_plot_tree ON mgmt_stream_values(plot_id, tree_id)")
-    conn.commit()
-
-
-# ------------------------------------------------------------
-# Existing (from earlier): list & save
-# ------------------------------------------------------------
-
-def get_saved_mgmt_options(plot_id: str) -> Dict[str, str]:
-    conn = get_conn()
-    ensure_mgmt_schema(conn)
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT label, stream_key FROM mgmt_streams WHERE plot_id = ? ORDER BY created_at DESC",
-        (plot_id,),
-    )
-    rows = cur.fetchall()
-    conn.close()
-    return {label: key for (label, key) in rows}
-
-def slugify_key(label: str) -> str:
-    s = label.strip().lower()
-    s = re.sub(r"\s+", "_", s)
-    s = re.sub(r"[^a-z0-9_]+", "", s)
-    s = re.sub(r"_+", "_", s).strip("_")
-    return s or "selection"
-
-def make_unique_key(conn: sqlite3.Connection, plot_id: str, base_key: str) -> str:
-    cur = conn.cursor()
-    key = base_key
-    i = 1
-    while True:
-        cur.execute(
-            "SELECT 1 FROM mgmt_streams WHERE plot_id = ? AND stream_key = ? LIMIT 1",
-            (plot_id, key),
+# -----------------------------
+# Path helpers
+# -----------------------------
+def get_sqlite_path_from_session(session_state) -> str:
+    """
+    Najde cestu k *.sqlite pro projekt.
+    Zkouší několik typických klíčů v session_state.
+    """
+    candidates = [
+        "project_file",
+        "project_path",
+        "project_file_path",
+        "json_path",
+        "file_path",
+    ]
+    json_path = None
+    for k in candidates:
+        if k in session_state and session_state[k]:
+            json_path = session_state[k]
+            break
+    if not json_path:
+        raise ValueError(
+            "Project JSON path not found in st.session_state. "
+            "Set st.session_state.project_json_path (or project_path)."
         )
-        if cur.fetchone() is None:
-            return key
-        i += 1
-        key = f"{base_key}_{i}"
+    return os.path.splitext(str(json_path))[0] + ".sqlite"
 
-def save_current_user_selection_into_db(
-    plot_id: str,
+
+# -----------------------------
+# Schema
+# -----------------------------
+def ensure_mgmt_tables(sqlite_path: str) -> None:
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        conn.execute("PRAGMA foreign_keys=ON;")
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS managements (
+              mgmt_id INTEGER PRIMARY KEY AUTOINCREMENT,
+              label   TEXT NOT NULL
+            );
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS management_values (
+              tree_id INTEGER NOT NULL,
+              mgmt_id INTEGER NOT NULL,
+              value   TEXT,
+              PRIMARY KEY (tree_id, mgmt_id),
+              FOREIGN KEY (mgmt_id) REFERENCES managements(mgmt_id) ON DELETE CASCADE
+            );
+            """
+        )
+
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_management_values_mgmt ON management_values(mgmt_id);"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_management_values_tree ON management_values(tree_id);"
+        )
+
+        conn.commit()
+    finally:
+        conn.close()
+
+
+# -----------------------------
+# Reads
+# -----------------------------
+def list_managements(sqlite_path: str) -> pd.DataFrame:
+    """
+    Vrátí DataFrame: mgmt_id, label (seřazeno od nejnovějších).
+    """
+    ensure_mgmt_tables(sqlite_path)
+
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        df = pd.read_sql("SELECT mgmt_id, label FROM managements ORDER BY mgmt_id DESC;", conn)
+        return df
+    finally:
+        conn.close()
+
+
+def load_management_map(sqlite_path: str, mgmt_id: int) -> Dict[int, Optional[str]]:
+    """
+    Vrátí dict: tree_id -> value pro daný mgmt_id.
+    """
+    ensure_mgmt_tables(sqlite_path)
+
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        df = pd.read_sql(
+            "SELECT tree_id, value FROM management_values WHERE mgmt_id = ?;",
+            conn,
+            params=(int(mgmt_id),),
+        )
+        if df.empty:
+            return {}
+        df["tree_id"] = pd.to_numeric(df["tree_id"], errors="coerce").astype("Int64")
+        df = df.dropna(subset=["tree_id"])
+        df["tree_id"] = df["tree_id"].astype(int)
+        return dict(zip(df["tree_id"].tolist(), df["value"].tolist()))
+    finally:
+        conn.close()
+
+
+# -----------------------------
+# Writes
+# -----------------------------
+def create_management(sqlite_path: str, label: str) -> int:
+    """
+    Vytvoří nový zásah/scénář a vrátí mgmt_id.
+    """
+    ensure_mgmt_tables(sqlite_path)
+
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        conn.execute("PRAGMA foreign_keys=ON;")
+        cur = conn.execute("INSERT INTO managements(label) VALUES (?);", (str(label),))
+        conn.commit()
+        return int(cur.lastrowid)
+    finally:
+        conn.close()
+
+
+def bulk_upsert_management_values(
+    sqlite_path: str,
+    mgmt_id: int,
+    rows: Iterable[Tuple[int, Optional[str]]],
+) -> None:
+    """
+    Bulk UPSERT do pivot tabulky.
+    rows: iterable (tree_id, value)
+    """
+    ensure_mgmt_tables(sqlite_path)
+
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        conn.execute("PRAGMA foreign_keys=ON;")
+        conn.executemany(
+            """
+            INSERT INTO management_values(tree_id, mgmt_id, value)
+            VALUES (?, ?, ?)
+            ON CONFLICT(tree_id, mgmt_id) DO UPDATE SET value = excluded.value;
+            """,
+            [(int(tree_id), int(mgmt_id), (None if value is None else str(value))) for tree_id, value in rows],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def save_management_from_trees(
+    sqlite_path: str,
+    trees: pd.DataFrame,
     label: str,
-    trees_df: pd.DataFrame,
-    active_selection_key: str,
-    tree_id_col: str = "tree_id",
-) -> str:
-    if not label.strip():
-        raise ValueError("label must be non-empty")
-    if tree_id_col not in trees_df.columns:
-        raise KeyError(f"trees_df missing '{tree_id_col}' column")
-    if active_selection_key not in trees_df.columns:
-        raise KeyError(f"trees_df missing active selection column '{active_selection_key}'")
-
-    conn = get_conn()
-    ensure_mgmt_schema(conn)
-
-    base_key = "usr_" + slugify_key(label)
-    stream_key = make_unique_key(conn, plot_id, base_key)
-
-    created_at = datetime.now(timezone.utc).isoformat()
-    cur = conn.cursor()
-
-    cur.execute(
-        "INSERT INTO mgmt_streams (plot_id, stream_key, label, created_at) VALUES (?, ?, ?, ?)",
-        (plot_id, stream_key, label.strip(), created_at),
-    )
-
-    rows = []
-    for _, r in trees_df[[tree_id_col, active_selection_key]].iterrows():
-        v = r[active_selection_key]
-        rows.append((plot_id, stream_key, str(r[tree_id_col]), None if pd.isna(v) else float(v)))
-
-    cur.executemany(
-        "INSERT OR REPLACE INTO mgmt_stream_values (plot_id, stream_key, tree_id, value) VALUES (?, ?, ?, ?)",
-        rows,
-    )
-
-    conn.commit()
-    conn.close()
-    return stream_key
-
-
-# ------------------------------------------------------------
-# NEW: detect/load/delete DB stream
-# ------------------------------------------------------------
-
-def is_db_stream(plot_id: str, stream_key: str) -> bool:
-    conn = get_conn()
-    ensure_mgmt_schema(conn)
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT 1 FROM mgmt_streams WHERE plot_id = ? AND stream_key = ? LIMIT 1",
-        (plot_id, stream_key),
-    )
-    ok = cur.fetchone() is not None
-    conn.close()
-    return ok
-
-def load_db_stream_into_trees(
-    plot_id: str,
-    stream_key: str,
-    trees_df: pd.DataFrame,
-    tree_id_col: str = "tree_id",
-) -> pd.DataFrame:
+    id_col: str = "id",
+    value_col: str = "management_status",
+    only_non_empty: bool = True,
+) -> int:
     """
-    Načte DB stream a přidá ho do trees_df jako sloupec stream_key (virtuální sloupec).
+    Uloží aktuální user zásah z trees[value_col] jako nový scénář:
+    - vytvoří managements řádek (label)
+    - uloží pivot hodnoty (tree_id -> value)
+    Vrátí new mgmt_id.
     """
-    if tree_id_col not in trees_df.columns:
-        raise KeyError(f"trees_df missing '{tree_id_col}' column")
+    if id_col not in trees.columns:
+        raise ValueError(f"trees missing column '{id_col}'")
+    if value_col not in trees.columns:
+        raise ValueError(f"trees missing column '{value_col}'")
 
-    conn = get_conn()
-    ensure_mgmt_schema(conn)
+    mgmt_id = create_management(sqlite_path, label=label)
 
-    q = """
-    SELECT tree_id, value
-    FROM mgmt_stream_values
-    WHERE plot_id = ? AND stream_key = ?
+    df = trees[[id_col, value_col]].copy()
+    df[id_col] = pd.to_numeric(df[id_col], errors="coerce").astype("Int64")
+    df = df.dropna(subset=[id_col]).copy()
+    df[id_col] = df[id_col].astype(int)
+
+    if only_non_empty:
+        df[value_col] = df[value_col].astype("string")
+        df = df[df[value_col].notna() & (df[value_col].str.len() > 0)]
+
+    rows = list(zip(df[id_col].tolist(), df[value_col].tolist()))
+    bulk_upsert_management_values(sqlite_path, mgmt_id=mgmt_id, rows=rows)
+
+    return mgmt_id
+
+
+def delete_management(sqlite_path: str, mgmt_id: int) -> None:
     """
-    stream_df = pd.read_sql_query(q, conn, params=(plot_id, stream_key))
-    conn.close()
-
-    # map values by tree_id
-    mapper = stream_df.set_index("tree_id")["value"] if not stream_df.empty else pd.Series(dtype=float)
-    out = trees_df.copy()
-    out[stream_key] = out[tree_id_col].astype(str).map(mapper)
-
-    return out
-
-def delete_mgmt_stream(plot_id: str, stream_key: str) -> None:
+    Smaže scénář + díky CASCADE i jeho pivot hodnoty.
     """
-    Smaže stream z katalogu i všechny hodnoty.
-    """
-    conn = get_conn()
-    ensure_mgmt_schema(conn)
-    cur = conn.cursor()
-    cur.execute("DELETE FROM mgmt_stream_values WHERE plot_id = ? AND stream_key = ?", (plot_id, stream_key))
-    cur.execute("DELETE FROM mgmt_streams WHERE plot_id = ? AND stream_key = ?", (plot_id, stream_key))
-    conn.commit()
-    conn.close()
+    ensure_mgmt_tables(sqlite_path)
 
-
-# ------------------------------------------------------------
-# UPDATED: apply_mgmt_selection – now supports DB streams too
-# ------------------------------------------------------------
-
-def apply_mgmt_selection(selected_key: str, plot_id: str) -> None:
-    """
-    Přepne aktivní management selection.
-    - Pokud je selected_key base sloupec, použije existující logiku.
-    - Pokud je selected_key DB stream, načte ho do session_state.trees jako sloupec a nastaví aktivní.
-    """
-    import streamlit as st
-
-    # --- DB stream? ---
-    if is_db_stream(plot_id, selected_key):
-        st.session_state.trees = load_db_stream_into_trees(
-            plot_id=plot_id,
-            stream_key=selected_key,
-            trees_df=st.session_state.trees,
-            tree_id_col="tree_id",  # uprav pokud máš jinak
-        )
-        st.session_state.active_mgmt_selection = selected_key
-        return
-
-    # --- BASE selection (tvoje původní logika) ---
-    # TODO: nech tady svůj existující kód, který přepíná usr_mgmt / ph_mgmt_ex_1 ...
-    st.session_state.active_mgmt_selection = selected_key
-    # (pokud původně děláš i další kroky, ponech je)
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        conn.execute("PRAGMA foreign_keys=ON;")
+        conn.execute("DELETE FROM managements WHERE mgmt_id = ?;", (int(mgmt_id),))
+        conn.commit()
+    finally:
+        conn.close()

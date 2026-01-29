@@ -438,6 +438,84 @@ I18N: dict[str, dict[Lang, str]] = {
         "en": "Switch between competition bars (who shades) and Sky View violin statistics."
     },
 
+    # DASHBOARD:
+    
+    "usr_mgmt_unsaved": {
+        "cs": "Uživatelský zásah (lokální)",
+        "en": "User intervention (local)"
+    },
+
+    "success_load_usr_mgmt": {
+        "cs": "Načten uživatelský zásah.",
+        "en": "User intervention loaded."
+    },
+
+    "save_current_mgmt_header": {
+        "cs": "Uložit aktuální zásah",
+        "en": "Save current intervention"
+    },
+
+    "mgmt_label_input": {
+        "cs": "Název zásahu",
+        "en": "Intervention name"
+    },
+
+    "mgmt_label_placeholder": {
+        "cs": "Zadej název zásahu…",
+        "en": "Enter intervention name…"
+    },
+
+    "mgmt_label_required": {
+        "cs": "Zadej název zásahu.",
+        "en": "Please enter an intervention name."
+    },
+
+    "save_current_mgmt_btn": {
+        "cs": "Uložit zásah do projektu",
+        "en": "Save intervention to project"
+    },
+
+    "success_save_mgmt": {
+        "cs": "Zásah byl uložen.",
+        "en": "Intervention has been saved."
+    },
+
+    "delete_selected_mgmt_btn": {
+        "cs": "Smazat vybraný zásah",
+        "en": "Delete selected intervention"
+    },
+
+    "success_delete_mgmt": {
+        "cs": "Zásah byl smazán.",
+        "en": "Intervention has been deleted."
+    },
+
+    "success_clear_usr_mgmt": {
+        "cs": "Uživatelský zásah byl vymazán.",
+        "en": "User intervention has been cleared."
+    },
+    "export_rendering_pdf": {
+        "cs": "Generuji PDF report…",
+        "en": "Generating PDF report…"
+    },
+    "export_download_ready": {
+        "cs": "Stáhnout vygenerovaný PDF report",
+        "en": "Download generated PDF report"
+    },
+    "usr_mgmt_unsaved": {
+        "cs": "Uživatelský zásah (neuložený)",
+        "en": "User intervention (unsaved)"
+    },
+
+
+    "report_title": { "cs": "Report zásahu", "en": "Intervention report" },
+    "plot": { "cs": "Plocha", "en": "Plot" },
+    "created": { "cs": "Vytvořeno", "en": "Created" },
+    "intervention": { "cs": "Zásah", "en": "Intervention" },
+    "site_overview": { "cs": "Přehled lokality", "en": "Site overview" },
+    "stand_summary": { "cs": "Souhrn porostu", "en": "Stand summary" },
+    "charts": { "cs": "Grafy", "en": "Charts" },
+    "chart": { "cs": "Graf", "en": "Chart" }
 }
 
 
