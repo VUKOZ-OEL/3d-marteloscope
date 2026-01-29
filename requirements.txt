@@ -2,3 +2,6 @@ streamlit>=1.36
 pandas>=2.0
 plotly>=5.22,<6
 st-gsheets-connection>=0.1.0
+shapely>=2.1.2
+numpy>=2.3.4
+

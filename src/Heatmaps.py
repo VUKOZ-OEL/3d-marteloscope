@@ -1,11 +1,6 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------
-# Streamlit: XY Heatmaps (Before | After | Removed)
-# Filters: Species (multi via st.pills), Management (multi via st.pills) BELOW the plots
-# Z-value: chosen column; if non-numeric => 1 per point (counts)
-# Smoothing: Gaussian blur in meters (σx, σy), auto-off for single point
-# Colors: Light→Dark forest palette, horizontal colorbar under plots
-# Overlay: optional Target tree points colored by managementStatusColorHex/managementColorHex
+# XY Heatmaps (Before | After | Removed) — i18n version
 # ------------------------------------------------------------
 
 import streamlit as st
@@ -16,54 +11,101 @@ from plotly.subplots import make_subplots
 import src.io_utils as iou
 import re
 
-# ---------- PAGE TITLE ----------
-st.markdown("### Heatmaps for selected Attribute")
+from src.i18n import t
 
-# ---------- DATA ----------
+
+# ------------------------------------------------------------
+# PAGE TITLE
+# ------------------------------------------------------------
+st.markdown(f"### {t('page_title')}")  # "Heatmaps for selected Attribute" :contentReference[oaicite:0]{index=0}
+
+
+# ------------------------------------------------------------
+# LOAD + NORMALIZE DATA
+# ------------------------------------------------------------
 if "trees" not in st.session_state:
-    file_path = ("c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json")
+    file_path = (
+        "c:/Users/krucek/OneDrive - vukoz.cz/DATA/_GS-LCR/"
+        "SLP_Pokojna/PokojnaHora_3df/PokojnaHora.json"
+    )
     st.session_state.trees = iou.load_project_json(file_path)
 
-df: pd.DataFrame = st.session_state.trees.copy()
+df0 = st.session_state.trees.copy()
 
-# ---------- SETTINGS ----------
-CHART_HEIGHT = 420
+# normalize XY (origin = min)
+df0["x"] = df0["x"] - df0["x"].min()
+df0["y"] = df0["y"] - df0["y"].min()
+
+
+# ------------------------------------------------------------
+# CONSTANTS
+# ------------------------------------------------------------
+CHART_HEIGHT = 500
 HEATMAP_NBINS = 50
 keep_status = {"Target tree", "Untouched"}
 
-# ---------- HELPERS ----------
-def _is_numeric_like(s: pd.Series) -> bool:
-    if pd.api.types.is_bool_dtype(s):
-        return True
-    try:
-        pd.to_numeric(s, errors="coerce")
-        return True
-    except Exception:
-        return False
+# labely z session_state (už přeložené UI)
+COLOR_SPP = st.session_state.Species
+COLOR_MGMT = st.session_state.Management
 
-def _safe_num(series: pd.Series) -> pd.Series:
-    return pd.to_numeric(series, errors="coerce")
+
+# ------------------------------------------------------------
+# VALUE MAPPING (stable IDs -> dataframe columns)
+# ------------------------------------------------------------
+VALUE_TREE_COUNT = "tree_count"  # exists :contentReference[oaicite:1]{index=1}
+
+value_mapping = {
+    VALUE_TREE_COUNT: None,
+    "dbh": "dbh",                          # exists :contentReference[oaicite:2]{index=2}
+    "basal_area_m2": "BasalArea_m2",       # exists :contentReference[oaicite:3]{index=3}
+    "volume": "Volume_m3",                 # exists :contentReference[oaicite:4]{index=4}
+    "tree_height": "height",               # exists :contentReference[oaicite:5]{index=5}
+    "crown_base_height": "crown_base_height",          # exists :contentReference[oaicite:6]{index=6}
+    "crown_centroid_height": "crown_centroid_height",  # exists :contentReference[oaicite:7]{index=7}
+    "crown_volume_m3": "crown_volume",                 # exists :contentReference[oaicite:8]{index=8}
+    "crown_surface": "crown_surface",                  # exists :contentReference[oaicite:9]{index=9}
+    "horizontal_crown_proj": "horizontal_crown_proj",  # exists :contentReference[oaicite:10]{index=10}
+    "vertical_crown_proj": "vertical_crown_proj",      # exists :contentReference[oaicite:11]{index=11}
+    "crown_eccentricity": "crown_eccentricity",        # exists :contentReference[oaicite:12]{index=12}
+    "height_dbh_ratio": "heightXdbh",                  # exists :contentReference[oaicite:13]{index=13}
+}
+
+value_options = list(value_mapping.keys())
+
+
+# ------------------------------------------------------------
+# HELPERS
+# ------------------------------------------------------------
+def _safe_num(s):
+    return pd.to_numeric(s, errors="coerce")
+
+
+def _normalize_list(lst):
+    return [] if (not lst or "(none)" in lst) else lst
+
 
 def _gaussian_kernel_1d(sigma_bins: float) -> np.ndarray:
     if sigma_bins <= 0 or not np.isfinite(sigma_bins):
-        return np.array([1.0], dtype=float)
-    r = int(max(1, round(3.0 * sigma_bins)))
-    x = np.arange(-r, r + 1, dtype=float)
+        return np.array([1.0])
+    r = int(max(1, round(3 * sigma_bins)))
+    x = np.arange(-r, r + 1)
     k = np.exp(-0.5 * (x / sigma_bins) ** 2)
     k /= k.sum()
     return k
 
-def _conv1d(A: np.ndarray, k: np.ndarray, axis: int) -> np.ndarray:
+
+def _conv1d(A, k, axis):
     r = len(k) // 2
     pad = [(0, 0), (0, 0)]
     pad[axis] = (r, r)
-    Ap = np.pad(A, pad_width=pad, mode="reflect")
+    Ap = np.pad(A, pad, mode="reflect")
     if axis == 1:
-        return np.apply_along_axis(lambda m: np.convolve(m, k, mode="valid"), axis=1, arr=Ap)
+        return np.apply_along_axis(lambda m: np.convolve(m, k, mode="valid"), 1, Ap)
     else:
-        return np.apply_along_axis(lambda m: np.convolve(m, k, mode="valid"), axis=0, arr=Ap)
+        return np.apply_along_axis(lambda m: np.convolve(m, k, mode="valid"), 0, Ap)
 
-def _blur2d(A: np.ndarray, sx_bins: float, sy_bins: float) -> np.ndarray:
+
+def _blur2d(A, sx_bins, sy_bins):
     out = A
     if sx_bins > 0:
         out = _conv1d(out, _gaussian_kernel_1d(sx_bins), axis=1)
@@ -71,238 +113,370 @@ def _blur2d(A: np.ndarray, sx_bins: float, sy_bins: float) -> np.ndarray:
         out = _conv1d(out, _gaussian_kernel_1d(sy_bins), axis=0)
     return out
 
-def _normalize_list(lst):
-    return [] if (not lst or "(none)" in lst) else lst
 
-# ---------- SOURCES FOR CONTROLS ----------
-sp_all = iou._unique_sorted(df.get("species", pd.Series(dtype=object)))
-mg_all = iou._unique_sorted(df.get("management_status", pd.Series(dtype=object)))
+# ------------------------------------------------------------
+# FILTER LISTS
+# ------------------------------------------------------------
+sp_all = sorted(df0["species"].astype(str).unique())
+mg_all = sorted(df0["management_status"].astype(str).unique())
 
-exclude = {"x","y","species","speciesColorHex","management_status","managementColorHex","managementStatusColorHex"}
-z_candidates = [c for c in df.columns if c not in exclude]
 
-# ---------- TOP CONTROLS (stay above plots) ----------
-col_top1, col_top2, col_top3 = st.columns([3, 2, 3])
+# ------------------------------------------------------------
+# UI — TOP
+# ------------------------------------------------------------
+c1, c2, c3, c4 = st.columns([4, 4, 4, 4])
 
-with col_top2:
-    z_col = st.selectbox(
-        "**Select Weight value**",
-        options=z_candidates if z_candidates else ["(no usable columns)"],
-        index=0 if z_candidates else 0,
-        help="Sloupec pro hodnotu heatmapy. Pokud není numerický, bod = počet 1."
-    )
-
-# ---------- PLACEHOLDER FOR PLOTS ----------
-c1, c2 = st.columns([2,15])
 with c1:
-    st.markdown("#")
-    species_sel = st.pills(
-        label="**Filter Species:**",
-        options=sp_all if sp_all else ["(none)"],
-        default=sp_all if sp_all else ["(none)"],
-        selection_mode="multi",
-        help="Vyberte jednu nebo více dřevin. Bez výběru = všechny."
+    value_id = st.selectbox(
+        f"**{t('heatmap_value_label')}**",  # exists :contentReference[oaicite:14]{index=14}
+        options=value_options,
+        format_func=lambda k: t(k),
+        index=0,
     )
+    z_col = value_mapping[value_id]  # None -> Count
+
 with c2:
-    plot_holder = st.container()
+    dbh_vals = _safe_num(df0["dbh"]).dropna()
+    if dbh_vals.empty:
+        st.warning(t("warn_no_data_for_filters"))  # exists :contentReference[oaicite:15]{index=15}
+        st.stop()
 
-# ---------- BOTTOM CONTROLS (requested: under the heatmaps) ----------
-with st.container():
-    c00, c21, c22 = st.columns([2, 3, 10])
-    with c21:
-        show_targets = st.toggle(
-            "Show **Target trees**",
-            value=False,
-            help="Přidá polohy všech 'Target tree' přes každou heatmapu."
-        )
-    with c22:
-        mgmt_sel = st.pills(
-            label="**Filter Management:**",
-            options=mg_all if mg_all else ["(none)"],
-            default=mg_all if mg_all else ["(none)"],
-            selection_mode="multi",
-            help="Vyberte jednu nebo více kategorií managementu. Bez výběru = všechny."
-        )
+    dbh_range = st.slider(
+        f"**{t('dbh_filter_heatmap')}**",  # NEW KEY (návrh níže)
+        int(dbh_vals.min()),
+        int(dbh_vals.max()),
+        (int(dbh_vals.min()), int(dbh_vals.max())),
+    )
 
-# ---------- FILTERED SUBSET (uses controls above & below) ----------
+with c3:
+    hvals = _safe_num(df0["height"]).dropna()
+    if hvals.empty:
+        st.warning(t("warn_no_data_for_filters"))  # exists :contentReference[oaicite:16]{index=16}
+        st.stop()
+
+    height_range = st.slider(
+        f"**{t('height_filter_heatmap')}**",  # exists :contentReference[oaicite:17]{index=17}
+        int(hvals.min()),
+        int(hvals.max()),
+        (int(hvals.min()), int(hvals.max())),
+    )
+
+with c4:
+    color_mode = st.segmented_control(
+        f"**{t('color_by')}**",  # exists :contentReference[oaicite:18]{index=18}
+        options=[COLOR_SPP, COLOR_MGMT],
+        default=COLOR_SPP,
+    )
+
+show_overlay = st.checkbox(
+    f"**{t('show_tree_positions')}**",  # NEW KEY (návrh níže)
+    value=True,
+)
+
+
+# ------------------------------------------------------------
+# UI — BOTTOM (heatmap-only filters)
+# ------------------------------------------------------------
+cA, cB = st.columns([2, 15])
+with cA:
+    species_sel = st.pills(
+        f"**{t('filter_species_heatmap')}**",  # exists :contentReference[oaicite:19]{index=19}
+        sp_all,
+        default=sp_all,
+        selection_mode="multi",
+    )
+
+with cB:
+    plot_container = st.container()
+
+_, _, cC = st.columns([1, 1, 15])
+with cC:
+    mgmt_sel = st.pills(
+        f"**{t('filter_selection_heatmap')}**",  # exists :contentReference[oaicite:20]{index=20}
+        mg_all,
+        default=mg_all,
+        selection_mode="multi",
+    )
+
 species_sel = _normalize_list(species_sel)
-mgmt_sel    = _normalize_list(mgmt_sel)
+mgmt_sel = _normalize_list(mgmt_sel)
 
-def _apply_filters(dfin: pd.DataFrame, species_sel: list[str], mgmt_sel: list[str]) -> pd.DataFrame:
-    d = dfin.copy()
-    if "species" in d.columns:
-        d["species"] = d["species"].astype(str)
-    if "management_status" in d.columns:
-        d["management_status"] = d["management_status"].astype(str)
+
+# ------------------------------------------------------------
+# APPLY FILTERS FOR HEATMAP ONLY
+# ------------------------------------------------------------
+def _apply_filters_heatmap(df):
+    d = df.copy()
     if species_sel:
-        d = d[d["species"].isin(species_sel)]
-    if mgmt_sel and "management_status" in d.columns:
-        d = d[d["management_status"].isin(mgmt_sel)]
+        d = d[d["species"].astype(str).isin(species_sel)]
+    if mgmt_sel:
+        d = d[d["management_status"].astype(str).isin(mgmt_sel)]
+    d = d[(d["dbh"] >= dbh_range[0]) & (d["dbh"] <= dbh_range[1])]
+    d = d[(d["height"] >= height_range[0]) & (d["height"] <= height_range[1])]
     return d
 
-df_f = _apply_filters(df, species_sel, mgmt_sel)
 
-# ---------- REQUIREMENTS ----------
-need = {"x", "y"}
-miss = need - set(df_f.columns)
-if miss:
-    with plot_holder:
-        st.warning("Missing columns for heatmaps: " + ", ".join(sorted(miss)))
-    st.stop()
+df_f = _apply_filters_heatmap(df0)   # ONLY heatmap is filtered
 
-x_all = _safe_num(df_f["x"])
-y_all = _safe_num(df_f["y"])
-valid_xy = x_all.notna() & y_all.notna()
+# overlay dots ALWAYS use full dataset
+df_overlay = df0.copy()
+
+
+# ------------------------------------------------------------
+# VALID XY FOR HEATMAP
+# ------------------------------------------------------------
+x_f = _safe_num(df_f["x"])
+y_f = _safe_num(df_f["y"])
+valid_xy = x_f.notna() & y_f.notna()
+
 if not valid_xy.any():
-    with plot_holder:
-        st.info("No valid (x, y) coordinates after filtering.")
+    st.info(t("warn_no_data_for_filters"))  # NEW KEY (návrh níže)
     st.stop()
 
-# weights for Z
-if z_col in df_f.columns and _is_numeric_like(df_f[z_col]):
-    w_all = _safe_num(df_f[z_col]).fillna(0.0)
-    colorbar_title = f"{z_col}"
+
+# ------------------------------------------------------------
+# XY RANGE (square panels)
+# ------------------------------------------------------------
+buffer = 1.0
+xmin = float(df0["x"].min()) - buffer
+xmax = float(df0["x"].max()) + buffer
+ymin = float(df0["y"].min()) - buffer
+ymax = float(df0["y"].max()) + buffer
+
+
+# ------------------------------------------------------------
+# WEIGHTS
+# ------------------------------------------------------------
+if z_col is None:
+    w = pd.Series(1.0, index=df_f.index)
+    colorbar_title = t("tree_count")  # exists :contentReference[oaicite:21]{index=21}
 else:
-    w_all = pd.Series(1.0, index=df_f.index, dtype=float)
-    colorbar_title = "Count"
+    w = _safe_num(df_f[z_col]).fillna(0)
+    colorbar_title = t(value_id)
 
-# ---------- GRID ----------
-xmin, xmax = float(x_all[valid_xy].min()), float(x_all[valid_xy].max())
-ymin, ymax = float(y_all[valid_xy].min()), float(y_all[valid_xy].max())
-if xmin == xmax: xmin, xmax = xmin - 0.5, xmax + 0.5
-if ymin == ymax: ymin, ymax = ymin - 0.5, ymax + 0.5
 
+# ------------------------------------------------------------
+# GRID
+# ------------------------------------------------------------
 x_edges = np.linspace(xmin, xmax, HEATMAP_NBINS + 1)
 y_edges = np.linspace(ymin, ymax, HEATMAP_NBINS + 1)
-x_centers = (x_edges[:-1] + x_edges[1:]) / 2.0
-y_centers = (y_edges[:-1] + y_edges[1:]) / 2.0
-bin_wx = (xmax - xmin) / HEATMAP_NBINS if HEATMAP_NBINS > 0 else 1.0
-bin_wy = (ymax - ymin) / HEATMAP_NBINS if HEATMAP_NBINS > 0 else 1.0
 
-# ---------- PANEL BUILDER ----------
-def _panel_hist(mask_panel: pd.Series):
-    m = (mask_panel.reindex(df_f.index).fillna(False)) & valid_xy
+x_cent = (x_edges[:-1] + x_edges[1:]) / 2
+y_cent = (y_edges[:-1] + y_edges[1:]) / 2
+
+bin_wx = (xmax - xmin) / HEATMAP_NBINS
+bin_wy = (ymax - ymin) / HEATMAP_NBINS
+
+
+# ------------------------------------------------------------
+# PANEL BUILDER
+# ------------------------------------------------------------
+def _panel(mask):
+    m = (mask.reindex(df_f.index, fill_value=False)) & valid_xy
+
     if not m.any():
-        Z = np.zeros((HEATMAP_NBINS, HEATMAP_NBINS), dtype=float)
-        H = np.full_like(Z, "No data", dtype=object)
+        Z = np.zeros((HEATMAP_NBINS, HEATMAP_NBINS))
+        H = np.full_like(Z, t("no_data"), dtype=object)  # NEW KEY (návrh níže)
         return Z, H
 
-    n_points = m.sum()
     Z, _, _ = np.histogram2d(
-        x_all[m].to_numpy(float),
-        y_all[m].to_numpy(float),
-        bins=[x_edges, y_edges],
-        weights=w_all[m].to_numpy(float)
+        x_f[m], y_f[m], bins=[x_edges, y_edges], weights=w[m]
     )
     Z = Z.T
 
-    # if only 1 point, skip smoothing (σ v metrech → v buňkách)
-    sigma_x_m = sigma_y_m = 3
-    if n_points > 1 and (sigma_x_m > 0 or sigma_y_m > 0):
-        sx_bins = sigma_x_m / bin_wx if bin_wx > 0 else 0.0
-        sy_bins = sigma_y_m / bin_wy if bin_wy > 0 else 0.0
-        Z = _blur2d(Z, sx_bins, sy_bins)
+    if m.sum() > 1:
+        sigma = 3
+        Z = _blur2d(Z, sigma / bin_wx, sigma / bin_wy)
 
-    Htxt = np.empty_like(Z, dtype=object)
+    H = np.empty_like(Z, dtype=object)
     for iy in range(Z.shape[0]):
         for ix in range(Z.shape[1]):
             val = Z[iy, ix]
-            Htxt[iy, ix] = f"{'Count' if colorbar_title=='Count' else colorbar_title}: {val:.0f}" if colorbar_title=="Count" else f"{colorbar_title}: {val:.3f}"
-    return Z, Htxt
+            if z_col is None:
+                H[iy, ix] = f"{t('count_label')} {val:.0f}"  # exists :contentReference[oaicite:22]{index=22}
+            else:
+                H[iy, ix] = f"{colorbar_title}: {val:.2f}"
 
-# ---------- PANELS ----------
-m_before  = pd.Series(True, index=df_f.index)
-if "management_status" in df_f.columns:
-    m_after   = df_f["management_status"].isin(keep_status)
-    m_removed = ~m_after
-else:
-    m_after   = pd.Series(False, index=df_f.index)
-    m_removed = pd.Series(False, index=df_f.index)
+    return Z, H
 
-Z_before,  H_before  = _panel_hist(m_before)
-Z_after,   H_after   = _panel_hist(m_after)
-Z_removed, H_removed = _panel_hist(m_removed)
-z_max = float(np.nanmax([Z_before.max(initial=0), Z_after.max(initial=0), Z_removed.max(initial=0)]) or 1.0)
 
-# ---------- COLORS ----------
-forest_colorscale = [
-    (0.00, "#ffffff"),
-    (0.01, "#e8f5e9"),
-    (0.50, "#66bb6a"),
-    (1.00, "#2e7d32"),
-]
+# ------------------------------------------------------------
+# COMPUTE PANELS
+# ------------------------------------------------------------
+m_before = pd.Series(True, index=df_f.index)
+m_after = df_f["management_status"].isin(keep_status)
+m_removed = ~m_after
 
-# ---------- PLOT ----------
+Zb, Hb = _panel(m_before)
+Za, Ha = _panel(m_after)
+Zr, Hr = _panel(m_removed)
+
+zmax = max(Zb.max(), Za.max(), Zr.max())
+
+
+# ------------------------------------------------------------
+# PLOT INIT
+# ------------------------------------------------------------
 fig = make_subplots(
-    rows=1, cols=3,
-    subplot_titles=(st.session_state.Before, st.session_state.After, st.session_state.Removed),
-    specs=[[{"type": "heatmap"}, {"type": "heatmap"}, {"type": "heatmap"}]],
-    horizontal_spacing=0.001
+    rows=1,
+    cols=3,
+    subplot_titles=(
+        st.session_state.Before,
+        st.session_state.After,
+        st.session_state.Removed,
+    ),
+    specs=[[{"type": "heatmap"}] * 3],
+    horizontal_spacing=0.003,
 )
+
 
 def _add(Z, H, col):
     fig.add_trace(
         go.Heatmap(
-            x=x_centers, y=y_centers, z=Z,
-            text=H, hoverinfo="text",
-            coloraxis="coloraxis"
+            x=x_cent,
+            y=y_cent,
+            z=Z,
+            text=H,
+            hoverinfo="text",
+            coloraxis="coloraxis",
         ),
-        row=1, col=col
+        row=1,
+        col=col,
     )
 
-_add(Z_before,  H_before,  col=1)
-_add(Z_after,   H_after,   col=2)
-_add(Z_removed, H_removed, col=3)
 
-# --- Optional overlay: ALL Target trees (uses bottom toggle) ---
-if show_targets:
-    m_target = df.get("management_status", pd.Series("", index=df.index)).astype(str).str.strip().str.lower() == "target tree"
-    x_t = pd.to_numeric(df.loc[m_target, "x"], errors="coerce")
-    y_t = pd.to_numeric(df.loc[m_target, "y"], errors="coerce")
-    ok = x_t.notna() & y_t.notna()
+_add(Zb, Hb, 1)
+_add(Za, Ha, 2)
+_add(Zr, Hr, 3)
 
-    color_colname = "managementStatusColorHex" if "managementStatusColorHex" in df.columns else ("managementColorHex" if "managementColorHex" in df.columns else None)
-    if color_colname:
-        col_series = df.loc[m_target, color_colname].astype(str)
-        valid_hex = re.compile(r"^#([0-9A-Fa-f]{6})$")
-        col_series = col_series.where(col_series.str.match(valid_hex), "#000000")
-        col_vals = col_series[ok]
+
+# ------------------------------------------------------------
+# OVERLAY POINTS (UNFILTERED)
+# ------------------------------------------------------------
+if show_overlay:
+    df_o = df_overlay.copy()
+    ok = df_o["x"].notna() & df_o["y"].notna()
+
+    if color_mode == COLOR_SPP:
+        group_col = "species"
+        color_col = "speciesColorHex"
     else:
-        col_vals = pd.Series("#000000", index=x_t.index)[ok]
+        group_col = "management_status"
+        color_col = "managementColorHex"
 
-    for c in (1, 2, 3):
-        fig.add_trace(
-            go.Scatter(
-                x=x_t[ok], y=y_t[ok],
-                mode="markers",
-                marker=dict(size=6, color=col_vals.tolist(), line=dict(color="white", width=0.5)),
-                showlegend=False
-            ),
-            row=1, col=c
+    valid_hex = re.compile(r"^#([0-9A-Fa-f]{6})$")
+    df_o[color_col] = df_o[color_col].where(
+        df_o[color_col].astype(str).str.match(valid_hex),
+        "#000000",
+    )
+
+    for category, sub in df_o[ok].groupby(group_col):
+        colvals = sub[color_col].tolist()
+        legend_group = str(category)
+        for c in (1, 2, 3):
+            fig.add_trace(
+                go.Scatter(
+                    x=sub["x"],
+                    y=sub["y"],
+                    mode="markers",
+                    name=str(category),
+                    hoverinfo="skip",
+                    showlegend=(c == 1),
+                    legendgroup=legend_group,
+                    marker=dict(
+                        size=4,
+                        color=colvals,
+                        opacity=0.9,
+                        line=dict(width=0),
+                    ),
+                ),
+                row=1,
+                col=c,
+            )
+
+
+# ------------------------------------------------------------
+# AXES (SQUARE PANELS)
+# ------------------------------------------------------------
+x_title = f"x [{t('unit_m')}]"
+y_title = f"y [{t('unit_m')}]"
+
+for c in (1, 2, 3):
+    fig.update_xaxes(
+        range=[xmin, xmax],
+        title=x_title,
+        row=1,
+        col=c,
+        ticks="outside",
+        ticklen=4,
+        showgrid=False,
+    )
+
+    if c == 1:
+        fig.update_yaxes(
+            range=[ymin, ymax],
+            title=y_title,
+            showgrid=False,
+            scaleanchor="x1",
+            scaleratio=1,
+            ticks="outside",
+            ticklen=4,
+            row=1,
+            col=c,
+        )
+    else:
+        fig.update_yaxes(
+            range=[ymin, ymax],
+            showticklabels=False,
+            ticks="",
+            title=None,
+            showgrid=False,
+            scaleanchor=f"x{c}",
+            scaleratio=1,
+            row=1,
+            col=c,
         )
 
-# Layout + shared colorbar + compact margins
+
+# ------------------------------------------------------------
+# LAYOUT
+# ------------------------------------------------------------
 fig.update_layout(
     height=CHART_HEIGHT,
-    margin=dict(l=4, r=4, t=48, b=88),
+    margin=dict(l=4, r=4, t=50, b=150),
+    legend=dict(
+        orientation="h",
+        x=0.5,
+        y=-0.15,
+        xanchor="center",
+        yanchor="top",
+        bgcolor="rgba(255,255,255,0.6)",
+    ),
     coloraxis=dict(
-        colorscale=forest_colorscale,
-        cmin=0.0, cmax=z_max,
+        colorscale=[
+            (0.00, "#ffffff"),
+            (0.02, "#e8f5e9"),
+            (0.55, "#66bb6a"),
+            (1.00, "#2e7d32"),
+        ],
+        cmin=0,
+        cmax=zmax,
         colorbar=dict(
-            title=colorbar_title,
+            title=None,
             orientation="h",
-            x=0.5, xanchor="center",
-            y=-0.25, yanchor="top",
-            thickness=10,
-            len=0.8
-        )
-    )
+            x=0.5,
+            xanchor="center",
+            y=-0.23,
+            yanchor="top",
+            thickness=12,
+            len=0.70,
+        ),
+    ),
 )
-fig.update_layout(coloraxis=dict(colorbar=dict(len=0.75, thickness=9, y=-0.22)))
-for c in (1, 2, 3):
-    fig.update_xaxes(title_text="x [m]", row=1, col=c, constrain="domain", showgrid=False, zeroline=False)
-    fig.update_yaxes(title_text="y [m]" if c == 1 else None, row=1, col=c, scaleanchor=f"x{c}", scaleratio=1.0, showgrid=False, zeroline=False)
 
-# ---------- RENDER PLOTS INTO PLACEHOLDER ----------
-with plot_holder:
+
+# ------------------------------------------------------------
+# RENDER
+# ------------------------------------------------------------
+with plot_container:
     st.plotly_chart(fig, use_container_width=True)
