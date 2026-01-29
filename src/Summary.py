@@ -562,3 +562,6 @@ render_three_panel_with_shared_legend(
     pie_value_label=pie_value_label,
     unit_disp=unit_disp,
 )
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t("summary_help"))

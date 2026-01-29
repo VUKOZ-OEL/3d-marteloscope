@@ -522,7 +522,22 @@ I18N: dict[str, dict[Lang, str]] = {
     "chart": { "cs": "Graf", "en": "Chart" },
     "report_footer_note": { "cs": "report_footer_note", "en": "report_footer_note" },
 
-    "expander_help_label": { "cs": "Nápověda:", "en": "Help:" }
+    "expander_help_label": { "cs": "Nápověda:", "en": "Help:" },
+
+    "dashboard_help": { "cs": "Nápověda:", "en": "Help:" },
+    "summary_help": { "cs": "Nápověda:", "en": "Help:" },
+    "intensity_help": { "cs": "Nápověda:", "en": "Help:" },
+    "map_help": { "cs": "Nápověda:", "en": "Help:" },
+    "heatmap_help": { "cs": "Nápověda:", "en": "Help:" },
+    "tree_stats_help": { "cs": "Nápověda:", "en": "Help:" },
+
+    "canopy_help": { "cs": "Nápověda:", "en": "Help:" },
+    "space_comp_help": { "cs": "Nápověda:", "en": "Help:" },
+    "light_comp_help": { "cs": "Nápověda:", "en": "Help:" },
+
+    "prediction_help": { "cs": "Nápověda:", "en": "Help:" },
+
+    "add_att_help": { "cs": "Nápověda:", "en": "Help:" },
 }
 
 

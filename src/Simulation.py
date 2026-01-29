@@ -307,3 +307,7 @@ with col1:
 
 with col2:
     st.plotly_chart(_fig_volume_by_management(sim_trees, max_year=year), use_container_width=True)
+
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t("prediction_help"))

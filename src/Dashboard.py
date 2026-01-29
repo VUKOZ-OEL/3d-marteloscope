@@ -270,8 +270,4 @@ with c2:
         st.rerun()
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
-    st.markdown('''
-        The chart above shows some numbers I picked for you.
-        I rolled actual dice for these, so they're *guaranteed* to
-        be random.
-    ''')
+    st.markdown(t("dashboard_help"))

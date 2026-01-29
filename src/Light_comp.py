@@ -473,3 +473,6 @@ with c32:
         help=t("filter_management_help"),
         key="mgmt_sel",
     )
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t("light_comp_help"))

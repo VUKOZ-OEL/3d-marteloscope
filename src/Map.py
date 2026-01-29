@@ -358,3 +358,6 @@ with c23:
 # SAVE SIZE SETTINGS
 st.session_state.size_min = size_min
 st.session_state.size_max = size_max
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t("map_help"))

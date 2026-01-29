@@ -482,3 +482,6 @@ with c32:
         key="mgmt_sel",
         help=t("filter_management_help"),
     )
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t("space_comp_help"))

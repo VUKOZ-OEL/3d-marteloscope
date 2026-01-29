@@ -404,3 +404,6 @@ with right:
     )
     fig2.update_xaxes(range=[0, 100])
     st.plotly_chart(fig2, use_container_width=True)
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t("inntensity_help"))

@@ -963,7 +963,6 @@ with c_left:
         options=value_options,
         index=default_index,
         format_func=lambda k: t(k),
-        help=t("values_to_plot_help"),
     )
 
 # MID: Plot by / Color by / Stacked toggle
@@ -981,7 +980,6 @@ with c_mid:
                 MODE_BY_HEIGHT: t("tree_height"),
                 MODE_BY_CATEGORY: t("category"),
             }.get(k, k),
-            help=t("plot_by_help_count"),
         )
     else:
         x_mode = MODE_BY_CATEGORY
@@ -992,7 +990,6 @@ with c_mid:
             disabled=True,
             width="stretch",
             format_func=lambda k: t("category"),
-            help=t("plot_by_help_category_only"),
         )
 
     color_mode_id = st.segmented_control(
@@ -1001,14 +998,12 @@ with c_mid:
         default=COLOR_BY_SPECIES,
         width="stretch",
         format_func=lambda k: t(k),
-        help=t("color_by_help"),
     )
 
     stacked = (
         st.toggle(
             f"**{t('stacked_bars')}**",
             value=True,
-            help=t("stacked_bars_help"),
         )
         if is_tree_count
         else False
@@ -1024,13 +1019,11 @@ with c_right:
             f"**{t('dbh_class_range')}**",
             options=dbh_bins,
             value=10,
-            help=t("dbh_class_range_help"),
         )
         bin_size_h = st.select_slider(
             f"**{t('height_class_range')}**",
             options=h_bins,
             value=5,
-            help=t("height_class_range_help"),
         )
 
         dbh_range = None
@@ -1049,7 +1042,6 @@ with c_right:
                     max_value=max_dbh,
                     value=(min_dbh, max_dbh),
                     step=1,
-                    help=t("dbh_filter_help"),
                 )
 
         # HEIGHT FILTER
@@ -1065,7 +1057,6 @@ with c_right:
                     max_value=max_h,
                     value=(min_h, max_h),
                     step=1,
-                    help=t("height_filter_help"),
                 )
 
         bin_size = None
@@ -1185,3 +1176,7 @@ else:
                 color_mode=color_mode_id,
                 slider_range=metric_range,
             )
+
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t("tree_stats_help"))

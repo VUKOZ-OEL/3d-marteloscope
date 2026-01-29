@@ -480,3 +480,6 @@ fig.update_layout(
 # ------------------------------------------------------------
 with plot_container:
     st.plotly_chart(fig, use_container_width=True)
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t("heatmap_help"))

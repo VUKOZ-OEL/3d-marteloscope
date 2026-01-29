@@ -166,3 +166,6 @@ if uploaded_file is not None:
                     cols=", ".join(all_cols),
                 )
             )
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t("add_att_help"))

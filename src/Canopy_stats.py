@@ -453,3 +453,6 @@ def render_crown_volume_profiles(df_all: pd.DataFrame, primary: str, overlay: st
 
 
 render_crown_volume_profiles(df, primary=primary, overlay=overlay)
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t("canopy_help"))
