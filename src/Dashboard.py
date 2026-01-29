@@ -268,3 +268,10 @@ with c2:
         st.session_state.flash_success = t("success_clear_usr_mgmt")
         st.session_state.flash_success_ts = pd.Timestamp.utcnow().isoformat()
         st.rerun()
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown('''
+        The chart above shows some numbers I picked for you.
+        I rolled actual dice for these, so they're *guaranteed* to
+        be random.
+    ''')

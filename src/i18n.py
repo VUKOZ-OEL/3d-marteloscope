@@ -507,15 +507,22 @@ I18N: dict[str, dict[Lang, str]] = {
         "en": "User intervention (unsaved)"
     },
 
-
     "report_title": { "cs": "Report zásahu", "en": "Intervention report" },
     "plot": { "cs": "Plocha", "en": "Plot" },
     "created": { "cs": "Vytvořeno", "en": "Created" },
     "intervention": { "cs": "Zásah", "en": "Intervention" },
     "site_overview": { "cs": "Přehled lokality", "en": "Site overview" },
-    "stand_summary": { "cs": "Souhrn porostu", "en": "Stand summary" },
+    "report_intervention_summary": { "cs": "Souhrn zásahu", "en": "Intervention summary" },
+    "metric": { "cs": "Metrika", "en": "Metric" },
+    "before": { "cs": "Před", "en": "Before" },
+    "after": { "cs": "Po", "en": "After" },
+    "harvested": { "cs": "Vytěženo", "en": "Harvested" },
+    "per_ha": { "cs": "Na ha (před)", "en": "Per ha (before)" },
     "charts": { "cs": "Grafy", "en": "Charts" },
-    "chart": { "cs": "Graf", "en": "Chart" }
+    "chart": { "cs": "Graf", "en": "Chart" },
+    "report_footer_note": { "cs": "report_footer_note", "en": "report_footer_note" },
+
+    "expander_help_label": { "cs": "Nápověda:", "en": "Help:" }
 }
 
 
