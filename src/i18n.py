@@ -7,6 +7,8 @@ import re
 
 import streamlit as st
 
+from src.help_dict import HELP_I18N
+
 Lang = Literal["cs", "en"]
 DEFAULT_LANG: Lang = "en"
 
@@ -538,6 +540,16 @@ I18N: dict[str, dict[Lang, str]] = {
     "prediction_help": { "cs": "Nápověda:", "en": "Help:" },
 
     "add_att_help": { "cs": "Nápověda:", "en": "Help:" },
+
+    #SIMULATION
+    "simulation_header": { "cs": "Simulace růstu lesního porostu:", "en": "Forest Growth Simulation:" },
+    "button_resater_simulation": { "cs": "Znovu spustit simulaci:", "en": "Restart simulation" },
+    "simulation_options": { "cs": "Možnosti simulace:", "en": "Simulation options:" },
+    "simulation_period": { "cs": "Simulavané období:", "en": "Simulation period:" },
+    "mortality_box": { "cs": "Mortalita", "en": "Mortality" },
+    "regeneration_box": { "cs": "Obnova", "en": "Regeneration" },
+    "replications": { "cs": "Replikací iLand modelu:", "en": "iLand model replications:" },
+    "simul_progress": { "cs": "Probíhá simulace růstu porostu pomocí modelu iLand…", "en": "Running iLand model simulations…" },
 }
 
 
@@ -581,6 +593,28 @@ def t(key: str, **kwargs: Any) -> str:
 
     return text
 
+
+def t_help(key: str, **kwargs: Any) -> str:
+    """
+    Translate using global st.session_state.lang.
+    - fallback: en -> key
+    - safe formatting (won't crash on missing placeholders)
+    """
+    lang = get_lang()
+
+    entry = HELP_I18N.get(key)
+    if not entry:
+        return key
+
+    text = entry.get(lang) or entry.get("en") or key
+
+    if kwargs:
+        try:
+            return text.format(**kwargs)
+        except KeyError:
+            return text
+
+    return text
 
 # -----------------------------
 # Validation

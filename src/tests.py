@@ -1,523 +1,634 @@
+# src/Simulation.py
+import sys
+import ctypes, os
+from pathlib import Path
+
 import streamlit as st
 import pandas as pd
 import numpy as np
-import math
-from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
+import src.io_utils as iou
+import src.simul_utils as sut
 
-# ---------- DATA ----------
-plot_info = st.session_state.plot_info
-df: pd.DataFrame = st.session_state.trees.copy()
-
-# ---------- HLAVIČKA ----------
-st.markdown("### Plot summary:     **Per Hectare Values**")
-
-# ---------- SPOLEČNÉ ----------
-CHART_HEIGHT = 360
-Before = st.session_state.Before
-After = st.session_state.After
-Removed = st.session_state.Removed
-
-colorBySpp = st.session_state.Species
-colorByMgmt = st.session_state.Management
-
-df = df.copy()
-
-# plocha (ha) pro přepočet na hektar
-try:
-    area_ha = float(plot_info["size_ha"].iloc[0])
-    if not np.isfinite(area_ha) or area_ha <= 0:
-        area_ha = 1.0
-except Exception:
-    area_ha = 1.0
-
-# bezpečné vytvoření 'volume'
-if "Volume_m3" in df.columns:
-    df["volume"] = pd.to_numeric(df["Volume_m3"], errors="coerce")
-else:
-    df["volume"] = np.nan
-
-# dopočet bazální plochy [m²] z DBH [cm]  -> BA = π * (dbh_cm / 200)^2
-if "dbh" in df.columns:
-    dbh_cm = pd.to_numeric(df["dbh"], errors="coerce")
-    df["basal_area_m2"] = np.pi * (dbh_cm / 200.0) ** 2
-else:
-    df["basal_area_m2"] = np.nan
-
-# --- NOVĚ: canopy cover (%) per ha ze sloupce horizontal_crown_projection [m2]
-# CanopyCover[%/ha] = (sum(m2) / area_ha) / 100
-# (protože 1 ha = 10 000 m2, takže *100 => dělení 100)
-if "horizontal_crown_projection" in df.columns:
-    hcp_m2 = pd.to_numeric(df["horizontal_crown_projection"], errors="coerce")
-    df["canopy_cover_pct"] = (hcp_m2 / area_ha) / 100.0
-else:
-    df["canopy_cover_pct"] = np.nan
-
-# standardizace typů
-if "species" in df.columns:
-    df["species"] = df["species"].astype(str)
-if "speciesColorHex" in df.columns:
-    df["speciesColorHex"] = df["speciesColorHex"].astype(str)
-if "management_status" in df.columns:
-    df["management_status"] = df["management_status"].astype(str)
-if "managementColorHex" in df.columns:
-    df["managementColorHex"] = df["managementColorHex"].astype(str)
+from src.i18n import t
+import shutil
 
 
-def _make_masks(d: pd.DataFrame):
+
+
+st.markdown(f"#### {t('simulation_header')}")
+
+root = "C:/Users/krucek/Documents/iLand/test/rep_out"
+
+
+
+# ------------------------------------------------------------------------------
+# Get directory of the running script
+dll_path = "C:/Users/krucek/Documents/GitHub/VUK/3d-forest/out/install/x64-Debug/bin/ILandModel.dll"
+
+os.add_dll_directory(dll_path)
+
+# Load the shared library
+iland = ctypes.CDLL(str(dll_path))
+
+# Define argument and return types
+iland.runilandmodel.argtypes = [ctypes.c_char_p, ctypes.c_int]
+iland.runilandmodel.restype = ctypes.c_int
+
+# Call the function
+years = 10
+
+xml_path = b"C:\\Users\\krucek\\Documents\\iLand\\test\\Pokojna_hora.xml"
+out_db = Path("C:\\Users\\krucek\\Documents\\iLand\\test\\output\\output.sqlite")
+temp_db = Path("C:\\Users\\krucek\\Documents\\iLand\\test\\output\\temp.sqlite")
+
+for i in range(1, 10):
+    print(f"Running replication {i}/{10}")
+
+    
+    if out_db.exists():
+        out_db.unlink()
+
+    # --- spusť iLand ---
+    iland.runilandmodel(xml_path, years)
+
+    shutil.copyfile(out_db, temp_db)
+
+    # --- průběžně načti ---
+    living, death = sut.read_single_sqlite(temp_db, rep_id=f"rep_{i:03d}")
+
+    all_living.append(living)
+    if death is not None:
+        all_death.append(death)
+
+view(living)
+
+
+
+# --- palette for species (from project json) ---
+# Prefer session palette if available (set in app.py), otherwise fall back
+project_file = st.session_state.get("project_file", "data/test_project.json")
+color_pallete = st.session_state.get("color_palette") or iou.load_color_palette(project_file)
+code2latin, code2color, code2label = build_species_maps(color_pallete)
+
+
+# =========================
+# UI
+# =========================
+c_left, left_empty, c_mid, right_empty, c_right = st.columns([3, 1, 4, 1, 3])
+
+with c_left:
+    st.markdown("####")
+    run_simul = st.button(
+        f"**{t('button_resater_simulation')}**",
+        icon=":material/play_arrow:",
+        width="stretch",
+        type="primary",
+    )
+
+with c_mid:
+    st.markdown(f"**{t('simulation_period')}**")
+    year = st.slider("", min_value=0, max_value=100, value=30, step=5)
+
+with c_right:
+    st.markdown(f"**{t('simulation_options')}**")
+    mortality = st.toggle(t('mortality_box'))
+    regeneration = st.toggle(t('regeneration_box'))
+
+st.divider()
+
+
+# =========================
+# Helpers
+# =========================
+def _get_trees_df() -> pd.DataFrame:
+    if "trees" not in st.session_state or st.session_state.trees is None:
+        return pd.DataFrame()
+    return st.session_state.trees.copy()
+
+
+def _enrich_sim_with_trees(sim_trees: pd.DataFrame) -> pd.DataFrame:
+    """
+    Join info from session_state.trees by id and add:
+      - speciesColorhex
+      - management_status
+      - managementColorHex
+    Also adds:
+      - species_label (for legends)
+
+    Fixes:
+      - pokud se v simulaci objeví stromy mimo vstupní set (nebo dojde k recyklaci ID),
+        zařadí se do kategorie management_status = 'Regeneration'
+    """
+    out = sim_trees.copy()
+
+    # always add label
+    out["species_label"] = out["species"].map(
+        lambda c: code2label.get(str(c).lower(), str(c).title())
+    )
+
+    trees = _get_trees_df()
+    input_ids = set()
+    if not trees.empty and "id" in trees.columns:
+        input_ids = set(pd.to_numeric(trees["id"], errors="coerce").dropna().astype(int).tolist())
+
+    # --- helpers for regeneration detection ---
+    def _is_regeneration(df: pd.DataFrame) -> pd.Series:
+        # 1) Prefer age-based detection (iLand typically provides 'age')
+        if "age" in df.columns and "year" in df.columns:
+            yr = pd.to_numeric(df["year"], errors="coerce")
+            age = pd.to_numeric(df["age"], errors="coerce")
+            est_year = yr - age  # establishment year relative to sim start
+            return est_year.fillna(-1) > 0  # established after year 0 => regeneration
+        # 2) fallback: id not in original input
+        if "id" in df.columns and input_ids:
+            ids = pd.to_numeric(df["id"], errors="coerce").fillna(-1).astype(int)
+            return ~ids.isin(list(input_ids))
+        return pd.Series(False, index=df.index)
+
+    regen_mask = _is_regeneration(out)
+
+    # fallback colors from palette if we cannot join
+    if trees.empty or "id" not in trees.columns or "id" not in out.columns:
+        out["speciesColorhex"] = out["species"].map(lambda c: code2color.get(str(c).lower()))
+        out["management_status"] = np.where(regen_mask, "Regeneration", pd.NA)
+        out["managementColorHex"] = np.where(regen_mask, "#2ca02c", pd.NA)
+        return out
+
+    # ---- speciesColorhex from trees (try common names) ----
+    if "speciesColorhex" not in trees.columns:
+        if "speciesColorHex" in trees.columns:
+            trees["speciesColorhex"] = trees["speciesColorHex"]
+        elif "species_color" in trees.columns:
+            trees["speciesColorhex"] = trees["species_color"]
+        elif "speciesColor" in trees.columns:
+            trees["speciesColorhex"] = trees["speciesColor"]
+        else:
+            trees["speciesColorhex"] = pd.NA
+
+    # ---- management_status from trees (try common names) ----
+    if "management_status" not in trees.columns:
+        if "managementStatus" in trees.columns:
+            trees["management_status"] = trees["managementStatus"]
+        elif "management" in trees.columns:
+            trees["management_status"] = trees["management"]
+        elif "treatment" in trees.columns:
+            trees["management_status"] = trees["treatment"]
+        else:
+            trees["management_status"] = pd.NA
+
+    # ---- managementColorHex from trees (try common names) ----
+    if "managementColorHex" not in trees.columns:
+        if "managementColorhex" in trees.columns:
+            trees["managementColorHex"] = trees["managementColorhex"]
+        elif "management_color" in trees.columns:
+            trees["managementColorHex"] = trees["management_color"]
+        elif "managementColor" in trees.columns:
+            trees["managementColorHex"] = trees["managementColor"]
+        else:
+            trees["managementColorHex"] = pd.NA
+
+    trees_join = (
+        trees[["id", "speciesColorhex", "management_status", "managementColorHex"]]
+        .drop_duplicates("id")
+        .copy()
+    )
+
+    out = out.merge(trees_join, on="id", how="left")
+
+    # fallback speciesColorhex if missing: use palette via species code
+    out["speciesColorhex"] = out.apply(
+        lambda r: r["speciesColorhex"]
+        if pd.notna(r.get("speciesColorhex")) and str(r.get("speciesColorhex")).strip() != ""
+        else code2color.get(str(r["species"]).lower()),
+        axis=1,
+    )
+
+    # --- Management status fix: only keep input categories; everything else => Regeneration ---
     keep_status = {"Target tree", "Untouched"}
-    mask_after = d.get("management_status", pd.Series(False, index=d.index)).isin(
-        keep_status
+
+    # if regen by age / missing id in inputs => Regeneration
+    out.loc[regen_mask, "management_status"] = "Regeneration"
+    out.loc[regen_mask, "managementColorHex"] = "#2ca02c"
+
+    # if not regen, but status is missing or not one of allowed -> likely ID reuse; treat as Regeneration too
+    not_keep = ~out["management_status"].isin(list(keep_status))
+    out.loc[not_keep, "management_status"] = "Regeneration"
+    out.loc[not_keep, "managementColorHex"] = out.loc[not_keep, "managementColorHex"].where(
+        out.loc[not_keep, "managementColorHex"].notna() & (out.loc[not_keep, "managementColorHex"].astype(str).str.strip() != ""),
+        "#2ca02c",
     )
-    mask_removed = (
-        ~mask_after
-        if "management_status" in d.columns
-        else pd.Series(False, index=d.index)
-    )
-    mask_before = pd.Series(True, index=d.index)  # vše
-    return {Before: mask_before, After: mask_after, Removed: mask_removed}
+
+    return out
 
 
-def _species_colors(d: pd.DataFrame) -> dict:
-    if "species" not in d.columns or "speciesColorHex" not in d.columns:
-        return {}
-    return (
-        d.assign(species=lambda x: x["species"].astype(str))
-        .groupby("species")["speciesColorHex"]
-        .first()
+
+    # ---- speciesColorhex from trees (try common names) ----
+    if "speciesColorhex" not in trees.columns:
+        if "speciesColorHex" in trees.columns:
+            trees["speciesColorhex"] = trees["speciesColorHex"]
+        elif "species_color" in trees.columns:
+            trees["speciesColorhex"] = trees["species_color"]
+        elif "speciesColor" in trees.columns:
+            trees["speciesColorhex"] = trees["speciesColor"]
+        else:
+            trees["speciesColorhex"] = pd.NA
+
+    # ---- management_status from trees (try common names) ----
+    if "management_status" not in trees.columns:
+        if "managementStatus" in trees.columns:
+            trees["management_status"] = trees["managementStatus"]
+        elif "management" in trees.columns:
+            trees["management_status"] = trees["management"]
+        elif "treatment" in trees.columns:
+            trees["management_status"] = trees["treatment"]
+        else:
+            trees["management_status"] = pd.NA
+
+    # ---- managementColorHex from trees (try common names) ----
+    if "managementColorHex" not in trees.columns:
+        if "managementColorhex" in trees.columns:
+            trees["managementColorHex"] = trees["managementColorhex"]
+        elif "management_color" in trees.columns:
+            trees["managementColorHex"] = trees["management_color"]
+        elif "managementColor" in trees.columns:
+            trees["managementColorHex"] = trees["managementColor"]
+        else:
+            trees["managementColorHex"] = pd.NA
+
+    trees_join = (
+        trees[["id", "speciesColorhex", "management_status", "managementColorHex"]]
+        .drop_duplicates("id")
+        .copy()
+    )
+
+    out = out.merge(trees_join, on="id", how="left")
+
+    # fallback speciesColorhex if missing: use palette via species code
+    out["speciesColorhex"] = out.apply(
+        lambda r: r["speciesColorhex"]
+        if pd.notna(r.get("speciesColorhex")) and str(r.get("speciesColorhex")).strip() != ""
+        else code2color.get(str(r["species"]).lower()),
+        axis=1,
+    )
+
+    return out
+
+
+def _agg_ci(df: pd.DataFrame, group_cols: list[str], value_col: str, rep_col: str = "replication") -> pd.DataFrame:
+    """Agreguje přes replikace a vrátí mean + 95% interval (2.5–97.5 percentil)."""
+    d = df.copy()
+    if rep_col not in d.columns:
+        d[rep_col] = "rep_1"
+
+    per_rep = (
+        d.groupby([rep_col] + group_cols, as_index=False)[value_col]
+        .sum()
+        .rename(columns={value_col: "value"})
+    )
+
+    stats = (
+        per_rep.groupby(group_cols, as_index=False)["value"]
+        .agg(
+            mean="mean",
+            low=lambda x: float(np.nanquantile(x, 0.025)) if len(x) else np.nan,
+            high=lambda x: float(np.nanquantile(x, 0.975)) if len(x) else np.nan,
+        )
+    )
+    return stats
+
+
+
+def _hex_to_rgba(hex_color: str, alpha: float) -> str:
+    """Convert '#RRGGBB' or 'RRGGBB' to 'rgba(r,g,b,a)'."""
+    if not isinstance(hex_color, str):
+        return f"rgba(0,0,0,{alpha})"
+    h = hex_color.strip().lstrip("#")
+    if len(h) != 6:
+        return f"rgba(0,0,0,{alpha})"
+    try:
+        r = int(h[0:2], 16)
+        g = int(h[2:4], 16)
+        b = int(h[4:6], 16)
+        return f"rgba({r},{g},{b},{alpha})"
+    except Exception:
+        return f"rgba(0,0,0,{alpha})"
+
+
+def _add_line_with_ci(fig: go.Figure, x, y, low, high, name: str, color: str | None, width: int = 2):
+    # upper (invisible), then lower with fill to create ribbon
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=high,
+            mode="lines",
+            line=dict(color=color, width=0),
+            name=name,
+            showlegend=False,
+            hoverinfo="skip",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=low,
+            mode="lines",
+            line=dict(color=color, width=0),
+            fill="tonexty",
+            fillcolor=(_hex_to_rgba(color, 0.20) if color else "rgba(0,0,0,0.15)"),
+            name=name,
+            showlegend=False,
+            hoverinfo="skip",
+        )
+    )
+    # mean line
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=y,
+            mode="lines",
+            name=name,
+            line=dict(color=color, width=width),
+            hovertemplate="Year=%{x}<br>Mean=%{y:.2f} m³<br>95% CI=[%{customdata[0]:.2f}, %{customdata[1]:.2f}] m³<extra></extra>",
+            customdata=np.column_stack([low, high]),
+        )
+    )
+
+
+def _fig_volume_by_species(sim_trees: pd.DataFrame, max_year: int) -> go.Figure:
+    df = sim_trees.copy()
+    df = df[df["year"] <= max_year]
+
+    # stats per year & species_label across replications
+    stats = _agg_ci(df, ["year", "species_label"], "volume_m3")
+    stats = stats.sort_values(["species_label", "year"])
+
+    # color map per species_label
+    c = (
+        df[["species_label", "speciesColorhex"]]
+        .dropna()
+        .drop_duplicates("species_label")
+        .set_index("species_label")["speciesColorhex"]
         .to_dict()
     )
 
+    # total stats (sum across species per year)
+    total_stats = _agg_ci(df, ["year"], "volume_m3").sort_values("year")
 
-def _management_colors(d: pd.DataFrame) -> dict:
-    """Barvy ze sloupce managementColorHex pro všechny management_status,
-    chybějící -> šedá."""
-    if "management_status" not in d.columns or "managementColorHex" not in d.columns:
-        return {}
-    t = d.assign(
-        management_status=lambda x: x["management_status"].astype(str),
-        managementColorHex=lambda x: x["managementColorHex"].astype(str),
-    )
-    cmap = t.groupby("management_status")["managementColorHex"].first().to_dict()
-    for k, v in list(cmap.items()):
-        if not isinstance(v, str) or not v.strip():
-            cmap[k] = "#AAAAAA"
-    return cmap
+    fig = go.Figure()
 
-
-def _make_bins_labels(
-    df_all: pd.DataFrame, value_col: str, bin_size: float, unit_label: str
-):
-    vals = pd.to_numeric(df_all.get(value_col), errors="coerce").dropna()
-    if vals.empty:
-        return None, None
-    vmin = float(np.floor(vals.min() / bin_size) * bin_size)
-    vmax = float(np.ceil(vals.max() / bin_size) * bin_size)
-    if vmax <= vmin:
-        vmax = vmin + bin_size
-    bins = np.arange(vmin, vmax + bin_size, bin_size, dtype=float)
-    labels = [f"{int(b)}–{int(b + bin_size)} {unit_label}" for b in bins[:-1]]
-    return bins, labels
-
-# ---------- OVLÁDÁNÍ ----------
-c1, c2, c3, c4, c5, c6, c7 = st.columns([0.5, 3, 0.25, 4, 0.25, 2, 0.5])
-
-with c2:
-    dist_mode = st.segmented_control(
-        "**Show Data for:**",
-        options=[Before, After, Removed],
-        default=Before,
-        width="stretch",
-    )
-
-with c4:
-    sum_metric_label = st.segmented_control(
-        "**Sum values by:**",
-        options=["Tree count", "Volume (m³)", "Basal area (m²)", "Stocking"],
-        default="Tree count",
-        width="stretch",
-    )
-
-with c6:
-    color_mode = st.segmented_control(
-        "**Color by:**",
-        options=[colorBySpp, colorByMgmt],
-        default=colorBySpp,
-        width="stretch",
-    )
-
-
-def _metric_meta(label: str):
-    """Vrátí (value_col | None pro počty, y_title, unit_suffix, pie_value_label)."""
-    if label == "Tree count":
-        return None, "Trees", "trees/ha", "Trees"
-    if label == "Volume (m³)":
-        return "volume", "Volume (m³)", "m³/ha", "Volume (m³)"
-    if label == "Basal area (m²)":
-        return "basal_area_m2", "Basal area (m²)", "m²/ha", "Basal area (m²)"
-    if label == "Stocking":
-        # NOVĚ: Canopy cover v % (per ha)
-        return "canopy_cover_pct", "Canopy cover (%)", "%", "Canopy cover (%)"
-    # fallback
-    return None, "Trees", "trees/ha", "Trees"
-
-
-value_col, y_title, unit_suffix, pie_value_label = _metric_meta(sum_metric_label)
-
-masks = _make_masks(df)
-mask = masks.get(dist_mode, pd.Series(True, index=df.index))
-df_sel = df[mask].copy()
-
-
-# ---------- 1) PIE + DBH + HEIGHT (sdílená legenda) ----------
-def render_three_panel_with_shared_legend(
-    df_all: pd.DataFrame,
-    df_sub: pd.DataFrame,
-    value_col: str | None,
-    color_mode: str,
-    y_title: str,
-    unit_suffix: str,
-    pie_value_label: str,
-):
-    # --- Nastavení hue / kategorií / barev
-    if color_mode == colorByMgmt:
-        hue_col = "management_status"
-        if hue_col in df_all.columns:
-            categories = pd.Index(
-                df_all[hue_col].astype(str).dropna().unique()
-            ).tolist()
-        else:
-            categories = []
-        color_map = _management_colors(df_all)
-        color_map = {c: color_map.get(c, "#AAAAAA") for c in categories}
-    else:
-        hue_col = "species"
-        categories = sorted(
-            df_all.get("species", pd.Series([], dtype=str))
-            .astype(str)
-            .dropna()
-            .unique()
-            .tolist()
-        )
-        color_map = _species_colors(df_all)
-        color_map = {c: color_map.get(c, "#AAAAAA") for c in categories}
-
-    d = df_sub.copy()
-    if hue_col not in d.columns:
-        st.warning(f"Chybí sloupec '{hue_col}' – nelze vykreslit grafy.")
-        return
-    d[hue_col] = d[hue_col].astype(str).str.strip()
-
-    # --- PIE agregace + celkový součet pro střed
-    if value_col is None:
-        pie_agg = d.groupby(hue_col, as_index=False).agg(value=(hue_col, "size"))
-        total_raw = int(pie_agg["value"].sum())
-        unit_disp = "trees"
-        total_text = f"Σ =<br><b>{total_raw}</b><br>{unit_disp}"
-        hover_value_token = "%{value:.0f}"
-    else:
-        if value_col not in d.columns:
-            st.warning(
-                f"Chybí sloupec '{value_col}' – nelze spočítat grafy pro vybranou metriku."
-            )
-            return
-        pie_agg = d.groupby(hue_col, as_index=False).agg(value=(value_col, "sum"))
-        total_raw = float(pie_agg["value"].sum())
-
-        # --- UPRAVENO: jednotky i pro canopy_cover_pct
-        if value_col == "volume":
-            unit_disp = "m³"
-        elif value_col == "basal_area_m2":
-            unit_disp = "m²"
-        elif value_col == "canopy_cover_pct":
-            unit_disp = "%"
-        else:
-            unit_disp = ""
-
-        # --- UPRAVENO: formátování pro % (1 desetinné místo)
-        if value_col == "canopy_cover_pct":
-            total_text = f"Σ =<br><b>{total_raw:.1f}</b><br>{unit_disp}"
-            hover_value_token = "%{value:.1f}"
-        else:
-            total_text = f"Σ =<br><b>{total_raw:,.1f}</b><br>{unit_disp}".replace(",", " ")
-            hover_value_token = "%{value:.1f}"
-
-    # respektuj pořadí kategorií a přidej 0 pro chybějící
-    if categories:
-        pie_agg = pie_agg.set_index(hue_col).reindex(categories).fillna(0).reset_index()
-    else:
-        categories = pie_agg[hue_col].tolist()
-
-    # --- DBH / HEIGHT biny
-    dbh_bins, dbh_labels = _make_bins_labels(df_all, "dbh", 10, "cm")
-    if dbh_bins is None:
-        dbh_bins, dbh_labels = np.array([0, 10]), ["0–10 cm"]
-    if "height" in df_all.columns:
-        h_bins, h_labels = _make_bins_labels(df_all, "height", 5, "m")
-        if h_bins is None:
-            h_bins, h_labels = np.array([0, 5]), ["0–5 m"]
-    else:
-        h_bins, h_labels = np.array([0, 5]), ["0–5 m"]
-
-    # --- Long tabulky
-    def long_binned(
-        df_in: pd.DataFrame,
-        base_col: str,
-        bins: np.ndarray,
-        labels: list[str],
-        hue: str,
-        value_col: str | None,
-    ) -> pd.DataFrame:
-        t = df_in.copy()
-        t[hue] = t[hue].astype(str)
-        vals = pd.to_numeric(t[base_col], errors="coerce")
-        cats = pd.Categorical(
-            pd.cut(
-                vals,
-                bins=bins,
-                labels=labels,
-                include_lowest=True,
-                right=False,
-                ordered=True,
-            ),
-            categories=labels,
-            ordered=True,
-        )
-        t = t.assign(bin=cats).dropna(subset=["bin"])
-        if t.empty:
-            return pd.DataFrame(columns=["bin", hue, "value"])
-        if value_col is None:
-            pv = t.pivot_table(index="bin", columns=hue, aggfunc="size", fill_value=0)
-        else:
-            t["weight"] = pd.to_numeric(t[value_col], errors="coerce").fillna(0.0)
-            pv = t.pivot_table(
-                index="bin", columns=hue, values="weight", aggfunc="sum", fill_value=0.0
-            )
-        long = pv.stack().rename("value").reset_index()
-        long["bin"] = long["bin"].astype(str)
-        return long
-
-    dbh_long = long_binned(df_sub, "dbh", dbh_bins, dbh_labels, hue_col, value_col)
-    height_long = (
-        long_binned(df_sub, "height", h_bins, h_labels, hue_col, value_col)
-        if "height" in df_sub.columns
-        else pd.DataFrame(columns=["bin", hue_col, "value"])
-    )
-
-    # --- Y-osa: horní hranice
-    def upper_from_long(long_df: pd.DataFrame, labels: list[str]) -> float:
-        if long_df.empty:
-            return 10
-        totals = long_df.groupby("bin")["value"].sum().reindex(labels).fillna(0)
-        maxv = float(totals.max())
-        if maxv <= 0:
-            return 10
-        step = 10
-        upper = math.ceil(maxv / step) * step
-        return upper
-
-    dbh_y_upper = upper_from_long(
-        long_binned(df, "dbh", dbh_bins, dbh_labels, hue_col, value_col),
-        dbh_labels
-    )
-    h_y_upper = upper_from_long(
-        long_binned(df, "height", h_bins, h_labels, hue_col, value_col),
-        h_labels
-    )
-
-    # --- Subplots: pie | dbh | height
-    fig = make_subplots(
-        rows=1,
-        cols=3,
-        specs=[[{"type": "domain"}, {"type": "xy"}, {"type": "xy"}]],
-        subplot_titles=("Stand Composition", "In DBH class", "In Height class"),
-        horizontal_spacing=0.06,
-    )
-
-    if hasattr(st.session_state, "plot_title_font"):
-        fig.update_layout(
-            annotations=[
-                dict(
-                    text=ann.text,
-                    x=ann.x,
-                    y=ann.y,
-                    xref=ann.xref,
-                    yref=ann.yref,
-                    showarrow=False,
-                    font=st.session_state.plot_title_font,
-                )
-                for ann in fig.layout.annotations
-            ]
+    for sp in sorted(stats["species_label"].unique()):
+        s = stats[stats["species_label"] == sp].sort_values("year")
+        if s.empty or float(s["mean"].fillna(0).max()) <= 0:
+            continue
+        _add_line_with_ci(
+            fig,
+            x=s["year"],
+            y=s["mean"],
+            low=s["low"],
+            high=s["high"],
+            name=sp,
+            color=c.get(sp),
+            width=2,
         )
 
-    # --- 1) PIE (hole=0.50) + filtrace nulových kategorií
-    pie_plot = pie_agg[pie_agg["value"] > 0].copy()
-    no_data = pie_plot.empty
-
-    if no_data:
-        pie_labels = ["No data"]
-        pie_values = [1]
-        pie_colors = ["#EEEEEE"]
-        hovertemplate = ""
-        textinfo = "none"
-        texttemplate = None
-    else:
-        pie_labels = pie_plot[hue_col]
-        pie_values = pie_plot["value"]
-        pie_colors = [color_map.get(c, "#AAAAAA") for c in pie_plot[hue_col]]
-        textinfo = "text"
-        texttemplate = "%{percent:.1%}"
-        hovertemplate = (
-            f"{hue_col}: %{{label}}<br>"
-            f"{pie_value_label}: {hover_value_token} {unit_disp}"
-            "<extra></extra>"
-        )
-
-    fig.add_trace(
-        go.Pie(
-            labels=pie_labels,
-            values=pie_values,
-            hole=0.50,
-            marker=dict(colors=pie_colors),
-            textinfo=textinfo,
-            texttemplate=texttemplate,
-            textposition="inside",
-            insidetextorientation="radial",
-            textfont=dict(size=11),
-            hovertemplate=hovertemplate,
-            showlegend=False,
-            sort=False,
-        ),
-        row=1,
-        col=1,
+    # SUM line with CI
+    _add_line_with_ci(
+        fig,
+        x=total_stats["year"],
+        y=total_stats["mean"],
+        low=total_stats["low"],
+        high=total_stats["high"],
+        name="SUM",
+        color=None,
+        width=4,
     )
 
-    # --- středový Σ = ...
-    pie_trace = fig.data[-1]
-    if hasattr(pie_trace, "domain") and pie_trace.domain:
-        cx = (pie_trace.domain.x[0] + pie_trace.domain.x[1]) / 2
-        cy = (pie_trace.domain.y[0] + pie_trace.domain.y[1]) / 2
-    else:
-        cx, cy = 0.17, 0.5
-
-    fig.add_annotation(
-        x=cx,
-        y=cy,
-        xref="paper",
-        yref="paper",
-        text=(total_text if not no_data else "Σ = 0 " + unit_disp),
-        showarrow=False,
-        font=dict(size=26, color="black"),
-        xanchor="center",
-        yanchor="middle",
-    )
-
-    # --- 2) DBH (stack podle hue)
-    # UPRAVENO: hezčí formát hoveru pro %
-    bar_y_fmt = ".1f" if value_col == "canopy_cover_pct" else ""
-    for cat in categories:
-        y_vals = (
-            dbh_long[dbh_long[hue_col] == cat]
-            .set_index("bin")
-            .reindex(dbh_labels)["value"]
-            .fillna(0)
-            .tolist()
-        )
-        fig.add_trace(
-            go.Bar(
-                x=dbh_labels,
-                y=y_vals,
-                name=cat,
-                marker_color=color_map.get(cat, "#AAAAAA"),
-                legendgroup=cat,
-                showlegend=True,
-                hovertemplate=(
-                    f"%{{x}}<br>{hue_col}: {cat}<br>{y_title}: %{{y{':' + bar_y_fmt if bar_y_fmt else ''}}}"
-                    "<extra></extra>"
-                ),
-            ),
-            row=1,
-            col=2,
-        )
-
-    # --- 3) HEIGHT (stack)
-    if not height_long.empty:
-        for cat in categories:
-            y_vals = (
-                height_long[height_long[hue_col] == cat]
-                .set_index("bin")
-                .reindex(h_labels)["value"]
-                .fillna(0)
-                .tolist()
-            )
-            fig.add_trace(
-                go.Bar(
-                    x=h_labels,
-                    y=y_vals,
-                    name=cat,
-                    marker_color=color_map.get(cat, "#AAAAAA"),
-                    legendgroup=cat,
-                    showlegend=False,
-                    hovertemplate=(
-                        f"%{{x}}<br>{hue_col}: {cat}<br>{y_title}: %{{y{':' + bar_y_fmt if bar_y_fmt else ''}}}"
-                        "<extra></extra>"
-                    ),
-                ),
-                row=1,
-                col=3,
-            )
-
-    # --- layout
     fig.update_layout(
-        barmode="stack",
-        height=CHART_HEIGHT + 80,
-        margin=dict(l=10, r=10, t=60, b=120),
-        legend=dict(orientation="h", yanchor="top", y=-0.35, xanchor="center", x=0.5),
-        paper_bgcolor="white",
-        plot_bgcolor="white",
+        title="Volume (SUM) by Species",
+        xaxis_title="Year",
+        yaxis_title="Volume SUM (m³)",
+        legend_title_text="Species",
+        margin=dict(l=10, r=10, t=60, b=10),
+    )
+    return fig
+
+
+
+
+def _fig_volume_by_management(sim_trees: pd.DataFrame, max_year: int) -> go.Figure:
+    df = sim_trees.copy()
+    df = df[df["year"] <= max_year]
+
+    if "management_status" not in df.columns:
+        df["management_status"] = pd.NA
+
+    stats = _agg_ci(df, ["year", "management_status"], "volume_m3")
+    stats = stats.sort_values(["management_status", "year"])
+
+    c = (
+        df[["management_status", "managementColorHex"]]
+        .dropna()
+        .drop_duplicates("management_status")
+        .set_index("management_status")["managementColorHex"]
+        .to_dict()
+    )
+    c.setdefault("Regeneration", "#2ca02c")
+
+    total_stats = _agg_ci(df, ["year"], "volume_m3").sort_values("year")
+
+    fig = go.Figure()
+
+    preferred = ["Target tree", "Untouched", "Regeneration"]
+    all_statuses = [s for s in stats["management_status"].dropna().unique()]
+    statuses_sorted = [s for s in preferred if s in all_statuses] + [
+        s for s in sorted(all_statuses) if s not in preferred
+    ]
+
+    for ms in statuses_sorted:
+        s = stats[stats["management_status"].eq(ms)].sort_values("year")
+        if s.empty or float(s["mean"].fillna(0).max()) <= 0:
+            continue
+
+        name = str(ms)
+        _add_line_with_ci(
+            fig,
+            x=s["year"],
+            y=s["mean"],
+            low=s["low"],
+            high=s["high"],
+            name=name,
+            color=c.get(ms),
+            width=2,
+        )
+
+    _add_line_with_ci(
+        fig,
+        x=total_stats["year"],
+        y=total_stats["mean"],
+        low=total_stats["low"],
+        high=total_stats["high"],
+        name="SUM",
+        color=None,
+        width=4,
     )
 
-    # --- Osy
-    fig.update_xaxes(
-        title_text=None,
-        tickangle=45,
-        categoryorder="array",
-        categoryarray=dbh_labels,
-        row=1,
-        col=2,
+    fig.update_layout(
+        title="Volume (SUM) by Management Status",
+        xaxis_title="Year",
+        yaxis_title="Volume SUM (m³)",
+        legend_title_text="Management",
+        margin=dict(l=10, r=10, t=60, b=10),
     )
-    fig.update_xaxes(
-        title_text=None,
-        tickangle=45,
-        categoryorder="array",
-        categoryarray=h_labels,
-        row=1,
-        col=3,
-    )
+    return fig
 
-    # --- Y osy: pro % nechávám automatiku přes upper_from_long (funguje stejně jako u ostatních)
-    if value_col is None:
-        fig.update_yaxes(
-            title_text=y_title, row=1, col=2, tick0=0, dtick=25, range=[0, dbh_y_upper]
-        )
-        fig.update_yaxes(
-            title_text=None, row=1, col=3, tick0=0, dtick=25, range=[0, h_y_upper]
-        )
+
+
+
+# =========================
+# Load + render
+# =========================
+# (volitelně) reload při kliknutí na Start simulation
+if run_simul:
+    st.session_state.pop("sim_trees", None)
+
+if "sim_trees" not in st.session_state:
+    with st.spinner(
+        "Loading and processing outcomes of forest growth simulation, please wait.",
+        show_time=True,
+    ):
+        sim_trees = load_simulation(root, keep_replication=True)
+        sim_trees = _enrich_sim_with_trees(sim_trees)
+        st.session_state.sim_trees = sim_trees
+
+sim_trees = st.session_state.sim_trees
+
+# ensure numeric year
+if "year" in sim_trees.columns:
+    sim_trees["year"] = pd.to_numeric(sim_trees["year"], errors="coerce")
+
+# =========================
+# Charts side-by-side
+# =========================
+col1, col2 = st.columns(2, gap="large")
+
+with col1:
+    st.plotly_chart(_fig_volume_by_species(sim_trees, max_year=year), use_container_width=True)
+
+with col2:
+    st.plotly_chart(_fig_volume_by_management(sim_trees, max_year=year), use_container_width=True)
+
+
+
+# =========================
+# Debug (temporary)
+# =========================
+with st.expander("Debug: CI inputs / replication", expanded=False):
+    st.write("Columns:", list(sim_trees.columns))
+    if "replication" in sim_trees.columns:
+        st.write("Unique replications:", int(sim_trees["replication"].nunique()))
+        st.write("Replications:", sorted(sim_trees["replication"].dropna().unique().tolist())[:20])
     else:
-        fig.update_yaxes(title_text=y_title, row=1, col=2, range=[0, dbh_y_upper])
-        fig.update_yaxes(title_text=None, row=1, col=3, range=[0, h_y_upper])
+        st.warning("Column 'replication' is missing -> CI will collapse to a single line (low==high).")
 
-    st.plotly_chart(fig, width="stretch")
+    # ---- Species CI table ----
+    try:
+        _df = sim_trees[sim_trees["year"] <= year].copy()
+        _sp_stats = _agg_ci(_df, ["year", "species_label"], "volume_m3")
+        _sp_stats["ci_width"] = _sp_stats["high"] - _sp_stats["low"]
+        st.write("Species CI: rows with width>0:", int((_sp_stats["ci_width"] > 0).sum()), "/", int(len(_sp_stats)))
+        st.dataframe(_sp_stats.sort_values("ci_width", ascending=False).head(20), use_container_width=True)
+    except Exception as e:
+        st.error(f"Species CI debug failed: {e}")
 
+    # ---- Management CI table ----
+    try:
+        _mg = sim_trees[sim_trees["year"] <= year].copy()
+        if "management_status" not in _mg.columns:
+            _mg["management_status"] = pd.NA
+        _mg_stats = _agg_ci(_mg, ["year", "management_status"], "volume_m3")
+        _mg_stats["ci_width"] = _mg_stats["high"] - _mg_stats["low"]
+        st.write("Management CI: rows with width>0:", int((_mg_stats["ci_width"] > 0).sum()), "/", int(len(_mg_stats)))
+        st.dataframe(_mg_stats.sort_values("ci_width", ascending=False).head(20), use_container_width=True)
+    except Exception as e:
+        st.error(f"Management CI debug failed: {e}")
 
-# RENDER PLOTS
-render_three_panel_with_shared_legend(
-    df_all=df,
-    df_sub=df_sel,
-    value_col=value_col,
-    color_mode=color_mode,
-    y_title=y_title,
-    unit_suffix=unit_suffix,
-    pie_value_label=pie_value_label,
-)
+    # ---- Deeper check: do per-rep totals actually vary? ----
+    try:
+        _df = sim_trees[sim_trees["year"] <= year].copy()
+        _df["volume_m3"] = pd.to_numeric(_df["volume_m3"], errors="coerce")
+        per_rep = (
+            _df.groupby(["replication", "year", "species_label"], as_index=False)["volume_m3"]
+              .sum()
+              .rename(columns={"volume_m3": "value"})
+        )
+
+        # std across replications for each (year, species)
+        spread = (
+            per_rep.groupby(["year", "species_label"], as_index=False)["value"]
+                  .agg(n="count", mean="mean", std="std", min="min", max="max")
+        )
+        spread["range"] = spread["max"] - spread["min"]
+        st.write("Max std across replications (year/species):", float(spread["std"].fillna(0).max()))
+        st.write("Max range across replications (year/species):", float(spread["range"].fillna(0).max()))
+        st.dataframe(spread.sort_values(["range", "std"], ascending=False).head(15), use_container_width=True)
+
+        # show a concrete distribution for the worst (year,species)
+        worst = spread.sort_values(["range", "std"], ascending=False).head(1)
+        if len(worst):
+            wy = int(worst["year"].iloc[0])
+            ws = str(worst["species_label"].iloc[0])
+            st.write(f"Sample distribution for worst group: year={wy}, species_label='{ws}'")
+            dist = per_rep[(per_rep["year"] == wy) & (per_rep["species_label"] == ws)].sort_values("value", ascending=False)
+            st.dataframe(dist.head(30), use_container_width=True)
+            st.write("Unique values in this group:", int(dist["value"].nunique()))
+    except Exception as e:
+        st.error(f"Deeper per-rep variance debug failed: {e}")
+
+    # ---- Extra check: are replications actually different at the tree-level? ----
+    try:
+        if "replication" in sim_trees.columns:
+            base = sim_trees.copy()
+            base["year"] = pd.to_numeric(base["year"], errors="coerce")
+            base["id"] = pd.to_numeric(base["id"], errors="coerce")
+            base["dbh"] = pd.to_numeric(base.get("dbh"), errors="coerce") if "dbh" in base.columns else np.nan
+            base["volume_m3"] = pd.to_numeric(base.get("volume_m3"), errors="coerce") if "volume_m3" in base.columns else np.nan
+
+            # basic per-rep fingerprint
+            fp = (
+                base.groupby("replication")
+                    .agg(rows=("id", "size"),
+                         max_year=("year", "max"),
+                         sum_vol=("volume_m3", "sum"))
+                    .reset_index()
+            )
+            st.write("Per-replication fingerprint (rows / max_year / sum_vol):")
+            st.dataframe(fp.sort_values("replication").head(30), use_container_width=True)
+            st.write("Fingerprint variability:",
+                     {
+                         "rows_unique": int(fp["rows"].nunique()),
+                         "max_year_unique": int(fp["max_year"].nunique()),
+                         "sum_vol_unique": int(fp["sum_vol"].round(6).nunique()),
+                     })
+
+            # pick a (year,id) that appears in many replications and compare dbh/volume across reps
+            cand = (
+                base.dropna(subset=["id", "year"])
+                    .groupby(["year", "id"], as_index=False)
+                    .agg(n_rep=("replication", "nunique"))
+                    .sort_values("n_rep", ascending=False)
+            )
+            if len(cand):
+                pick = cand.iloc[0]
+                py, pid, nrep = int(pick["year"]), int(pick["id"]), int(pick["n_rep"])
+                st.write(f"Tree-level variability sample: year={py}, id={pid} (present in {nrep} replications)")
+                sample = base[(base["year"] == py) & (base["id"] == pid)][["replication", "dbh", "volume_m3", "species_label", "management_status"]].copy()
+                st.dataframe(sample.sort_values("replication").head(50), use_container_width=True)
+                st.write("Unique dbh values:", int(sample["dbh"].round(6).nunique()))
+                st.write("Unique volume_m3 values:", int(sample["volume_m3"].round(6).nunique()))
+    except Exception as e:
+        st.error(f"Tree-level replication debug failed: {e}")
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t("prediction_help"))

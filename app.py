@@ -56,7 +56,7 @@ if not st.session_state.get("data_initialized"):
         st.session_state.active_mgmt_selection = "usr_mgmt"
     
 
-
+print(st.session_state.trees.columns)
 
 
 # Define common labels:
