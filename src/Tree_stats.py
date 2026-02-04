@@ -6,7 +6,7 @@ import src.io_utils as iou  # if unused, you can safely remove
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-from src.i18n import t
+from src.i18n import t, t_help
 
 
 # --------------------------------------------------------------------------------------
@@ -46,6 +46,19 @@ STAT_MIN = "Min"
 st.markdown(f"### {t('explore_tree_statistics')}")
 
 df_raw: pd.DataFrame = st.session_state.trees.copy()
+
+# -------------------------------------------------
+# Merge user attributes (from SQLite)
+# -------------------------------------------------
+usr = st.session_state.get("user_attributes")
+
+if usr is not None and not usr.empty:
+    df_raw = df_raw.merge(
+        usr,
+        on="id",
+        how="left",
+        suffixes=("", "__usr"),  # protect against name collisions
+    )
 
 CHART_HEIGHT = 350
 exclude_list = {"species", "speciesColorHex", "management_status", "managementColorHex"}
@@ -919,6 +932,10 @@ value_mapping = {
     METRIC_PROJ_EXP: "projection_exposure",
 }
 
+# -------------------------------------------------
+# Extend metrics by user attributes
+# -------------------------------------------------
+
 # Units (symbols are language-neutral; translated units use t(...))
 y_units = {
     METRIC_DBH: t("unit_cm"),
@@ -935,6 +952,16 @@ y_units = {
     METRIC_HEIGHT_DBH: "",
     METRIC_PROJ_EXP: "%",
 }
+
+usr = st.session_state.get("user_attributes")
+
+if usr is not None and not usr.empty:
+    usr_cols = [c for c in usr.columns if c != "id"]
+
+    for col in usr_cols:
+        metric_id = f"usr_{col}"
+        value_mapping[metric_id] = col
+        y_units[metric_id] = ""  # no unit by default
 
 def make_y_label(metric_id: str) -> str:
     unit = y_units.get(metric_id, "")
@@ -962,8 +989,11 @@ with c_left:
         f"**{t('values_to_plot')}**",
         options=value_options,
         index=default_index,
-        format_func=lambda k: t(k),
-        help=t("values_to_plot_help"),
+        format_func=lambda k: (
+            t(k)
+            if not isinstance(k, str) or not k.startswith("usr_")
+            else f"Extra: {k.replace('usr_', '').replace('_', ' ').title()}"
+        ),
     )
 
 # MID: Plot by / Color by / Stacked toggle
@@ -981,7 +1011,6 @@ with c_mid:
                 MODE_BY_HEIGHT: t("tree_height"),
                 MODE_BY_CATEGORY: t("category"),
             }.get(k, k),
-            help=t("plot_by_help_count"),
         )
     else:
         x_mode = MODE_BY_CATEGORY
@@ -992,7 +1021,6 @@ with c_mid:
             disabled=True,
             width="stretch",
             format_func=lambda k: t("category"),
-            help=t("plot_by_help_category_only"),
         )
 
     color_mode_id = st.segmented_control(
@@ -1001,14 +1029,12 @@ with c_mid:
         default=COLOR_BY_SPECIES,
         width="stretch",
         format_func=lambda k: t(k),
-        help=t("color_by_help"),
     )
 
     stacked = (
         st.toggle(
             f"**{t('stacked_bars')}**",
             value=True,
-            help=t("stacked_bars_help"),
         )
         if is_tree_count
         else False
@@ -1024,13 +1050,11 @@ with c_right:
             f"**{t('dbh_class_range')}**",
             options=dbh_bins,
             value=10,
-            help=t("dbh_class_range_help"),
         )
         bin_size_h = st.select_slider(
             f"**{t('height_class_range')}**",
             options=h_bins,
             value=5,
-            help=t("height_class_range_help"),
         )
 
         dbh_range = None
@@ -1049,7 +1073,6 @@ with c_right:
                     max_value=max_dbh,
                     value=(min_dbh, max_dbh),
                     step=1,
-                    help=t("dbh_filter_help"),
                 )
 
         # HEIGHT FILTER
@@ -1065,7 +1088,6 @@ with c_right:
                     max_value=max_h,
                     value=(min_h, max_h),
                     step=1,
-                    help=t("height_filter_help"),
                 )
 
         bin_size = None
@@ -1185,3 +1207,7 @@ else:
                 color_mode=color_mode_id,
                 slider_range=metric_range,
             )
+
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t_help("tree_stats_help"))

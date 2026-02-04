@@ -1,168 +1,118 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import src.io_utils as iou
-from src.i18n import t
 
-trees_df = st.session_state.trees.copy()
+from src.i18n import t, t_help
 
-# --- HLAVIČKA / BUTTONS ---
-c1, c2, c3 = st.columns([3, 1, 2])
+from src.import_utils import (
+    get_tree_ids,
+    get_existing_usr_attributes,
+    validate_csv,
+    detect_overwrite_attributes,
+    insert_usr_attributes,
+    delete_usr_attributes,
+    load_usr_attributes_wide,
+)
+
+# =================================================
+# INIT
+# =================================================
+sqlite_path = st.session_state.project_file.replace(".json", ".sqlite")
+
+# vždy zajisti snapshot user atributů
+if "user_attributes" not in st.session_state:
+    st.session_state.user_attributes = load_usr_attributes_wide(sqlite_path)
+
+tree_ids = get_tree_ids(sqlite_path)
+
+c1, _ ,c2, = st.columns([5, 1, 5])
 
 with c1:
-    st.markdown(f"##### {t('page_add_attributes_title')}:")
+    st.markdown(f"### {t('import_label')}")
 
+    # =================================================
+    # IMPORT ATTRIBUTES
+    # =================================================
     uploaded_file = st.file_uploader(
-        label="",
+        label=t("uploader_label"),
         type="csv",
-        help=t("file_uploader_details"),  # bez příkladu formátu
     )
 
-with c3:
-    st.button(
-        f"**{t('btn_save_project')}**",
-        type="primary",
-        icon=":material/save:",
-        use_container_width=True,
-    )
-    st.button(
-        f"**{t('btn_save_project_as')}**",
-        type="secondary",
-        icon=":material/save_as:",
-        use_container_width=True,
-    )
-    do_import = st.button(
-        t("btn_import_attributes"),
-        type="secondary",
-        icon=":material/add_column_right:",
-        use_container_width=True,
-    )
+    validation_ok = False
+    overwrite_confirmed = False
+    csv_df = None
+    attributes = []
 
-# === ZPRACOVÁNÍ PO NAHRÁNÍ ===
-if uploaded_file is not None:
-    import_df = pd.read_csv(uploaded_file)
+    if uploaded_file is not None:
+        csv_df = pd.read_csv(uploaded_file)
 
-    # 1) Urči ID sloupec v importu (preferuj 'ID', jinak první sloupec)
-    import_id_col = "ID" if "ID" in import_df.columns else import_df.columns[0]
-    if import_id_col != "ID":
-        import_df = import_df.rename(columns={import_id_col: "ID"})
-    import_df["ID"] = import_df["ID"].astype(str).str.strip()
-    import_df = import_df.drop_duplicates(subset=["ID"], keep="last")
+        validation = validate_csv(csv_df, tree_ids)
 
-    # 2) Urči ID v projektových datech (preferuj 'ID', jinak první sloupec)
-    trees_id_col = "ID" if "ID" in trees_df.columns else trees_df.columns[0]
-    trees_df["_ID_JOIN"] = trees_df[trees_id_col].astype(str).str.strip()
+        if not validation["ok"]:
+            st.error(validation["error"])
+        else:
+            validation_ok = True
+            attributes = validation["attributes"]
 
-    # 3) Zjisti chybějící ID (v trees jsou, v CSV chybí)
-    missing_ids = sorted(set(trees_df["_ID_JOIN"]) - set(import_df["ID"]))
+            st.success(t("csv_ok"))
+            label = t("detected_attributes_label")
+            st.caption(f"{label} {', '.join(attributes)}")
 
-    if missing_ids:
-        st.error(t("error_missing_ids", count=len(missing_ids)))
-        st.code(", ".join(missing_ids[:50]) + (" ..." if len(missing_ids) > 50 else ""))
+            existing_attrs = get_existing_usr_attributes(sqlite_path)
+            overwrite_attrs = detect_overwrite_attributes(attributes, existing_attrs)
 
-    # 4) Rozdělení sloupců: duplicitní (přepíšou se), nové (přidají se)
-    dup_cols = [c for c in import_df.columns if c != "ID" and c in trees_df.columns]
-    new_cols = [c for c in import_df.columns if c != "ID" and c not in trees_df.columns]
-    all_cols = dup_cols + new_cols
-
-    if not all_cols:
-        st.info(t("info_no_columns_to_import"))
-    else:
-        if dup_cols:
-            st.warning(t("warn_overwrite_columns") + " " + ", ".join(dup_cols))
-
-        # 5) Sloučení pro preview
-        merged = trees_df.merge(
-            import_df[["ID"] + all_cols],
-            left_on="_ID_JOIN",
-            right_on="ID",
-            how="left",
-            suffixes=("", "_import"),
-        )
-
-        # DŮLEŽITÉ: ID ve výstupu je VŽDY z projektových dat
-        preview_df = pd.DataFrame({"ID": trees_df["_ID_JOIN"].values})
-        for c in all_cols:
-            preview_df[c] = merged[c].values
-
-        # NaN -> <NA>
-        preview_df = preview_df.convert_dtypes()
-        preview_df = preview_df.where(pd.notna(preview_df), pd.NA)
-
-        # --- Stylování (pandas Styler) ---
-        missing_set = set(map(str, missing_ids))
-        ROW_MISSING_BG = "background-color: rgba(255,0,0,0.10)"   # missing ID
-        COL_DUP_BG     = "background-color: rgba(255,215,0,0.25)" # dup sloupce
-
-        def highlight_rows(row: pd.Series):
-            _id = row.get("ID", "")
-            miss = pd.isna(_id) or str(_id) in missing_set or str(_id) == ""
-            return [ROW_MISSING_BG if miss else ""] * len(row)
-
-        def highlight_cols(col: pd.Series):
-            name = col.name
-            if name in dup_cols:
-                return [COL_DUP_BG] * len(col)
-            return [""] * len(col)
-
-        base_styles = [
-            dict(selector="th", props=[("max-width", "140px"), ("overflow", "hidden")]),
-            dict(
-                selector="td",
-                props=[
-                    ("max-width", "160px"),
-                    ("overflow", "hidden"),
-                    ("text-overflow", "ellipsis"),
-                    ("white-space", "nowrap"),
-                ],
-            ),
-            dict(selector="table", props=[("table-layout", "fixed")]),
-        ]
-
-        small_styler = (
-            preview_df.head(3)
-            .style
-            .apply(highlight_rows, axis=1)
-            .apply(highlight_cols, axis=0)
-            .set_table_styles(base_styles)
-        )
-
-        full_styler = (
-            preview_df
-            .style
-            .apply(highlight_rows, axis=1)
-            .apply(highlight_cols, axis=0)
-            .set_table_styles(base_styles)
-        )
-
-        # 6) „Minimalizovaný“ náhled
-        st.markdown(f"##### {t('preview_title')}")
-        st.dataframe(
-            small_styler,
-            use_container_width=False,
-            height=160,
-        )
-
-        # 7) Plný náhled v expanderu
-        with st.expander(t("preview_full")):
-            st.dataframe(
-                full_styler,
-                use_container_width=True,
-                height=600,
-            )
-
-        # 8) Samotný import po kliknutí
-        if do_import:
-            id_series = trees_df[trees_id_col].astype(str).str.strip()
-            for col in all_cols:
-                mapper = dict(zip(import_df["ID"], import_df[col]))
-                trees_df[col] = id_series.map(mapper)
-
-            st.session_state.trees = trees_df.drop(columns=["_ID_JOIN"], errors="ignore")
-            st.success(
-                t(
-                    "success_import",
-                    count=len(all_cols),
-                    cols=", ".join(all_cols),
+            if overwrite_attrs:
+                st.warning(
+                    t("existing_att_warn")
+                    + ", ".join(overwrite_attrs)
                 )
-            )
+                overwrite_confirmed = st.checkbox(
+                    t("confirm_overwrite")
+                )
+            else:
+                overwrite_confirmed = True
+
+    can_import = validation_ok and overwrite_confirmed
+
+    if st.button(
+        t("import_btn"),
+        type="primary",
+        disabled=not can_import,
+    ):
+        insert_usr_attributes(sqlite_path, csv_df)
+
+        # vždy refresh snapshotu
+        st.session_state.user_attributes = load_usr_attributes_wide(sqlite_path)
+
+        st.success("Attributes successfully imported")
+
+# =================================================
+# REMOVE ATTRIBUTES
+# =================================================
+with c2:
+    st.markdown(f"### {t("remove_label")}")
+
+    existing_attrs = get_existing_usr_attributes(sqlite_path)
+
+    if not existing_attrs:
+        st.info(t("no_usr_att"))
+    else:
+        to_remove = st.multiselect(
+            t("import_sucess"),
+            options=existing_attrs,
+        )
+
+        if st.button(
+            t("remove_btn"),
+            type="secondary",
+            disabled=not to_remove,
+        ):
+            delete_usr_attributes(sqlite_path, to_remove)
+
+            # refresh snapshotu
+            st.session_state.user_attributes = load_usr_attributes_wide(sqlite_path)
+
+            st.success(t("remove_sucess"))
+
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t_help("add_att_help"))

@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import src.io_utils as iou
 import math
 
-from src.i18n import t
+from src.i18n import t, t_help
 
 
 # ------------------------------------------------------------
@@ -404,3 +404,6 @@ with right:
     )
     fig2.update_xaxes(range=[0, 100])
     st.plotly_chart(fig2, use_container_width=True)
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t_help("intensity_help"))

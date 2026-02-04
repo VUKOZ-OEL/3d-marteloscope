@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import src.io_utils as iou
 
-from src.i18n import t
+from src.i18n import t, t_help
 
 
 # ------------------------------------------------------------
@@ -453,3 +453,6 @@ def render_crown_volume_profiles(df_all: pd.DataFrame, primary: str, overlay: st
 
 
 render_crown_volume_profiles(df, primary=primary, overlay=overlay)
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t_help("canopy_help"))

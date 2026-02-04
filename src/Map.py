@@ -5,7 +5,7 @@ import numpy as np
 import plotly.graph_objects as go
 import src.io_utils as iou
 
-from src.i18n import t
+from src.i18n import t, t_help
 from src.map_helpers import (
     parse_polygon,
     hex_to_rgba,
@@ -358,3 +358,6 @@ with c23:
 # SAVE SIZE SETTINGS
 st.session_state.size_min = size_min
 st.session_state.size_max = size_max
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t_help("map_help"))

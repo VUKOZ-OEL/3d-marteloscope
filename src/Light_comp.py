@@ -16,7 +16,7 @@ from plotly.subplots import make_subplots
 import streamlit as st
 import src.io_utils as iou
 
-from src.i18n import t  # uses st.session_state.lang :contentReference[oaicite:1]{index=1}
+from src.i18n import t,t_help  # uses st.session_state.lang :contentReference[oaicite:1]{index=1}
 
 # --- panel names from session (already localized elsewhere) ---
 Before = st.session_state.Before
@@ -473,3 +473,6 @@ with c32:
         help=t("filter_management_help"),
         key="mgmt_sel",
     )
+
+with st.expander(label=t("expander_help_label"),icon=":material/help:"):
+    st.markdown(t_help("light_comp_help"))

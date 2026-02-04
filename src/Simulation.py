@@ -1,309 +1,238 @@
 # src/Simulation.py
+import ctypes
+import os
+from pathlib import Path
+import shutil
+
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.graph_objects as go
 
 import src.io_utils as iou
-from src.simul_utils import load_simulation, build_species_maps
+import src.simul_utils2 as sut
+from src.i18n import t, t_help
+from src.species_dict import species_dict
+from src.run_iland import run_iland
 
 
-st.markdown("##### Forest Growth Simulation")
+# =============================================================================
+# HEADER
+# =============================================================================
+st.markdown(f"#### {t('simulation_header')}")
 
-root = "C:/Users/krucek/Documents/iLand/test/rep_out"
+trees = st.session_state.trees
+project_file = st.session_state.project_file
 
-# --- palette for species (from project json) ---
-# Prefer session palette if available (set in app.py), otherwise fall back
-project_file = st.session_state.get("project_file", "data/test_project.json")
-color_pallete = st.session_state.get("color_palette") or iou.load_color_palette(project_file)
-code2latin, code2color, code2label = build_species_maps(color_pallete)
+out_csv = sut.export_iland_trees_csv(
+    trees=trees,
+    species_dict=species_dict,
+    project_file=project_file,
+)
 
 
-# =========================
+
+# =============================================================================
+# CONFIG
+# =============================================================================
+xml_path = Path("C:/Users/krucek/Documents/iLand/test/Pokojna_hora.xml")
+out_db = Path("C:/Users/krucek/Documents/iLand/test/output/output.sqlite")
+temp_db = Path("C:/Users/krucek/Documents/iLand/test/output/temp.sqlite")
+
+
+# =============================================================================
 # UI
-# =========================
-c_left, left_empty, c_mid, right_empty, c_right = st.columns([3, 1, 4, 1, 3])
+# =============================================================================
+c1, _, c2, _, c3, _, c4 = st.columns([2, 0.25, 2, 0.25, 2, 0.25, 3])
 
-with c_left:
+with c1:
     st.markdown("####")
     run_simul = st.button(
-        "**Start simulation**",
+        f"**{t('button_run_simulation')}**",
         icon=":material/play_arrow:",
         width="stretch",
         type="primary",
     )
 
-with c_mid:
-    st.markdown("**Set lenght of Simulation:**")
-    year = st.slider("", min_value=0, max_value=100, value=30, step=5)
+with c2:
+    st.markdown(f"**{t('simulation_period')}**")
+    years = st.slider("", min_value=0, max_value=100, value=30, step=5)
 
-with c_right:
-    st.markdown("**Options:**")
-    mortality = st.toggle("Mortality")
-    regeneration = st.toggle("Regeneration")
+with c3:
+    st.markdown(f"**{t('replications')}**")
+    n_rep = st.slider("", min_value=1, max_value=100, value=10, step=1)
+
+with c4:
+    st.markdown(f"**{t('simulation_options')}**")
+    c4l, c4r = st.columns([1, 1])
+
+    with c4l:
+        mortality = st.toggle(t("mortality_box"), value=True)
+    with c4r:
+        regeneration = st.toggle(t("regeneration_box"), value=True)
 
 st.divider()
 
 
-# =========================
-# Helpers
-# =========================
-def _get_trees_df() -> pd.DataFrame:
-    if "trees" not in st.session_state or st.session_state.trees is None:
-        return pd.DataFrame()
-    return st.session_state.trees.copy()
-
-
-def _enrich_sim_with_trees(sim_trees: pd.DataFrame) -> pd.DataFrame:
-    """
-    Join info from session_state.trees by id and add:
-      - speciesColorhex
-      - management_status
-      - managementColorHex
-    Also adds:
-      - species_label (for legends)
-    """
-    out = sim_trees.copy()
-
-    # always add label
-    out["species_label"] = out["species"].map(
-        lambda c: code2label.get(str(c).lower(), str(c).title())
-    )
-
-    trees = _get_trees_df()
-    if trees.empty or "id" not in trees.columns or "id" not in out.columns:
-        # fallback colors from palette if possible
-        out["speciesColorhex"] = out["species"].map(lambda c: code2color.get(str(c).lower()))
-        if "management_status" not in out.columns:
-            out["management_status"] = pd.NA
-        if "managementColorHex" not in out.columns:
-            out["managementColorHex"] = pd.NA
-        return out
-
-    # ---- speciesColorhex from trees (try common names) ----
-    if "speciesColorhex" not in trees.columns:
-        if "speciesColorHex" in trees.columns:
-            trees["speciesColorhex"] = trees["speciesColorHex"]
-        elif "species_color" in trees.columns:
-            trees["speciesColorhex"] = trees["species_color"]
-        elif "speciesColor" in trees.columns:
-            trees["speciesColorhex"] = trees["speciesColor"]
-        else:
-            trees["speciesColorhex"] = pd.NA
-
-    # ---- management_status from trees (try common names) ----
-    if "management_status" not in trees.columns:
-        if "managementStatus" in trees.columns:
-            trees["management_status"] = trees["managementStatus"]
-        elif "management" in trees.columns:
-            trees["management_status"] = trees["management"]
-        elif "treatment" in trees.columns:
-            trees["management_status"] = trees["treatment"]
-        else:
-            trees["management_status"] = pd.NA
-
-    # ---- managementColorHex from trees (try common names) ----
-    if "managementColorHex" not in trees.columns:
-        if "managementColorhex" in trees.columns:
-            trees["managementColorHex"] = trees["managementColorhex"]
-        elif "management_color" in trees.columns:
-            trees["managementColorHex"] = trees["management_color"]
-        elif "managementColor" in trees.columns:
-            trees["managementColorHex"] = trees["managementColor"]
-        else:
-            trees["managementColorHex"] = pd.NA
-
-    trees_join = (
-        trees[["id", "speciesColorhex", "management_status", "managementColorHex"]]
-        .drop_duplicates("id")
-        .copy()
-    )
-
-    out = out.merge(trees_join, on="id", how="left")
-
-    # fallback speciesColorhex if missing: use palette via species code
-    out["speciesColorhex"] = out.apply(
-        lambda r: r["speciesColorhex"]
-        if pd.notna(r.get("speciesColorhex")) and str(r.get("speciesColorhex")).strip() != ""
-        else code2color.get(str(r["species"]).lower()),
-        axis=1,
-    )
-
-    return out
-
-
-def _fig_volume_by_species(sim_trees: pd.DataFrame, max_year: int) -> go.Figure:
-    df = sim_trees.copy()
-    df = df[df["year"] <= max_year]
-
-    # SUM volume across trees per year & species
-    g = (
-        df.groupby(["year", "species_label"], as_index=False)["volume_m3"]
-        .sum()
-        .rename(columns={"volume_m3": "volume_sum_m3"})
-    )
-
-    # color map per species_label
-    c = (
-        df[["species_label", "speciesColorhex"]]
-        .dropna()
-        .drop_duplicates("species_label")
-        .set_index("species_label")["speciesColorhex"]
-        .to_dict()
-    )
-
-    # total line
-    total = (
-        g.groupby("year", as_index=False)["volume_sum_m3"]
-        .sum()
-        .rename(columns={"volume_sum_m3": "total_volume_sum_m3"})
-        .sort_values("year")
-    )
-
-    fig = go.Figure()
-
-    for sp in sorted(g["species_label"].unique()):
-        s = g[g["species_label"] == sp].sort_values("year")
-        # legenda jen pro nenulové křivky
-        if s.empty or float(s["volume_sum_m3"].fillna(0).max()) <= 0:
-            continue
-
-        fig.add_trace(
-            go.Scatter(
-                x=s["year"],
-                y=s["volume_sum_m3"],
-                mode="lines",
-                name=sp,
-                line=dict(color=c.get(sp)),
-                hovertemplate="Year=%{x}<br>Volume SUM=%{y:.2f} m³<extra></extra>",
-            )
-        )
-
-    # SUM line (overall) - vždy zobraz
-    fig.add_trace(
-        go.Scatter(
-            x=total["year"],
-            y=total["total_volume_sum_m3"],
-            mode="lines",
-            name="SUM",
-            line=dict(width=4),
-            hovertemplate="Year=%{x}<br>Total SUM=%{y:.2f} m³<extra></extra>",
-        )
-    )
-
-    fig.update_layout(
-        title="Volume (SUM) by Species",
-        xaxis_title="Year",
-        yaxis_title="Volume SUM (m³)",
-        legend_title_text="Species",
-        margin=dict(l=10, r=10, t=60, b=10),
-    )
-    return fig
-
-
-def _fig_volume_by_management(sim_trees: pd.DataFrame, max_year: int) -> go.Figure:
-    df = sim_trees.copy()
-    df = df[df["year"] <= max_year]
-
-    if "management_status" not in df.columns:
-        df["management_status"] = pd.NA
-
-    g = (
-        df.groupby(["year", "management_status"], as_index=False)["volume_m3"]
-        .sum()
-        .rename(columns={"volume_m3": "volume_sum_m3"})
-    )
-
-    c = (
-        df[["management_status", "managementColorHex"]]
-        .dropna()
-        .drop_duplicates("management_status")
-        .set_index("management_status")["managementColorHex"]
-        .to_dict()
-    )
-
-    total = (
-        g.groupby("year", as_index=False)["volume_sum_m3"]
-        .sum()
-        .rename(columns={"volume_sum_m3": "total_volume_sum_m3"})
-        .sort_values("year")
-    )
-
-    fig = go.Figure()
-
-    preferred = ["Target tree", "Untouched"]
-    all_statuses = [s for s in g["management_status"].dropna().unique()]
-    statuses_sorted = [s for s in preferred if s in all_statuses] + [
-        s for s in sorted(all_statuses) if s not in preferred
-    ]
-
-    for ms in statuses_sorted:
-        s = g[g["management_status"].eq(ms)].sort_values("year")
-        # legenda jen pro nenulové křivky
-        if s.empty or float(s["volume_sum_m3"].fillna(0).max()) <= 0:
-            continue
-
-        name = str(ms)
-        fig.add_trace(
-            go.Scatter(
-                x=s["year"],
-                y=s["volume_sum_m3"],
-                mode="lines",
-                name=name,
-                line=dict(color=c.get(ms)),
-                hovertemplate="Year=%{x}<br>Volume SUM=%{y:.2f} m³<extra></extra>",
-            )
-        )
-
-    fig.add_trace(
-        go.Scatter(
-            x=total["year"],
-            y=total["total_volume_sum_m3"],
-            mode="lines",
-            name="SUM",
-            line=dict(width=4),
-            hovertemplate="Year=%{x}<br>Total SUM=%{y:.2f} m³<extra></extra>",
-        )
-    )
-
-    fig.update_layout(
-        title="Volume (SUM) by Management Status",
-        xaxis_title="Year",
-        yaxis_title="Volume SUM (m³)",
-        legend_title_text="Management",
-        margin=dict(l=10, r=10, t=60, b=10),
-    )
-    return fig
-
-
-# =========================
-# Load + render
-# =========================
-# (volitelně) reload při kliknutí na Start simulation
+# =============================================================================
+# RUN SIMULATION (MONTE CARLO)
+# =============================================================================
 if run_simul:
-    st.session_state.pop("sim_trees", None)
+    all_living = []
 
-if "sim_trees" not in st.session_state:
-    with st.spinner(
-        "Loading and processing outcomes of forest growth simulation, please wait.",
-        show_time=True,
-    ):
-        sim_trees = load_simulation(root)
-        sim_trees = _enrich_sim_with_trees(sim_trees)
-        st.session_state.sim_trees = sim_trees
+    progress = st.progress(0.0, text=t("simulation_progress_running"))
 
-sim_trees = st.session_state.sim_trees
+    sut.set_iland_mortality_regeneration(xml_path, mortality, regeneration)
 
-# ensure numeric year
-if "year" in sim_trees.columns:
+    for i in range(1, n_rep + 1):
+        percent = int(round((i-0.5) / n_rep * 100))
+
+        progress.progress(
+            (i-0.5) / n_rep,
+            text=t("simulation_progress_replication").format(p=percent),
+        )
+
+        run_iland(str(xml_path).encode("utf-8"), years)
+        shutil.copyfile(out_db, temp_db)
+
+        living = sut.read_single_sqlite_living(
+            temp_db,
+            rep_id=f"rep_{i:03d}"
+        )
+        if not living.empty:
+            all_living.append(living)
+
+    progress.empty()
+
+    if not all_living:
+        st.error(t("simulation_no_output"))
+        st.stop()
+
+    sim_trees = pd.concat(all_living, ignore_index=True)
+
+    trees = st.session_state.get("trees")
+    sim_trees = sut.map_species_label(sim_trees, species_dict)
+    sim_trees = sut.mark_target_trees(sim_trees, trees)
     sim_trees["year"] = pd.to_numeric(sim_trees["year"], errors="coerce")
 
-# =========================
-# Charts side-by-side
-# =========================
-col1, col2 = st.columns(2, gap="large")
+    st.session_state.sim_trees = sim_trees
 
-with col1:
-    st.plotly_chart(_fig_volume_by_species(sim_trees, max_year=year), use_container_width=True)
 
-with col2:
-    st.plotly_chart(_fig_volume_by_management(sim_trees, max_year=year), use_container_width=True)
+# =============================================================================
+# STOP HERE if no simulation yet
+# =============================================================================
+if "sim_trees" in st.session_state:
+
+    sim_trees = st.session_state.sim_trees
+
+    # =============================================================================
+    # COLORS
+    # =============================================================================
+    palette = st.session_state.get("color_palette") or iou.load_color_palette(
+        st.session_state.get("project_file", "data/test_project.json")
+    )
+
+    species_colors = palette.get("species", {})
+    management_colors = palette.get("management", {})
+
+    SUM_COLOR = "#7A7A7A"
+
+    mg_colors = {
+        "Target tree": management_colors.get("Target tree", "#F4EE00"),
+        "Untouched": management_colors.get("Untouched", "#A6A6A6"),
+        "SUM": SUM_COLOR,
+    }
+
+
+    # =============================================================================
+    # FAN CHART PLOTTER
+    # =============================================================================
+    def _hex_to_rgba(hex_color: str, alpha: float) -> str:
+        h = hex_color.lstrip("#")
+        r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+        return f"rgba({r},{g},{b},{alpha})"
+
+
+    def fig_fan(stats: pd.DataFrame, group_col: str, color_map: dict, title_key: str):
+        fig = go.Figure()
+
+        for g in stats[group_col].unique():
+            s = stats[stats[group_col] == g].sort_values("year")
+            color = color_map.get(g, SUM_COLOR)
+
+            for lo, hi, a in [("q5", "q95", 0.15), ("q25", "q75", 0.25)]:
+                fig.add_trace(go.Scatter(
+                    x=s["year"],
+                    y=s[hi],
+                    mode="lines",
+                    line=dict(width=0),
+                    showlegend=False,
+                    hoverinfo="skip",
+                ))
+                fig.add_trace(go.Scatter(
+                    x=s["year"],
+                    y=s[lo],
+                    mode="lines",
+                    line=dict(width=0),
+                    fill="tonexty",
+                    fillcolor=_hex_to_rgba(color, a),
+                    showlegend=False,
+                    hoverinfo="skip",
+                ))
+
+            fig.add_trace(go.Scatter(
+                x=s["year"],
+                y=s["q50"],
+                mode="lines",
+                name=g,
+                line=dict(color=color, width=4 if g == "SUM" else 2),
+            ))
+
+        fig.update_layout(
+            title=dict(
+                text=t(title_key),
+                x=0.5,
+                xanchor="center",
+            ),
+            xaxis_title=t("chart_x_year"),
+            yaxis_title=t("metric_volume_m3"),
+            margin=dict(l=10, r=10, t=60, b=10),
+        )
+        return fig
+
+
+    # =============================================================================
+    # BUILD FAN DATA
+    # =============================================================================
+    df = sim_trees[sim_trees["year"] <= years]
+
+    fan_species = pd.concat([
+        sut.agg_fan(df, ["year", "species_label"]).assign(group=lambda d: d["species_label"]),
+        sut.agg_fan(df, ["year"]).assign(group="SUM"),
+    ])
+
+    fan_mgmt = pd.concat([
+        sut.agg_fan(df, ["year", "management_group"]).assign(group=lambda d: d["management_group"]),
+        sut.agg_fan(df, ["year"]).assign(group="SUM"),
+    ])
+
+
+    # =============================================================================
+    # PLOTS
+    # =============================================================================
+    col1, col2 = st.columns(2, gap="large")
+
+    with col1:
+        st.plotly_chart(
+            fig_fan(fan_species, "group", species_colors, "chart_volume_by_species"),
+            width="stretch",
+        )
+
+    with col2:
+        st.plotly_chart(
+            fig_fan(fan_mgmt, "group", mg_colors, "chart_volume_by_management"),
+            width="stretch",
+        )
+
+with st.expander(label=t("expander_help_label"), icon=":material/help:"):
+    st.markdown(t_help("simulation_help"))
