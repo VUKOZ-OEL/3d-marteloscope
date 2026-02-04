@@ -62,6 +62,9 @@ if not st.session_state.get("data_initialized"):
     # vždy zajisti snapshot user atributů
     if "user_attributes" not in st.session_state:
         st.session_state.user_attributes = load_usr_attributes_wide(st.session_state.sqlite_path)
+
+    if "stocking_reference" not in st.session_state:
+        st.session_state.stocking_reference = iou.load_stocking_reference(st.session_state.sqlite_path)
     
 
 

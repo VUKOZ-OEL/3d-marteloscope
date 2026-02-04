@@ -69,6 +69,20 @@ METRIC_TREE_COUNT = "metric_tree_count"
 METRIC_VOLUME = "metric_volume_m3"
 METRIC_BASAL_AREA = "metric_basal_area_m2"
 METRIC_CANOPY_COVER = "metric_canopy_cover_pct"
+METRIC_STOCKING = "metric_stocking"
+
+# --- dostupnost stocking dat
+has_stocking = df is not None and not df.empty
+
+metric_options = [
+    METRIC_TREE_COUNT,
+    METRIC_VOLUME,
+    METRIC_BASAL_AREA,
+    METRIC_CANOPY_COVER,
+]
+
+if has_stocking:
+    metric_options.append(METRIC_STOCKING)
 
 
 def _make_masks(d: pd.DataFrame):
@@ -133,11 +147,13 @@ with c2:
 with c4:
     sum_metric_id = st.segmented_control(
         f"**{t('sum_values_by')}**",
-        options=[METRIC_TREE_COUNT, METRIC_VOLUME, METRIC_BASAL_AREA, METRIC_CANOPY_COVER],
+        options=metric_options,
         format_func=lambda k: t(k),
         default=METRIC_TREE_COUNT,
         width="stretch",
     )
+
+color_disabled = sum_metric_id == METRIC_STOCKING
 
 with c6:
     color_mode = st.segmented_control(
@@ -146,6 +162,7 @@ with c6:
         format_func=lambda k: t(k),
         default=COLOR_BY_SPECIES,
         width="stretch",
+        disabled=color_disabled,
     )
 
 
@@ -169,6 +186,10 @@ def _metric_meta(metric_id: str):
 
     if metric_id == METRIC_CANOPY_COVER:
         return "canopy_cover_pct", t("metric_canopy_cover_pct"), t("unit_percent"), t("metric_canopy_cover"), "%"
+
+    if metric_id == METRIC_STOCKING:
+        return "volume", t("stocking"), t("unit_percent"), t("stocking"), "%"
+    
 
     return None, t("trees"), t("trees_per_ha"), t("trees"), "trees"
 
@@ -551,17 +572,178 @@ def render_three_panel_with_shared_legend(
 
     st.plotly_chart(fig, width="stretch")
 
+def render_stocking_pie(
+    df_all: pd.DataFrame,
+    df_sub: pd.DataFrame,
+    stocking_ref: pd.DataFrame,
+):
+    import numpy as np
+    import plotly.graph_objects as go
 
-render_three_panel_with_shared_legend(
-    df_all=df,
-    df_sub=df_sel,
-    value_col=value_col,
-    color_mode_key=color_mode,
-    y_title=y_title,
-    unit_suffix=unit_suffix,
-    pie_value_label=pie_value_label,
-    unit_disp=unit_disp,
-)
+    # ---------- reference volumes ----------
+    ref = stocking_ref.copy()
+    ref["ref_volume"] = pd.to_numeric(ref["ref_volume"], errors="coerce").fillna(0)
+    ref = ref[ref["ref_volume"] > 0]
+
+    if ref.empty:
+        return
+
+    ref_map = ref.set_index("species")["ref_volume"].to_dict()
+
+    # ---------- actual volumes (filtered by before / after / removed) ----------
+    d = df_sub.copy()
+    if "species" not in d.columns or "volume" not in d.columns:
+        return
+
+    d["volume"] = pd.to_numeric(d["volume"], errors="coerce").fillna(0)
+
+    agg = d.groupby("species", as_index=False)["volume"].sum()
+    agg["ref_volume"] = agg["species"].map(ref_map)
+    agg = agg.dropna(subset=["ref_volume"])
+
+    if agg.empty:
+        return
+
+    # ---------- stocking calculation ----------
+    agg["stocking_pct"] = (agg["volume"] / agg["ref_volume"]) * 100.0
+    agg = agg[agg["stocking_pct"] > 0]
+
+    if agg.empty:
+        return
+
+    pie_labels = agg["species"].astype(str).tolist()
+    pie_values = agg["stocking_pct"].astype(float).tolist()
+
+    total_stocking = float(np.sum(pie_values))
+
+    # ---------- colors by species ----------
+    color_map = _species_colors(df_all)
+    pie_colors = [color_map.get(s, "#AAAAAA") for s in pie_labels]
+
+    # ---------- uncovered (< 100 %) – STEJNĚ JAKO CANOPY COVER ----------
+    uncovered = max(0.0, 100.0 - total_stocking)
+
+    pie_hover = [
+        f"{t('hover_species')}: %{{label}}<br>{t('stocking')}: %{{value:.1f}} %<extra></extra>"
+    ] * len(pie_values)
+
+    pie_text = None
+    textinfo = "text"
+    texttemplate = "%{percent:.1%}"
+
+    if uncovered > 1e-6:
+        pie_labels.append(t("uncovered"))
+        pie_values.append(uncovered)
+        pie_colors.append("#FFFFFF")
+        pie_hover.append("<extra></extra>")
+
+        # ručně dopočítaná procenta (jako u canopy cover)
+        total_for_percent = float(np.nansum(pie_values)) or 1.0
+        pct_text = []
+        for lab, val in zip(pie_labels, pie_values):
+            if lab == t("uncovered"):
+                pct_text.append("")
+            else:
+                pct_text.append(f"{(val / total_for_percent) * 100.0:.1f}%")
+
+        pie_text = pct_text
+        texttemplate = None
+
+    # ---------- pie ----------
+    fig = go.Figure(
+        go.Pie(
+            labels=pie_labels,
+            values=pie_values,
+            hole=0.5,
+            marker=dict(colors=pie_colors, line=dict(color="#FFFFFF", width=1)),
+            textinfo=textinfo,
+            texttemplate=texttemplate,
+            text=pie_text,
+            textposition="inside",
+            insidetextorientation="radial",
+            hovertemplate=pie_hover,
+            showlegend=False,   # STEJNĚ JAKO CANOPY COVER
+            sort=False,
+        )
+    )
+
+    # ---------- manual legend (species only) ----------
+    for species, color in zip(
+        agg["species"].astype(str).tolist(),
+        pie_colors[: len(agg)]
+    ):
+        fig.add_trace(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                mode="markers",
+                marker=dict(
+                    size=12,
+                    color=color,
+                    symbol="square",
+                ),
+                name=species,
+                showlegend=True,
+                hoverinfo="skip",
+            )
+        )
+
+    # ---------- center Σ ----------
+    fig.add_annotation(
+        x=0.5,
+        y=0.5,
+        xref="paper",
+        yref="paper",
+        text=f"Σ =<br><b>{total_stocking:.1f}</b><br>%",
+        showarrow=False,
+        font=dict(size=26, color="black"),
+        xanchor="center",
+        yanchor="middle",
+    )
+
+    fig.update_layout(
+        height=CHART_HEIGHT,
+        margin=dict(l=10, r=10, t=40, b=40),
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+    )
+
+    fig.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.2,
+            xanchor="center",
+            x=0.5,
+            itemclick=False,
+            itemdoubleclick=False,
+        )
+    )
+
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
+
+    st.plotly_chart(fig, width="stretch")
+
+
+if sum_metric_id == METRIC_STOCKING:
+    render_stocking_pie(
+        df_all=df,
+        df_sub=df_sel,
+        stocking_ref=st.session_state.stocking_reference,
+    )
+else:
+    render_three_panel_with_shared_legend(
+        df_all=df,
+        df_sub=df_sel,
+        value_col=value_col,
+        color_mode_key=color_mode,
+        y_title=y_title,
+        unit_suffix=unit_suffix,
+        pie_value_label=pie_value_label,
+        unit_disp=unit_disp,
+    )
+
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
     st.markdown(t_help("summary_help"))

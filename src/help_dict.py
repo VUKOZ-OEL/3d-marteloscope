@@ -177,192 +177,87 @@ HELP_I18N: dict[str, dict[Lang, str]] = {
 
     "summary_help": {
         "cs": """
-            ### Souhrn porostu – přehledné grafy
+            #### Souhrn porostu – přehled grafů
+            Tato stránka poskytuje přehled struktury porostu a umožňuje porovnání stavu před zásahem, po zásahu a vytěžených stromů. Všechny hodnoty jsou přepočteny na hektar.
 
-            Tato stránka poskytuje **rychlý přehled struktury porostu** a umožňuje
-            porovnat stav **před zásahem, po zásahu a vytěžené stromy**.
+            #### Ovládání
+            ##### Zobrazit data pro
+            Volba určuje, které stromy jsou zahrnuty:
+            - Před – všechny stromy před zásahem
+            - Po – ponechané stromy (Target tree + Untouched)
+            - Vytěženo – odstraněné stromy
 
-            Grafy jsou vždy přepočteny **na hektar**.
+            ##### Součty podle
+            Určuje zobrazovanou veličinu:
+            - Počet stromů
+            - Objem dřeva (m³)
+            - Výčetní kruhová základna (m²)
+            - Zápoj porostu (%)
+            - Zakmenění (%), pokud je k dispozici referenční tabulka
 
-            ---
+            ##### Barvy podle
+            Určuje rozdělení hodnot:
+            - Dřevina – podle druhů stromů
+            - Zásah – podle kategorií managementu  
+            Při zobrazení zakmenění je tato volba nedostupná.
 
-            ## 🎛️ Ovládání grafů
+            #### Grafy
+            ##### Koláčový graf
+            Zobrazuje celkové složení porostu podle zvolené metriky.
+            - Střed koláče obsahuje součet (Σ)
+            - U zápoje a zakmenění je dopočten prázdný podíl do 100 %
+            - Procenta vyjadřují relativní zastoupení
 
-            ### 1️⃣ Zobrazit data pro
-            Vyberte, které stromy se mají do grafů zahrnout:
-            - **Před** – všechny stromy před zásahem
-            - **Po** – stromy ponechané po zásahu (Target tree + Untouched)
-            - **Vytěženo** – odstraněné stromy
+            ##### Sloupcové grafy
+            Tloušťkové (DBH) a výškové třídy zobrazují rozdělení stromů do tříd.
+            - Sloupce jsou skládané
+            - Výška sloupce odpovídá součtu hodnot ve třídě
+            - Barvy odpovídají zvolenému režimu
 
-            ---
-
-            ### 2️⃣ Součty podle
-            Určuje, **jaká veličina se agreguje a zobrazuje**:
-            - **Počet stromů**
-            - **Objem dřeva (m³)**
-            - **Výčetní kruhová základna (m²)**
-            - **Zápoj porostu (%)**
-
-            Tato volba ovlivňuje **koláčový graf i sloupcové grafy**.
-
-            ---
-
-            ### 3️⃣ Barvy podle
-            Určuje, podle čeho jsou hodnoty rozděleny:
-            - **Dřevina** – barvy odpovídají druhům stromů
-            - **Zásah** – barvy odpovídají kategoriím managementu
-
-            Legenda je **sdílená** pro všechny grafy.
-
-            ---
-
-            ## 📊 Struktura grafů
-
-            ### 🥧 Koláčový graf – složení porostu
-            Zobrazuje **celkový podíl kategorií** podle zvolené metriky.
-
-            - Střed koláče ukazuje **Σ – celkovou hodnotu**
-            - U zápoje je dopočten i podíl **nezakrytého prostoru**
-            - Procenta vyjadřují **relativní zastoupení**
-
-            ---
-
-            ### 📊 Sloupcový graf – tloušťkové třídy (DBH)
-            Ukazuje rozdělení stromů do **tloušťkových tříd**.
-
-            - Každý sloupec je **skládaný**
-            - Výška sloupce = **součet hodnot ve třídě**
-            - Barvy odpovídají zvolenému režimu (druh / zásah)
-
-            ---
-
-            ### 📊 Sloupcový graf – výškové třídy
-            Analogicky zobrazuje rozdělení stromů podle **výšky**.
-
-            - Pomáhá odhalit změny **vertikální struktury**
-            - Vhodné pro posouzení stability a prostorového uspořádání porostu
-
-            ---
-
-            ## 🖱️ Interaktivita
-            - Najetím myši zobrazíte:
-            - hodnotu konkrétní kategorie
-            - **součet celé třídy**
-            - Legenda umožňuje:
-            - dočasně skrýt / zobrazit vybrané kategorie
-
-            ---
-
-            ## 📈 Jak grafy interpretovat
-
-            - **Před × Po**: ukazuje efekt zásahu
-            - **Po × Vytěženo**: ukazuje intenzitu a selektivnost
-            - Změna tvaru sloupců:
-            - indikuje zásah do konkrétních tříd
-            - Změna koláče:
-            - ukazuje posun ve složení porostu
-
-            ---
-
-            ## 💡 Tipy
-            - Pro rychlé srovnání scénářů držte stejnou metriku
-            - Kombinace *Objem + Zásah* je vhodná pro hodnocení intenzity
-            - Kombinace *Počet + Dřevina* zvýrazní změny druhové skladby
+            #### Interaktivita a interpretace
+            Najetím myši se zobrazí hodnota kategorie a součet celé třídy. Pomocí legendy lze dočasně skrývat jednotlivé kategorie. Porovnání Před × Po ukazuje efekt zásahu, Po × Vytěženo jeho intenzitu a selektivnost.
             """,
 
                 "en": """
-            ### Stand summary – overview charts
+            #### Stand summary – overview charts
+            This page provides an overview of stand structure and allows comparison of conditions before intervention, after intervention, and removed trees. All values are normalized per hectare.
 
-            This page provides a **compact overview of stand structure**
-            and allows comparison of **before intervention, after intervention,
-            and removed trees**.
-
-            All values are normalized **per hectare**.
-
-            ---
-
-            ## 🎛️ Chart controls
-
-            ### 1️⃣ Show data for
+            #### Controls
+            ##### Show data for
             Select which trees are included:
-            - **Before** – all trees before intervention
-            - **After** – remaining trees (Target tree + Untouched)
-            - **Removed** – harvested trees
+            - Before – all trees before intervention
+            - After – remaining trees (Target tree + Untouched)
+            - Removed – harvested trees
 
-            ---
+            ##### Sum values by
+            Defines the displayed metric:
+            - Tree count
+            - Wood volume (m³)
+            - Basal area (m²)
+            - Canopy cover (%)
+            - Stocking (%), if a reference table is available
 
-            ### 2️⃣ Sum values by
-            Defines **which metric is aggregated and displayed**:
-            - **Tree count**
-            - **Wood volume (m³)**
-            - **Basal area (m²)**
-            - **Canopy cover (%)**
-
-            This affects both the pie chart and bar charts.
-
-            ---
-
-            ### 3️⃣ Color by
+            ##### Color by
             Defines how values are grouped:
-            - **Species** – colors represent tree species
-            - **Management** – colors represent management categories
+            - Species – by tree species
+            - Management – by management categories  
+            This option is disabled when stocking is selected.
 
-            The legend is **shared across all charts**.
+            #### Charts
+            ##### Pie chart
+            Shows overall stand composition for the selected metric.
+            - The center displays the total (Σ)
+            - For canopy cover and stocking, the missing share to 100 % is added
+            - Percentages express relative contribution
 
-            ---
+            ##### Bar charts
+            Diameter (DBH) and height classes show distribution across classes.
+            - Bars are stacked
+            - Bar height equals the sum within the class
+            - Colors follow the selected grouping
 
-            ## 📊 Chart layout
-
-            ### 🥧 Pie chart – stand composition
-            Shows the **overall share of categories** for the selected metric.
-
-            - The center displays **Σ – total value**
-            - For canopy cover, **uncovered area** is added
-            - Percentages express **relative contribution**
-
-            ---
-
-            ### 📊 Bar chart – DBH classes
-            Displays distribution across **diameter classes**.
-
-            - Bars are **stacked**
-            - Bar height = **sum within the class**
-            - Colors correspond to the selected grouping
-
-            ---
-
-            ### 📊 Bar chart – height classes
-            Shows distribution across **height classes**.
-
-            - Useful for assessing **vertical structure**
-            - Highlights changes in stand layering
-
-            ---
-
-            ## 🖱️ Interactivity
-            - Hovering shows:
-            - value of a specific category
-            - **total value of the class**
-            - Legend allows:
-            - temporary hiding/showing categories
-
-            ---
-
-            ## 📈 How to interpret results
-
-            - **Before vs After**: effect of the intervention
-            - **After vs Removed**: intervention intensity and selectivity
-            - Changes in bar shapes:
-            - indicate which classes were affected
-            - Changes in the pie:
-            - show shifts in stand composition
-
-            ---
-
-            ## 💡 Tips
-            - Keep the same metric when comparing scenarios
-            - *Volume + Management* is useful for intensity assessment
-            - *Tree count + Species* highlights compositional changes
+            #### Interactivity and interpretation
+            Hovering displays category values and total class sums. The legend allows temporary hiding of categories. Comparing Before × After shows intervention effects, while After × Removed indicates intensity and selectivity.
             """
             },
 

@@ -24,10 +24,53 @@ __all__ = [
     "heading_centered",
     "_unique_sorted",
     "show_success",
+    "load_stocking_reference",
 ]
 
 
 # --- Pomocné funkce (samostatné a robustní) ----------------------------------
+
+
+def load_stocking_reference(db_path: str):
+    """
+    Načte tabulku stocking_reference (species, ref_volume) ze SQLite DB.
+
+    Vrací:
+    - pd.DataFrame, pokud:
+        - tabulka existuje
+        - a alespoň jedna hodnota ref_volume > 0
+    - None, pokud:
+        - DB neexistuje
+        - tabulka neexistuje
+        - tabulka je prázdná
+        - nebo všechny ref_volume <= 0
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+    except Exception:
+        return None
+
+    try:
+        df = pd.read_sql(
+            "SELECT species, ref_volume FROM stocking_reference",
+            conn,
+        )
+    except Exception:
+        return None
+    finally:
+        conn.close()
+
+    if df.empty:
+        return None
+
+    # bezpečná konverze
+    df["ref_volume"] = pd.to_numeric(df["ref_volume"], errors="coerce").fillna(0)
+
+    # klíčová kontrola
+    if (df["ref_volume"] > 0).any():
+        return df
+
+    return None
 
 def alpha_shape(points, alpha=0.3):
     """
