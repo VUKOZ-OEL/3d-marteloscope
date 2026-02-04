@@ -259,15 +259,6 @@ with c2:
             use_container_width=True,
         )
 
-    # EXISTING button: vymazat_zásah (uživatelský zásah)
-    if st.button(t("btn_clear_management"), icon=":material/delete_sweep:",use_container_width=True, key="btn_clear_user_mgmt", type="primary"):
-        # smaž user zásah (cache) a nech na tobě, co znamená "vymazat":
-        # - nejčistší: zrušit cache -> user zásah je pryč
-        st.session_state["usr_mgmt_cache"] = None
-        st.session_state.active_mgmt_selection = USER_KEY
-        st.session_state.flash_success = t("success_clear_usr_mgmt")
-        st.session_state.flash_success_ts = pd.Timestamp.utcnow().isoformat()
-        st.rerun()
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
     st.markdown(t_help("dashboard_help"))
