@@ -64,7 +64,7 @@ if not st.session_state.get("data_initialized"):
         st.session_state.user_attributes = load_usr_attributes_wide(st.session_state.sqlite_path)
     
 
-print(st.session_state.trees.columns)
+
 
 
 # Define common labels:
