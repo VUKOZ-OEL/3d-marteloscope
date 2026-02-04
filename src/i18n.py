@@ -582,6 +582,21 @@ I18N: dict[str, dict[Lang, str]] = {
     "no_usr_att": { "cs": "nenalezeny žádné uživatelské atributy", "en": "No user attributes found" },
     "import_sucess": { "cs": "Vyber atributy k odstranění", "en": "Select attributes to remove" },
     "remove_sucess": { "cs": "Vybrané atributy odstraněny", "en": "Selected attributes removed" },
+
+    # Tree stats
+    "stat_count": {"cs": "Počet", "en": "Count"},
+    "stat_sum": {"cs": "Suma", "en": "Sum"},
+    "stat_mean": {"cs": "Průměr", "en": "Mean"},
+    "stat_median": {"cs": "Medián", "en": "Median"},
+    "stat_min": {"cs": "Minimum", "en": "Min"},
+    "stat_max": {"cs": "Maximum", "en": "Max"},
+    
+    "warn_missing_required_columns": {
+        "cs": "Chybí požadované sloupce: {columns}",
+        "en": "Missing required columns: {columns}",
+    }
+
+
 }
 
 
