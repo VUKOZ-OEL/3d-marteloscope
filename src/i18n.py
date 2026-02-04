@@ -590,13 +590,15 @@ I18N: dict[str, dict[Lang, str]] = {
     "stat_median": {"cs": "Medián", "en": "Median"},
     "stat_min": {"cs": "Minimum", "en": "Min"},
     "stat_max": {"cs": "Maximum", "en": "Max"},
+    "stocking": {"cs": "Zakmenění", "en": "Stocking"},
+    "metric_stocking": {"cs": "Zakmenění", "en": "Stocking"},
     
     "warn_missing_required_columns": {
         "cs": "Chybí požadované sloupce: {columns}",
         "en": "Missing required columns: {columns}",
     }
 
-
+    
 }
 
 
