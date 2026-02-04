@@ -12,7 +12,7 @@ from plotly.subplots import make_subplots
 import streamlit as st
 import src.io_utils as iou
 
-from src.i18n import t
+from src.i18n import t, t_help
 
 
 # -------------------------------------------------------------------
@@ -484,4 +484,4 @@ with c32:
     )
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
-    st.markdown(t("space_comp_help"))
+    st.markdown(t_help("space_comp_help"))

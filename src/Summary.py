@@ -5,7 +5,7 @@ import math
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-from src.i18n import t
+from src.i18n import t, t_help
 
 # ---------- DATA ----------
 plot_info = st.session_state.plot_info
@@ -564,4 +564,4 @@ render_three_panel_with_shared_legend(
 )
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
-    st.markdown(t("summary_help"))
+    st.markdown(t_help("summary_help"))

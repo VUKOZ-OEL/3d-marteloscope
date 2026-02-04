@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 
 import src.io_utils as iou
-from src.i18n import t
+from src.i18n import t, t_help
 from src.db_utils import (
     get_sqlite_path_from_session,
     ensure_mgmt_tables,
@@ -270,4 +270,4 @@ with c2:
         st.rerun()
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
-    st.markdown(t("dashboard_help"))
+    st.markdown(t_help("dashboard_help"))

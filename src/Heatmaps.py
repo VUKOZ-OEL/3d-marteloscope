@@ -11,7 +11,7 @@ from plotly.subplots import make_subplots
 import src.io_utils as iou
 import re
 
-from src.i18n import t
+from src.i18n import t, t_help
 
 
 # ------------------------------------------------------------
@@ -482,4 +482,4 @@ with plot_container:
     st.plotly_chart(fig, use_container_width=True)
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
-    st.markdown(t("heatmap_help"))
+    st.markdown(t_help("heatmap_help"))

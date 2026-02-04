@@ -543,13 +543,45 @@ I18N: dict[str, dict[Lang, str]] = {
 
     #SIMULATION
     "simulation_header": { "cs": "Simulace růstu lesního porostu:", "en": "Forest Growth Simulation:" },
-    "button_resater_simulation": { "cs": "Znovu spustit simulaci:", "en": "Restart simulation" },
+    "button_run_simulation": { "cs": "Spustit simulaci:", "en": "Start simulation" },
     "simulation_options": { "cs": "Možnosti simulace:", "en": "Simulation options:" },
     "simulation_period": { "cs": "Simulavané období:", "en": "Simulation period:" },
     "mortality_box": { "cs": "Mortalita", "en": "Mortality" },
     "regeneration_box": { "cs": "Obnova", "en": "Regeneration" },
-    "replications": { "cs": "Replikací iLand modelu:", "en": "iLand model replications:" },
+    "replications": { "cs": "Počet replikací modelu:", "en": "Model replications:" },
     "simul_progress": { "cs": "Probíhá simulace růstu porostu pomocí modelu iLand…", "en": "Running iLand model simulations…" },
+
+
+    "chart_volume_by_species": { "cs": "Objem porostu podle dřevin", "en": "Stand volume by species" },
+    "chart_volume_by_management": { "cs": "Objem porostu podle volby zásahu", "en": "Stand volume by treatment selection" },
+
+    "chart_x_year": { "cs": "Rok", "en": "Year" },
+
+    "simulation_progress_running": { "cs": "Probíhá simulace růstu", "en": "Growth simulation running" },
+    "simulation_progress_replication": { "cs": "Průběh: {p} %", "en": "Progress: {p} %" },
+
+    "simulation_no_output": { "cs": "Žádné výstupy simulace.", "en": "Simulation produced no outputs." },
+
+# Import/Remove
+    "import_label": { "cs": "Import atributů", "en": "Import attributes" },
+    "remove_label": { "cs": "Odstranění atributů", "en": "Remove attributes" },
+    "uploader_label": { "cs": "Nahraj CSV", "en": "Upload CSV" },
+    "simulation_no_output": { "cs": "Žádné výstupy simulace.", "en": "Simulation produced no outputs." },
+
+    "csv_ok": { "cs": "CSV prošlo validací", "en": "CSV validation passed" },
+    "detected_attributes_label": { "cs": "Detekované atributy:", "en": "Detected attributes:" },
+
+    "existing_att_warn": { "cs": "Následující atributy existují a budou přepsány:\n\n", "en": "The following attributes already exist and will be overwritten:\n\n" },
+    "confirm_overwrite": { "cs": "Rozumím a chci pokračovat", "en": "I understand and want to overwrite existing attributes" },
+
+    "import_btn": { "cs": "Importovat atributy", "en": "Import attributes" },
+    "remove_btn": { "cs": "Vymaž atributy", "en": "Remove attributes" },
+
+    "import_sucess": { "cs": "Atributy úspěšně importovány", "en": "Attributes successfully imported" },
+
+    "no_usr_att": { "cs": "nenalezeny žádné uživatelské atributy", "en": "No user attributes found" },
+    "import_sucess": { "cs": "Vyber atributy k odstranění", "en": "Select attributes to remove" },
+    "remove_sucess": { "cs": "Vybrané atributy odstraněny", "en": "Selected attributes removed" },
 }
 
 

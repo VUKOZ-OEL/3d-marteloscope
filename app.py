@@ -8,6 +8,9 @@ from src.i18n import (
     t,
     validate_i18n,
 )
+from src.import_utils import (
+    load_usr_attributes_wide,
+)
 
 # Set Page Title
 st.set_page_config(page_title="3D-Marteloscope", page_icon=":material/nature_people:", layout="wide")
@@ -40,6 +43,7 @@ file_path = "data/pokojna_test_v2_2.json"
 # Init data
 if not st.session_state.get("data_initialized"):
     st.session_state.project_file = file_path
+    st.session_state.sqlite_path = st.session_state.project_file.replace(".json", ".sqlite")
     st.session_state.trees = iou.load_project_json(file_path)
     st.session_state.mgmt_example = iou.load_mgmt_example_sqlite(file_path,"mgmt_example")
     st.session_state.plot_info = iou.load_plot_info(file_path)
@@ -54,6 +58,10 @@ if not st.session_state.get("data_initialized"):
     # default volba
     if "active_mgmt_selection" not in st.session_state:
         st.session_state.active_mgmt_selection = "usr_mgmt"
+
+    # vždy zajisti snapshot user atributů
+    if "user_attributes" not in st.session_state:
+        st.session_state.user_attributes = load_usr_attributes_wide(st.session_state.sqlite_path)
     
 
 print(st.session_state.trees.columns)

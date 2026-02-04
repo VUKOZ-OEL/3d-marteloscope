@@ -6,7 +6,7 @@ import src.io_utils as iou  # if unused, you can safely remove
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-from src.i18n import t
+from src.i18n import t, t_help
 
 
 # --------------------------------------------------------------------------------------
@@ -46,6 +46,19 @@ STAT_MIN = "Min"
 st.markdown(f"### {t('explore_tree_statistics')}")
 
 df_raw: pd.DataFrame = st.session_state.trees.copy()
+
+# -------------------------------------------------
+# Merge user attributes (from SQLite)
+# -------------------------------------------------
+usr = st.session_state.get("user_attributes")
+
+if usr is not None and not usr.empty:
+    df_raw = df_raw.merge(
+        usr,
+        on="id",
+        how="left",
+        suffixes=("", "__usr"),  # protect against name collisions
+    )
 
 CHART_HEIGHT = 350
 exclude_list = {"species", "speciesColorHex", "management_status", "managementColorHex"}
@@ -919,6 +932,10 @@ value_mapping = {
     METRIC_PROJ_EXP: "projection_exposure",
 }
 
+# -------------------------------------------------
+# Extend metrics by user attributes
+# -------------------------------------------------
+
 # Units (symbols are language-neutral; translated units use t(...))
 y_units = {
     METRIC_DBH: t("unit_cm"),
@@ -935,6 +952,16 @@ y_units = {
     METRIC_HEIGHT_DBH: "",
     METRIC_PROJ_EXP: "%",
 }
+
+usr = st.session_state.get("user_attributes")
+
+if usr is not None and not usr.empty:
+    usr_cols = [c for c in usr.columns if c != "id"]
+
+    for col in usr_cols:
+        metric_id = f"usr_{col}"
+        value_mapping[metric_id] = col
+        y_units[metric_id] = ""  # no unit by default
 
 def make_y_label(metric_id: str) -> str:
     unit = y_units.get(metric_id, "")
@@ -962,7 +989,11 @@ with c_left:
         f"**{t('values_to_plot')}**",
         options=value_options,
         index=default_index,
-        format_func=lambda k: t(k),
+        format_func=lambda k: (
+            t(k)
+            if not isinstance(k, str) or not k.startswith("usr_")
+            else f"Extra: {k.replace('usr_', '').replace('_', ' ').title()}"
+        ),
     )
 
 # MID: Plot by / Color by / Stacked toggle
@@ -1179,4 +1210,4 @@ else:
 
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
-    st.markdown(t("tree_stats_help"))
+    st.markdown(t_help("tree_stats_help"))
