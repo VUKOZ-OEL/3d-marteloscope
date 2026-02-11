@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 from shapely import wkt
+from src.i18n import t, t_help, t_mgmt
 
 
 # =========================================================
@@ -66,71 +67,58 @@ def make_masks(df):
 # =========================================================
 def make_hover_data(df: pd.DataFrame):
     """
-    Return (customdata, hovertemplate)
-
-    customdata columns (index):
-        0: species
-        1: label
-        2: dbh_rounded (0 decimals)
-        3: management_status
-        4: height
-        5: Volume_m3
-        6: crown_base_height
-        7: crown_centroid_height
-        8: crown_volume
-        9: crown_surface
-        10: horizontal_crown_proj
-        11: vertical_crown_proj
-        12: heightXdbh
-        13: projection_exposure
-    All numeric rounded to 1 decimal (except DBH to integer).
+    i18n-safe hover.
+    Zachovává PŘESNĚ stejné customdata indexy jako původní verze.
     """
 
-    # DBH jako celé číslo
-    dbh_rounded = pd.to_numeric(df["dbh"], errors="coerce").round(0).astype("Int64")
-
+    # helpers
     def r1(col):
         if col not in df.columns:
             return np.full(len(df), np.nan)
         return pd.to_numeric(df[col], errors="coerce").round(1)
 
+    # DBH jako celé číslo
+    dbh_rounded = pd.to_numeric(df["dbh"], errors="coerce").round(0).astype("Int64")
+
     customdata = np.column_stack(
         [
-            df["species"].astype(str),  # 0
-            df["label"].astype(str),  # 1
-            dbh_rounded.to_numpy(),  # 2
-            df["management_status"].astype(str),  # 3
-            r1("height"),  # 4
-            r1("Volume_m3"),  # 5
-            r1("crown_base_height"),  # 6
-            r1("crown_centroid_height"),  # 7
-            r1("crown_volume"),  # 8
-            r1("crown_surface"),  # 9
-            r1("horizontal_crown_proj"),  # 10
-            r1("vertical_crown_proj"),  # 11
-            r1("heightXdbh"),  # 12
-            r1("projection_exposure"),  # 13
+            df["species"].astype(str),                    # 0
+            df.get("label", "").astype(str),              # 1
+            dbh_rounded.to_numpy(),                       # 2
+            df["management_status"].map(t_mgmt),          # 3  ✅ i18n
+            r1("height"),                                 # 4
+            r1("Volume_m3"),                              # 5
+            r1("crown_base_height"),                      # 6
+            r1("crown_centroid_height"),                  # 7
+            r1("crown_volume"),                           # 8
+            r1("crown_surface"),                          # 9
+            r1("horizontal_crown_proj"),                  # 10
+            r1("vertical_crown_proj"),                    # 11
+            r1("heightXdbh"),                             # 12
+            r1("projection_exposure"),                    # 13
         ]
     )
 
     hovertemplate = (
-        "Species: %{customdata[0]}<br>"
-        "Label: %{customdata[1]}<br>"
-        "DBH: %{customdata[2]} cm<br>"
-        "Management: %{customdata[3]}<br>"
-        "Height: %{customdata[4]} m<br>"
-        "Volume: %{customdata[5]} m³<br>"
-        "Crown base height: %{customdata[6]} m<br>"
-        "Crown centroid height: %{customdata[7]} m<br>"
-        "Crown volume: %{customdata[8]} m³<br>"
-        "Crown surface: %{customdata[9]} m²<br>"
-        "Horizontal proj.: %{customdata[10]} m²<br>"
-        "Vertical proj.: %{customdata[11]} m²<br>"
-        "Height–DBH ratio: %{customdata[12]}<br>"
-        "Projection exposure: %{customdata[13]} %<extra></extra>"
+        f"{t('species')}: %{{customdata[0]}}<br>"
+        f"{t('label')}: %{{customdata[1]}}<br>"
+        f"{t('dbh')}: %{{customdata[2]}} {t('unit_cm')}<br>"
+        f"{t('management_label')}: %{{customdata[3]}}<br>"
+        f"{t('tree_height')}: %{{customdata[4]}} {t('unit_m')}<br>"
+        f"{t('value_volume')}: %{{customdata[5]}} {t('unit_m3')}<br>"
+        f"{t('crown_base_height')}: %{{customdata[6]}} {t('unit_m')}<br>"
+        f"{t('crown_centroid_height')}: %{{customdata[7]}} {t('unit_m')}<br>"
+        f"{t('crown_volume')}: %{{customdata[8]}} {t('unit_m3')}<br>"
+        f"{t('crown_surface')}: %{{customdata[9]}} {t('unit_m2')}<br>"
+        f"{t('horizontal_crown_proj')}: %{{customdata[10]}} {t('unit_m2')}<br>"
+        f"{t('vertical_crown_proj')}: %{{customdata[11]}} {t('unit_m2')}<br>"
+        f"{t('height_dbh_ratio')}: %{{customdata[12]}}<br>"
+        f"{t('projection_exposure')}: %{{customdata[13]}} {t('unit_percent')}"
+        "<extra></extra>"
     )
 
     return customdata, hovertemplate
+
 
 
 # =========================================================

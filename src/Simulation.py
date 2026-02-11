@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 
 import src.io_utils as iou
 import src.simul_utils2 as sut
-from src.i18n import t, t_help
+from src.i18n import t, t_help, t_mgmt
 from src.species_dict import species_dict
 from src.run_iland import run_iland
 
@@ -39,14 +39,29 @@ xml_path = Path("C:/Users/krucek/Documents/iLand/test/Pokojna_hora.xml")
 out_db = Path("C:/Users/krucek/Documents/iLand/test/output/output.sqlite")
 temp_db = Path("C:/Users/krucek/Documents/iLand/test/output/temp.sqlite")
 
+def _fan_label(g: str) -> str:
+    if g == "SUM":
+        return t("sum_label")
+    return t_mgmt(g)
 
 # =============================================================================
 # UI
 # =============================================================================
 c1, _, c2, _, c3, _, c4 = st.columns([2, 0.25, 2, 0.25, 2, 0.25, 3])
 
+scenario_labels = {
+    "**RCP 4.5**": "rcp__4_5",
+    "**RCP 8.5**": "rcp__8_5",
+}
+
 with c1:
-    st.markdown("####")
+    clima_label = st.segmented_control(
+        f"**{t('clima_scenario')}**",
+        options=list(scenario_labels.keys()),
+        default="**RCP 4.5**",
+        width="stretch",
+    )
+    clima_scenario = scenario_labels[clima_label]
     run_simul = st.button(
         f"**{t('button_run_simulation')}**",
         icon=":material/play_arrow:",
@@ -82,7 +97,7 @@ if run_simul:
 
     progress = st.progress(0.0, text=t("simulation_progress_running"))
 
-    sut.set_iland_mortality_regeneration(xml_path, mortality, regeneration)
+    sut.set_iland_xml(xml_path, mortality, regeneration,clima_scenario,years)
 
     for i in range(1, n_rep + 1):
         percent = int(round((i-0.5) / n_rep * 100))
@@ -160,6 +175,8 @@ if "sim_trees" in st.session_state:
             s = stats[stats[group_col] == g].sort_values("year")
             color = color_map.get(g, SUM_COLOR)
 
+            label = _fan_label(g)
+
             for lo, hi, a in [("q5", "q95", 0.15), ("q25", "q75", 0.25)]:
                 fig.add_trace(go.Scatter(
                     x=s["year"],
@@ -168,6 +185,7 @@ if "sim_trees" in st.session_state:
                     line=dict(width=0),
                     showlegend=False,
                     hoverinfo="skip",
+                    legendgroup=g,
                 ))
                 fig.add_trace(go.Scatter(
                     x=s["year"],
@@ -178,14 +196,23 @@ if "sim_trees" in st.session_state:
                     fillcolor=_hex_to_rgba(color, a),
                     showlegend=False,
                     hoverinfo="skip",
+                    legendgroup=g,
                 ))
 
             fig.add_trace(go.Scatter(
                 x=s["year"],
                 y=s["q50"],
                 mode="lines",
-                name=g,
+                name=label,                 # ✅ přeložený text
+                legendgroup=g,              # ❗ interní ID zůstává
+                showlegend=True,
                 line=dict(color=color, width=4 if g == "SUM" else 2),
+                hovertemplate=(
+                    f"{label}<br>"
+                    f"{t('chart_x_year')}: %{{x}}<br>"
+                    f"{t('metric_volume_m3')}: %{{y:.0f}}"
+                    "<extra></extra>"
+                ),
             ))
 
         fig.update_layout(
@@ -197,6 +224,8 @@ if "sim_trees" in st.session_state:
             xaxis_title=t("chart_x_year"),
             yaxis_title=t("metric_volume_m3"),
             margin=dict(l=10, r=10, t=60, b=10),
+            legend=dict(groupclick="togglegroup",),
+            yaxis=dict(autorange=True,),
         )
         return fig
 

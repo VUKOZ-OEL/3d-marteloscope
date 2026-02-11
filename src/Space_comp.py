@@ -12,7 +12,7 @@ from plotly.subplots import make_subplots
 import streamlit as st
 import src.io_utils as iou
 
-from src.i18n import t, t_help
+from src.i18n import t, t_help, t_mgmt
 
 
 # -------------------------------------------------------------------
@@ -418,7 +418,11 @@ fig.add_trace(
         x=spec_plot_vals["species"],
         y=spec_plot_vals["plot_val"],
         marker_color=[species_cmap.get(s, "#AAAAAA") for s in spec_plot_vals["species"]],
-        hovertemplate=(t("hover_species") + unit_suffix + "<extra></extra>"),
+        hovertemplate=(
+            f"{t('management_label')}: %{{x}}<br>"
+            f"{t('value_label')}: %{{y:.2f}}{unit_suffix}"
+            "<extra></extra>"
+        ),
         showlegend=False,
     ),
     row=1,
@@ -426,9 +430,10 @@ fig.add_trace(
 )
 
 # 3) BAR CHART – MANAGEMENT
+mgmt_plot_vals["management_label"] = mgmt_plot_vals["management_status"].apply(t_mgmt)
 fig.add_trace(
     go.Bar(
-        x=mgmt_plot_vals["management_status"],
+        x=mgmt_plot_vals["management_label"],   # ✅ přeloženo
         y=mgmt_plot_vals["plot_val"],
         marker_color=[mgmt_cmap.get(m, "#AAAAAA") for m in mgmt_plot_vals["management_status"]],
         hovertemplate=(t("hover_management") + unit_suffix + "<extra></extra>"),
@@ -474,14 +479,21 @@ with c_bot2:
 c31, c32 = st.columns([2, 15])
 
 with c32:
-    st.pills(
-        f"**{t('filter_management')}**",  # <-- NOVÝ KLÍČ (viz návrh dole)
-        options=mg_all,
-        default=list(mg_sel_set),
+    mgmt_label_map = {m: t_mgmt(m) for m in mg_all}
+    mgmt_labels = list(mgmt_label_map.values())
+    label_to_mgmt = {v: k for k, v in mgmt_label_map.items()}
+
+    mgmt_sel_labels = st.pills(
+        f"**{t('filter_management')}**",
+        options=mgmt_labels,
+        default=[mgmt_label_map[m] for m in mg_sel_set],
         selection_mode="multi",
-        key="mgmt_sel",
         help=t("filter_management_help"),
     )
+
+    mg_sel = [label_to_mgmt[lbl] for lbl in mgmt_sel_labels]
+    mg_sel_set = set(mg_sel)
+    st.session_state["mgmt_sel"] = mg_sel
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
     st.markdown(t_help("space_comp_help"))

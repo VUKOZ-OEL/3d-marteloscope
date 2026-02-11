@@ -5,7 +5,7 @@ import math
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-from src.i18n import t, t_help
+from src.i18n import t, t_help, t_mgmt
 
 # ---------- DATA ----------
 plot_info = st.session_state.plot_info
@@ -215,7 +215,7 @@ def render_three_panel_with_shared_legend(
     # --- hue / kategorie / barvy
     if color_mode_key == COLOR_BY_MANAGEMENT:
         hue_col = "management_status"
-        hue_label = t("hover_management") if "hover_management" in getattr(t, "__globals__", {}) else "Management"
+        hue_label = t("management_label")
         categories = (
             pd.Index(df_all[hue_col].astype(str).dropna().unique()).tolist()
             if hue_col in df_all.columns
@@ -398,7 +398,10 @@ def render_three_panel_with_shared_legend(
         pie_text = None
         pie_hover = ""
     else:
-        pie_labels = pie_plot[hue_col].astype(str).tolist()
+        if hue_col == "management_status":
+            pie_labels = [t_mgmt(v) for v in pie_plot[hue_col].astype(str)]
+        else:
+            pie_labels = pie_plot[hue_col].astype(str).tolist()
         pie_values = pie_plot["value"].astype(float).tolist()
         pie_colors = [color_map.get(c, "#AAAAAA") for c in pie_plot[hue_col]]
 
@@ -406,7 +409,7 @@ def render_three_panel_with_shared_legend(
         texttemplate = "%{percent:.1%}"
 
         base_hover = (
-            f"{hue_col}: %{{label}}<br>"
+            f"{hue_label}: %{{label}}<br>"
             f"{pie_value_label}: {hover_value_token} {unit_disp}"
             "<extra></extra>"
         )
@@ -490,6 +493,7 @@ def render_three_panel_with_shared_legend(
 
     # --- DBH
     for cat in categories:
+        label = t_mgmt(cat) if hue_col == "management_status" else cat
         y_vals = (
             dbh_long[dbh_long[hue_col] == cat]
             .set_index("bin")
@@ -501,7 +505,7 @@ def render_three_panel_with_shared_legend(
             go.Bar(
                 x=dbh_labels,
                 y=y_vals,
-                name=cat,
+                name=label,
                 marker_color=color_map.get(cat, "#AAAAAA"),
                 legendgroup=cat,
                 showlegend=True,
@@ -522,6 +526,7 @@ def render_three_panel_with_shared_legend(
     # --- HEIGHT
     if not height_long.empty:
         for cat in categories:
+            label = t_mgmt(cat) if hue_col == "management_status" else cat
             y_vals = (
                 height_long[height_long[hue_col] == cat]
                 .set_index("bin")
@@ -533,7 +538,7 @@ def render_three_panel_with_shared_legend(
                 go.Bar(
                     x=h_labels,
                     y=y_vals,
-                    name=cat,
+                    name=label,
                     marker_color=color_map.get(cat, "#AAAAAA"),
                     legendgroup=cat,
                     showlegend=False,

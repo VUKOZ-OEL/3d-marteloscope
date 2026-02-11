@@ -38,7 +38,7 @@ colors_page = st.Page("src/Colors_settings.py", title=t("colors"), icon=":materi
 # Temp tests
 sandbox_page = st.Page("src/sandbox.py", title=t("Sandbox"), icon=":material/thumb_up:")
 
-#file_path = "data/test_project.json"
+# file_path = "data/Krivoklat.json"
 file_path = "data/pokojna_test_v2_2.json"
 # Init data
 if not st.session_state.get("data_initialized"):
@@ -106,7 +106,7 @@ pages = {
     t("menu_settings"): [
         add_atts_page,
        # colors_page,
-       # sandbox_page,
+        sandbox_page,
     ],
 
 }
@@ -115,6 +115,7 @@ pg = st.navigation(pages)
 
 def _on_lang_change():
     set_lang(st.session_state.lang)  # key="lang" -> en/cs
+
 
 with st.sidebar:
     st.segmented_control(

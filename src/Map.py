@@ -5,7 +5,7 @@ import numpy as np
 import plotly.graph_objects as go
 import src.io_utils as iou
 
-from src.i18n import t, t_help
+from src.i18n import t, t_help, t_mgmt
 from src.map_helpers import (
     parse_polygon,
     hex_to_rgba,
@@ -275,7 +275,7 @@ with c23:
                         y=[-9999],
                         mode="markers",
                         marker=dict(size=14, color=rgba, line=dict(width=0)),
-                        name=t("legend_crown", value=key),  # :contentReference[oaicite:15]{index=15}
+                        name=t("legend_crown", value=t_mgmt(key)),
                         hoverinfo="skip",
                         showlegend=True,
                     )
@@ -333,12 +333,14 @@ with c23:
         buckets[(str(gv), col)].append(idx)
 
     for (legend_name, hex_color), idxs in buckets.items():
+        display_name = t_mgmt(legend_name) if color_mode == COLOR_MGMT else legend_name
+
         fig.add_trace(
             scatter_cls(
                 x=df["x"].iloc[idxs],
                 y=df["y"].iloc[idxs],
                 mode=mode,
-                name=legend_name,
+                name=display_name,
                 text=df["label"].iloc[idxs] if show_text else None,
                 textposition="top center",
                 marker=dict(size=sizes[idxs], color=hex_color, line=dict(width=0)),

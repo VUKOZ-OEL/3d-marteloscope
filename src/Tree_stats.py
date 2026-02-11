@@ -6,7 +6,7 @@ import src.io_utils as iou  # if unused, you can safely remove
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-from src.i18n import t, t_help
+from src.i18n import t, t_help, t_mgmt
 
 
 # --------------------------------------------------------------------------------------
@@ -26,7 +26,7 @@ def get_uid():
 # Stable UI IDs (do NOT use translated strings as IDs)
 # --------------------------------------------------------------------------------------
 COLOR_BY_SPECIES = "species"              # existing i18n key
-COLOR_BY_MANAGEMENT = "management_label"  # existing i18n key
+COLOR_BY_MANAGEMENT = "management"  # existing i18n key
 
 MODE_BY_CATEGORY = "mode_by_category"
 MODE_BY_DBH = "mode_by_dbh"
@@ -191,9 +191,9 @@ def _management_categories_and_colors(df_all: pd.DataFrame):
 def _hue_setup(df_all: pd.DataFrame, color_mode_id: str):
     if color_mode_id == COLOR_BY_MANAGEMENT:
         cats, colors = _management_categories_and_colors(df_all)
-        return "management_status", cats, colors, "(by Management)"
+        return "management_status", cats, colors
     cats, colors = _species_categories_and_colors(df_all)
-    return "species", cats, colors, "(by Species)"
+    return "species", cats, colors
 
 
 # --------------------------------------------------------------------------------------
@@ -346,7 +346,7 @@ def _ensure_all_categories(sub_counts: pd.DataFrame, hue_col: str, categories: l
 # Triple bar plot by category (Before / After / Removed)
 # --------------------------------------------------------------------------------------
 def render_triple_by_category(df_all: pd.DataFrame, y_col: str, y_stats: str, color_mode_id: str, stacked: bool):
-    hue_col, categories, color_map, _ = _hue_setup(df_all, color_mode_id)
+    hue_col, categories, color_map = _hue_setup(df_all, color_mode_id)
     if not categories:
         st.info(t("warn_no_categories"))
         return
@@ -376,11 +376,12 @@ def render_triple_by_category(df_all: pd.DataFrame, y_col: str, y_stats: str, co
 
     def _add_panel(panel_df: pd.DataFrame, col: int):
         for cat, row in panel_df.set_index(hue_col).loc[categories].iterrows():
+            label = t_mgmt(cat) if hue_col == "management_status" else str(cat)
             fig.add_trace(
                 go.Bar(
                     x=[str(cat)],
                     y=[row["value"]],
-                    name=str(cat),
+                    name=label,
                     marker_color=row["__color__"],
                     legendgroup=str(cat),
                     showlegend=False,
@@ -404,9 +405,20 @@ def render_triple_by_category(df_all: pd.DataFrame, y_col: str, y_stats: str, co
         margin=dict(l=10, r=10, t=60, b=80),
         showlegend=False,
     )
-
+    axis_categories = (
+        [t_mgmt(c) for c in categories]
+        if hue_col == "management_status"
+        else categories
+    )
     for c in (1, 2, 3):
-        fig.update_xaxes(title_text=None, tickangle=45, categoryorder="array", categoryarray=categories, row=1, col=c)
+        fig.update_xaxes(
+            title_text=None,
+            tickangle=45,
+            categoryorder="array",
+            categoryarray=axis_categories,
+            row=1,
+            col=c,
+        )
 
     y_axis_label = t("tree_count") if y_stats == STAT_COUNT else t("stat_of_variable", stat=y_stats, var=y_col)
     fig.update_yaxes(title_text=y_axis_label, row=1, col=1, tick0=0, range=[0, y_upper], showticklabels=True, tickmode="auto")
@@ -433,7 +445,7 @@ def render_triple_by_class(
         st.warning(t("warn_missing_column", column=value_col))
         return
 
-    hue_col, categories, color_map, _ = _hue_setup(df_all, color_mode_id)
+    hue_col, categories, color_map = _hue_setup(df_all, color_mode_id)
     if not categories:
         st.info(t("warn_no_categories"))
         return
@@ -473,6 +485,7 @@ def render_triple_by_class(
 
     def add_panel_traces(long_df: pd.DataFrame, col: int, show_legend_for: set[str]):
         for cat in categories:
+            label = t_mgmt(cat) if hue_col == "management_status" else str(cat)
             if long_df.empty:
                 y_vals = [0] * len(labels)
             else:
@@ -487,7 +500,7 @@ def render_triple_by_class(
                 go.Bar(
                     x=labels,
                     y=y_vals,
-                    name=str(cat),
+                    name=label,
                     marker_color=color_for(cat),
                     legendgroup=str(cat),
                     showlegend=(cat in show_legend_for),
@@ -512,7 +525,39 @@ def render_triple_by_class(
         margin=dict(l=10, r=10, t=60, b=80),
         legend=dict(orientation="h", yanchor="top", y=-0.45, xanchor="center", x=0.5),
     )
-    fig.update_xaxes(title_text=None, tickangle=45, categoryorder="array", categoryarray=labels)
+    def _axis_categories(cats):
+        return (
+            [t_mgmt(c) for c in cats]
+            if hue_col == "management_status"
+            else cats
+        )
+    
+    fig.update_xaxes(
+        title_text=None,
+        tickangle=45,
+        categoryorder="array",
+        categoryarray=_axis_categories(labels),
+        row=1,
+        col=1,
+    )
+
+    fig.update_xaxes(
+        title_text=None,
+        tickangle=45,
+        categoryorder="array",
+        categoryarray=_axis_categories(labels),
+        row=1,
+        col=2,
+    )
+
+    fig.update_xaxes(
+        title_text=None,
+        tickangle=45,
+        categoryorder="array",
+        categoryarray=_axis_categories(labels),
+        row=1,
+        col=3,
+    )
 
     fig.update_yaxes(title_text=_aggfunc_name_for_hover(y_stats, y_col), row=1, col=1, tick0=0, range=[0, y_upper], showticklabels=True, tickmode="auto")
     fig.update_yaxes(title_text=None, row=1, col=2, tick0=0, range=[0, y_upper], showticklabels=True, tickmode="auto")
@@ -536,7 +581,7 @@ def render_triple_violin(
         st.warning(t("warn_missing_column", column=value_col))
         return
 
-    hue_col, categories, color_map, _ = _hue_setup(df_all, color_mode)
+    hue_col, categories, color_map = _hue_setup(df_all, color_mode)
     if not categories:
         st.info(t("warn_no_categories"))
         return
@@ -610,6 +655,7 @@ def render_triple_violin(
             return
 
         for cat in categories:
+            label = t_mgmt(cat) if hue_col == "management_status" else str(cat)
             vals = panel_df.loc[panel_df[hue_col] == cat, "_val_"]
             if vals.empty:
                 continue
@@ -620,7 +666,7 @@ def render_triple_violin(
                 go.Violin(
                     x=[cat] * len(vals),
                     y=vals,
-                    name=str(cat),
+                    name=label,
                     legendgroup=str(cat),
                     showlegend=(cat in show_legend_for),
                     box_visible=True,
@@ -720,7 +766,7 @@ def render_projection_exposure_page(
         )
         return
 
-    hue_col, categories, color_map, _ = _hue_setup(df, color_mode)
+    hue_col, categories, color_map = _hue_setup(df, color_mode)
     if not categories:
         st.info(t("warn_no_categories"))
         return
@@ -811,6 +857,7 @@ def render_projection_exposure_page(
         sub = sub.dropna(subset=[value_col])
 
         for cat in categories:
+            label = t_mgmt(cat) if hue_col == "management_status" else str(cat)
             vals = sub.loc[sub[hue_col] == cat, value_col].dropna()
             if vals.empty:
                 continue
@@ -822,7 +869,7 @@ def render_projection_exposure_page(
                 go.Violin(
                     x=[cat] * len(vals),
                     y=vals,
-                    name=str(cat),
+                    name=label,
                     legendgroup=str(cat),
                     showlegend=(col_idx == 1),
                     box_visible=True,
@@ -868,12 +915,19 @@ def render_projection_exposure_page(
     fig.update_yaxes(title_text=None, row=1, col=2, range=[y_min, y_upper], tickmode="auto")
     fig.update_yaxes(title_text=None, row=1, col=3, range=[y_min, y_upper], tickmode="auto")
 
-    # IMPORTANT: per-panel x-axis categories (prevents empty categories like Target tree on Removed)
+    def _axis_categories(panel_df):
+        cats = _present_categories(panel_df)
+        return (
+            [t_mgmt(c) for c in cats]
+            if hue_col == "management_status"
+            else cats
+        )
+
     fig.update_xaxes(
         title_text=None,
         tickangle=45,
         categoryorder="array",
-        categoryarray=_present_categories(df_before),
+        categoryarray=_axis_categories(df_before),
         row=1,
         col=1,
     )
@@ -881,7 +935,7 @@ def render_projection_exposure_page(
         title_text=None,
         tickangle=45,
         categoryorder="array",
-        categoryarray=_present_categories(df_after),
+        categoryarray=_axis_categories(df_after),
         row=1,
         col=2,
     )
@@ -889,7 +943,7 @@ def render_projection_exposure_page(
         title_text=None,
         tickangle=45,
         categoryorder="array",
-        categoryarray=_present_categories(df_removed),
+        categoryarray=_axis_categories(df_removed),
         row=1,
         col=3,
     )
@@ -1028,7 +1082,10 @@ with c_mid:
         options=[COLOR_BY_SPECIES, COLOR_BY_MANAGEMENT],
         default=COLOR_BY_SPECIES,
         width="stretch",
-        format_func=lambda k: t(k),
+        format_func=lambda k: {
+            COLOR_BY_SPECIES: t("species"),
+            COLOR_BY_MANAGEMENT: t("management_label"),
+        }.get(k, k),
     )
 
     stacked = (

@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import src.io_utils as iou
 
-from src.i18n import t, t_help
+from src.i18n import t, t_help, t_mgmt
 
 
 # ------------------------------------------------------------
@@ -337,6 +337,9 @@ def render_crown_volume_profiles(df_all: pd.DataFrame, primary: str, overlay: st
     def _group_label_for(col_name: str) -> str:
         return t("species") if col_name == "species" else t("management_label")
 
+    def _display_group_value(group_col: str, value: str) -> str:
+        return t_mgmt(value) if group_col == "management_status" else value
+
     def add_panel(prof_df: pd.DataFrame, col: int, show_legend: bool, group_col: str):
         is_species = (group_col == "species")
         width = 6 if is_species else 4
@@ -352,6 +355,7 @@ def render_crown_volume_profiles(df_all: pd.DataFrame, primary: str, overlay: st
         )
 
         for grp in order:
+            grp_label = _display_group_value(group_col, grp)
             d = (
                 prof_df[prof_df[group_col] == grp]
                 .set_index("height_bin")
@@ -368,7 +372,7 @@ def render_crown_volume_profiles(df_all: pd.DataFrame, primary: str, overlay: st
                     x=x_series,
                     y=y_centers,
                     mode="lines",
-                    name=str(grp),
+                    name=grp_label ,
                     legendgroup=f"{group_col}-{grp}",
                     showlegend=show_legend,
                     line=dict(shape="spline", width=width, dash=dash),

@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import src.io_utils as iou
 import math
 
-from src.i18n import t, t_help
+from src.i18n import t, t_help, t_mgmt
 
 
 # ------------------------------------------------------------
@@ -301,6 +301,8 @@ left, right = st.columns([1, 1])
 if no_data_for_plot:
     st.warning(t("warn_no_data_for_filters"))
 
+def display_group_label(g: str) -> str:
+    return t_mgmt(g) if main_group == "management_status" else str(g)
 
 # ------------------------------------------------------------
 # 🔵 GRAF 1 — REMOVAL FROM TOTAL
@@ -329,11 +331,13 @@ with left:
 
             custom = np.array(cd_rows, dtype=float) if cd_rows else np.empty((0, 2), dtype=float)
 
+            label = t_mgmt(sg) if stack_group == "management_status" else str(sg)
+
             fig1.add_trace(
                 go.Bar(
-                    y=pct_from_total_plot.index,
+                    y=[display_group_label(g) for g in pct_from_total_plot.index],
                     x=pct_from_total_plot[sg] if (sg in pct_from_total_plot.columns) else [0.0] * len(pct_from_total_plot.index),
-                    name=str(sg),
+                    name=label,
                     orientation="h",
                     marker_color=stack_colors.get(sg, "#777777"),
                     customdata=custom,
@@ -376,12 +380,13 @@ with right:
                 cd_rows.append([removed_val, total_val])
 
             custom = np.array(cd_rows, dtype=float) if cd_rows else np.empty((0, 2), dtype=float)
+            label = t_mgmt(sg) if stack_group == "management_status" else str(sg)
 
             fig2.add_trace(
                 go.Bar(
-                    y=pct_in_group.index,
+                    y=[display_group_label(g) for g in pct_in_group.index],
                     x=pct_in_group[sg] if (sg in pct_in_group.columns) else [0.0] * len(pct_in_group.index),
-                    name=str(sg),
+                    name=label,
                     orientation="h",
                     marker_color=stack_colors.get(sg, "#777777"),
                     customdata=custom,

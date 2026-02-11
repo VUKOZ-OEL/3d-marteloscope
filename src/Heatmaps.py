@@ -11,7 +11,7 @@ from plotly.subplots import make_subplots
 import src.io_utils as iou
 import re
 
-from src.i18n import t, t_help
+from src.i18n import t, t_help, t_mgmt
 
 
 # ------------------------------------------------------------
@@ -45,8 +45,11 @@ HEATMAP_NBINS = 50
 keep_status = {"Target tree", "Untouched"}
 
 # labely z session_state (už přeložené UI)
-COLOR_SPP = st.session_state.Species
-COLOR_MGMT = st.session_state.Management
+#COLOR_SPP = st.session_state.Species
+#COLOR_MGMT = st.session_state.Management
+
+COLOR_SPP = "species"
+COLOR_MGMT = "management"
 
 
 # ------------------------------------------------------------
@@ -119,7 +122,9 @@ def _blur2d(A, sx_bins, sy_bins):
 # ------------------------------------------------------------
 sp_all = sorted(df0["species"].astype(str).unique())
 mg_all = sorted(df0["management_status"].astype(str).unique())
-
+mgmt_label_map = {m: t_mgmt(m) for m in mg_all}
+# labels pro UI
+mgmt_labels = list(mgmt_label_map.values())
 
 # ------------------------------------------------------------
 # UI — TOP
@@ -163,9 +168,13 @@ with c3:
 
 with c4:
     color_mode = st.segmented_control(
-        f"**{t('color_by')}**",  # exists :contentReference[oaicite:18]{index=18}
+        f"**{t('color_by')}**",
         options=[COLOR_SPP, COLOR_MGMT],
         default=COLOR_SPP,
+        format_func=lambda v: {
+            COLOR_SPP: t("species"),
+            COLOR_MGMT: t("management_label"),
+        }.get(v, v),
     )
 
 show_overlay = st.checkbox(
@@ -191,15 +200,16 @@ with cB:
 
 _, _, cC = st.columns([1, 1, 15])
 with cC:
-    mgmt_sel = st.pills(
-        f"**{t('filter_selection_heatmap')}**",  # exists :contentReference[oaicite:20]{index=20}
-        mg_all,
-        default=mg_all,
+    mgmt_sel_labels = st.pills(
+        f"**{t('filter_selection_heatmap')}**",
+        options=mgmt_labels,
+        default=mgmt_labels,
         selection_mode="multi",
     )
 
 species_sel = _normalize_list(species_sel)
-mgmt_sel = _normalize_list(mgmt_sel)
+label_to_mgmt = {v: k for k, v in mgmt_label_map.items()}
+mgmt_sel = [label_to_mgmt[lbl] for lbl in mgmt_sel_labels]
 
 
 # ------------------------------------------------------------
@@ -321,9 +331,9 @@ fig = make_subplots(
     rows=1,
     cols=3,
     subplot_titles=(
-        st.session_state.Before,
-        st.session_state.After,
-        st.session_state.Removed,
+        t("label_before"),
+        t("label_after"),
+        t("label_removed"),
     ),
     specs=[[{"type": "heatmap"}] * 3],
     horizontal_spacing=0.003,
@@ -372,17 +382,21 @@ if show_overlay:
 
     for category, sub in df_o[ok].groupby(group_col):
         colvals = sub[color_col].tolist()
-        legend_group = str(category)
+        legend_name = (
+            t_mgmt(category)
+            if group_col == "management_status"
+            else str(category)
+        )
         for c in (1, 2, 3):
             fig.add_trace(
                 go.Scatter(
                     x=sub["x"],
                     y=sub["y"],
                     mode="markers",
-                    name=str(category),
+                    name=legend_name,
                     hoverinfo="skip",
                     showlegend=(c == 1),
-                    legendgroup=legend_group,
+                    legendgroup=str(category),
                     marker=dict(
                         size=4,
                         color=colvals,

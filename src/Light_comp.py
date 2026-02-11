@@ -16,7 +16,7 @@ from plotly.subplots import make_subplots
 import streamlit as st
 import src.io_utils as iou
 
-from src.i18n import t,t_help  # uses st.session_state.lang :contentReference[oaicite:1]{index=1}
+from src.i18n import t,t_help,t_mgmt
 
 # --- panel names from session (already localized elsewhere) ---
 Before = st.session_state.Before
@@ -365,15 +365,20 @@ if chart_mode == t("who_competes"):
     )
 
     # 3) BARS by MANAGEMENT (values in %)
-    x_mgmt = mgmt_df["management_status"].astype(str).tolist() if not mgmt_df.empty else (mgmt_all or [])
+    #x_mgmt = mgmt_df["management_status"].astype(str).tolist() if not mgmt_df.empty else (mgmt_all or [])
+    x_mgmt = mgmt_df["management_status"].astype(str).tolist()
     y_mgmt = mgmt_df["value"].tolist() if not mgmt_df.empty else ([0.0] * len(x_mgmt))
     colors_mgmt = [mgmt_cmap.get(m, "#AAAAAA") for m in x_mgmt]
     fig.add_trace(
         go.Bar(
-            x=x_mgmt,
+            x = mgmt_df["management_status"].apply(t_mgmt),
             y=y_mgmt,
-            marker_color=colors_mgmt,
-            hovertemplate=t("hover_management_shade") + "<extra></extra>",
+            marker_color=[mgmt_cmap.get(m, "#AAAAAA") for m in mgmt_df["management_status"]],
+            hovertemplate=(
+                f"{t('management_label')}: %{{x}}<br>"
+                f"{t('value_label')}: %{{y:.1f}} %"
+                "<extra></extra>"
+            ),
             showlegend=False,
         ),
         row=1, col=3,
@@ -423,16 +428,23 @@ else:
         if "management_status" in df_focal.columns:
             for mg in df_focal["management_status"].astype(str).dropna().unique().tolist():
                 vals = (
-                    df_focal.loc[df_focal["management_status"].astype(str) == mg, "light_avail_adj"]
-                    .dropna().tolist()
+                    df_focal.loc[
+                        df_focal["management_status"].astype(str) == mg,
+                        "light_avail_adj",
+                    ]
+                    .dropna()
+                    .tolist()
                 )
                 if not vals:
                     continue
+
+                mg_label = t_mgmt(mg)
+
                 fig.add_trace(
                     go.Violin(
-                        x=[mg] * len(vals),
-                        y=vals,
-                        name=str(mg),
+                        x=[mg_label] * len(vals),   # ✅ správná délka
+                        y=vals,                     # ✅ DATA CHYBĚLA
+                        name=mg_label,
                         box_visible=True,
                         meanline_visible=False,
                         points=False,
@@ -440,8 +452,10 @@ else:
                         line=dict(color="black", width=1),
                         showlegend=False,
                     ),
-                    row=1, col=3,
+                    row=1,
+                    col=3,
                 )
+
 
     for c in (2, 3):
         fig.update_xaxes(title_text=None, tickangle=45, row=1, col=c)
@@ -465,14 +479,21 @@ with c_bot2:
 
 c31, c32 = st.columns([2, 15])
 with c32:
-    st.pills(
+    mgmt_label_map = {m: t_mgmt(m) for m in mg_all}
+    mgmt_labels = list(mgmt_label_map.values())
+    label_to_mgmt = {v: k for k, v in mgmt_label_map.items()}
+
+    mgmt_sel_labels = st.pills(
         f"**{t('filter_management')}:**",
-        options=mg_all if mg_all else ["(none)"],
-        default=list(mg_sel_set) if mg_sel_set else mg_all,
+        options=mgmt_labels if mgmt_labels else ["(none)"],
+        default=[mgmt_label_map[m] for m in mg_sel_set] if mg_sel_set else mgmt_labels,
         selection_mode="multi",
         help=t("filter_management_help"),
-        key="mgmt_sel",
     )
+
+    mgmt_sel = [label_to_mgmt[lbl] for lbl in mgmt_sel_labels if lbl in label_to_mgmt]
+    mg_sel_set = set(mgmt_sel)
+    st.session_state["mgmt_sel"] = mgmt_sel
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
     st.markdown(t_help("light_comp_help"))

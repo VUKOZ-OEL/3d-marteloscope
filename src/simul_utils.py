@@ -1,491 +1,270 @@
-from __future__ import annotations
-from dataclasses import dataclass
+# src/simul_utils.py
 from pathlib import Path
-from typing import Dict, Tuple, Optional, List
-import sqlite3
-import unicodedata
 import numpy as np
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
+from pathlib import Path
+import xml.etree.ElementTree as ET
 
 
-
-
-mark_death = False
-
-@dataclass
-class ILandOutputs:
-    living: Dict[str, pd.DataFrame]
-    death: Dict[str, pd.DataFrame]
-
-mean_output_cols = [
-    "dbh",
-    "height",
-    "basalArea",
-    "volume_m3",
-    "leafArea_m2",
-    "foliageMass",
-    "stemMass",
-    "branchMass",
-    "fineRootMass",
-    "coarseRootMass"
-]
-# =========================================================
-# ČTENÍ DATABÁZÍ
-# =========================================================
-def _read_sqlite_table(path: Path, table_name: str) -> pd.DataFrame:
-    con = sqlite3.connect(str(path))
-    try:
-        df = pd.read_sql_query(f"SELECT * FROM {table_name}", con)
-    finally:
-        con.close()
-    return df
-
-def read_outputs_tree_level(root_folder: str) -> ILandOutputs:
-    root = Path(root_folder)
-    if not root.exists():
-        return ILandOutputs(living={}, death={})
-    files = sorted([p for p in root.iterdir() if p.is_file() and p.suffix.lower() in {".db",".sqlite"}])
-    living, death = {}, {}
-    pad = len(str(max(1, len(files))))
-    for i, f in enumerate(files, 1):
-        rep = f"rep_{str(i).zfill(pad)}"
-        try:
-            df_tree = _read_sqlite_table(f, "tree")
-            if "replication" not in df_tree.columns:
-                df_tree["replication"] = rep
-            living[rep] = df_tree
-        except Exception:
-            continue
-        try:
-            df_removed = _read_sqlite_table(f, "treeremoved")
-            if "replication" not in df_removed.columns:
-                df_removed["replication"] = rep
-            death[rep] = df_removed
-        except Exception:
-            pass
-    return ILandOutputs(living=living, death=death)
-
-def combine_with_ids(mapping: Dict[str, pd.DataFrame]) -> pd.DataFrame:
-    return pd.concat(mapping.values(), ignore_index=True) if mapping else pd.DataFrame()
-
-# ---------- Příprava per-tree datasetu (bez závislosti na output_forest_development) ----------
-"""
-def prepare_tree_dataset(outputs: ILandOutputs, mark_death: bool = True) -> pd.DataFrame:
-
-    death_trees  = combine_with_ids(outputs.death)
-    living_trees = combine_with_ids(outputs.living)
-    living_trees.to_feather("C:/Users/krucek/Documents/iLand/test/rep_out/living.feather")
-    n_reps = len(outputs.death) if isinstance(outputs.death, dict) else 100
-
-    # Pokud nejsou 'death' záznamy → vrať průměrný output
-    if death_trees.empty:
-        out = (living_trees.groupby(["id","year","species","x","y"], as_index=False)[mean_output_cols]
-               .mean().sort_values(["year","id"]).reset_index(drop=True))
-        return out
-
-    trees_to_cut: List[Tuple[int,int]] = []
-    for yr in sorted(death_trees["year"].dropna().unique()):
-        sub = death_trees.loc[death_trees["year"] == yr]
-        deth_vol = sub.groupby("species", as_index=False)["volume_m3"].mean()
-        prob = (sub.groupby(["id","species"], as_index=False)["year"].count()
-                  .rename(columns={"year":"prob"}))
-        prob["prob"] = prob["prob"] / float(n_reps)
-        vol_by_id = sub.groupby("id", as_index=False)["volume_m3"].mean()
-        prob = prob.merge(vol_by_id, on="id", how="left").rename(columns={"species":"spp"})
-
-        for sp in deth_vol["species"].unique():
-            target = float(deth_vol.loc[deth_vol["species"] == sp, "volume_m3"].values[0])
-            cand = prob.loc[prob["spp"] == sp].copy()
-            if cand.empty or target <= 0: continue
-            cand = cand.sort_values(["prob","volume_m3"], ascending=[False, False]).reset_index(drop=True)
-            cand["cum"] = cand["volume_m3"].cumsum()
-            hit = np.argmax(cand["cum"].values >= target)
-            chosen = cand["id"].values if cand["cum"].values[hit] < target else cand["id"].values[:hit+1]
-            trees_to_cut.extend([(int(yr), int(tid)) for tid in chosen])
-
-    trees_to_cut = pd.DataFrame(trees_to_cut, columns=["year","tree_id"])
-    if trees_to_cut.empty:
-        out = (living_trees.groupby(["id","year","species","x","y"], as_index=False)[mean_output_cols]
-               .mean().sort_values(["year","id"]).reset_index(drop=True))
-        return out
-
-    first_cut = (trees_to_cut.groupby("tree_id", as_index=False)["year"]
-                 .min().rename(columns={"tree_id":"id", "year":"cut_year"}))
-
-    output = (living_trees.groupby(["id","year","species","x","y"], as_index=False)[mean_output_cols]
-              .mean())
-    out = output.merge(first_cut, on="id", how="left")
-
-    if mark_death:
-        mask = out["cut_year"].notna() & (out["year"] >= out["cut_year"])
-        out.loc[mask, "species"] = "death"
-        out = out.drop(columns=["cut_year"])
-    else:
-        out = out[(out["cut_year"].isna()) | (out["year"] < out["cut_year"])].drop(columns=["cut_year"])
-
-    return out.sort_values(["year","id"]).reset_index(drop=True)
-"""
-def prepare_tree_dataset(outputs: ILandOutputs, mark_death: bool = True) -> pd.DataFrame:
-    """
-    Sloučí replikace a aplikuje logiku výběru/označení úhynu:
-      - PÁROVÁNÍ replik: pouze podle (year, id)
-      - species = nejčastější hodnota (mode) napříč replikami
-      - x, y = medián napříč replikami
-      - mean_output_cols = průměr napříč replikami
-      - Cíl odumření per species = mean(volume_m3) v daném roce z treeremoved
-      - Kandidáty (id) seřadí dle pravděpodobnosti (výskyt/n_reps) a volume_m3, kumuluje do cíle; druh kandidáta určen modem species
-      - Pokud mark_death=True, od cut_year výš přepíše species -> 'death', jinak řádky >= cut_year odfiltruje
-    """
-    def _mode(s: pd.Series):
-        try:
-            m = s.mode(dropna=True)
-            if len(m):
-                return m.iloc[0]
-        except Exception:
-            pass
-        s = s.dropna()
-        return s.iloc[0] if len(s) else None
-
-    death_trees  = combine_with_ids(outputs.death)
-    living_trees = combine_with_ids(outputs.living)
-    living_trees.to_feather("C:/Users/krucek/Documents/iLand/test/rep_out/living.feather")
-    n_reps = len(outputs.death) if isinstance(outputs.death, dict) else 100
-
-    # Agregace LIVING: párování jen podle (year, id)
-    agg_dict = {c: "mean" for c in mean_output_cols}
-    agg_dict.update({"species": _mode, "x": "median", "y": "median"})
-    output = (
-        living_trees
-        .groupby(["id", "year"], as_index=False)
-        .agg(agg_dict)
-    )
-
-    # Pokud nejsou 'death' záznamy → rovnou vrať agregovaný output
-    if death_trees.empty:
-        return output.sort_values(["year", "id"]).reset_index(drop=True)
-
-    # Výběr stromů k utnutí podle cílového objemu per species v daném roce
-    trees_to_cut: List[Tuple[int, int]] = []
-    for yr in sorted(death_trees["year"].dropna().unique()):
-        sub = death_trees.loc[death_trees["year"] == yr]
-
-        # Cíl objemu na species v daném roce
-        deth_vol = sub.groupby("species", as_index=False)["volume_m3"].mean()
-
-        # Pravděpodobnost (výskyt/počet replik) a průměrný objem na ID
-        prob = (
-            sub.groupby("id", as_index=False)["year"].count()
-               .rename(columns={"year": "prob"})
-        )
-        prob["prob"] = prob["prob"] / float(n_reps)
-        vol_by_id = sub.groupby("id", as_index=False)["volume_m3"].mean()
-
-        # Druh kandidáta = mode species pro dané ID v tomto roce
-        spp_mode = sub.groupby("id")["species"].agg(_mode).rename("spp")
-
-        prob = (
-            prob.merge(vol_by_id, on="id", how="left")
-                .merge(spp_mode, on="id", how="left")
-        )
-
-        # Pro každý species naplň cíl
-        for sp in deth_vol["species"].unique():
-            target = float(deth_vol.loc[deth_vol["species"] == sp, "volume_m3"].values[0])
-            if target <= 0:
-                continue
-
-            cand = prob.loc[prob["spp"] == sp].copy()
-            if cand.empty:
-                continue
-
-            cand = cand.sort_values(["prob", "volume_m3"], ascending=[False, False]).reset_index(drop=True)
-            cand["cum"] = cand["volume_m3"].cumsum()
-
-            # Najdi první index, kde kumulovaný objem dosáhne/ překročí cíl
-            hit = np.argmax(cand["cum"].values >= target)
-            chosen = cand["id"].values if cand["cum"].values[hit] < target else cand["id"].values[:hit + 1]
-
-            trees_to_cut.extend([(int(yr), int(tid)) for tid in chosen])
-
-    # Pokud se nic nevybralo, vrať pouze agregovaný living output
-    if not trees_to_cut:
-        return output.sort_values(["year", "id"]).reset_index(drop=True)
-
-    trees_to_cut = pd.DataFrame(trees_to_cut, columns=["year", "tree_id"])
-
-    # Rok prvního řezu pro každé ID
-    first_cut = (
-        trees_to_cut.groupby("tree_id", as_index=False)["year"]
-        .min()
-        .rename(columns={"tree_id": "id", "year": "cut_year"})
-    )
-
-    # Spoj s agregovaným living outputem (už jen podle id, year)
-    out = output.merge(first_cut, on="id", how="left")
-
-    if mark_death:
-        mask = out["cut_year"].notna() & (out["year"] >= out["cut_year"])
-        out.loc[mask, "species"] = "death"
-        out = out.drop(columns=["cut_year"])
-    else:
-        out = out[(out["cut_year"].isna()) | (out["year"] < out["cut_year"])].drop(columns=["cut_year"])
-
-    return out.sort_values(["year", "id"]).reset_index(drop=True)
-
-# ---------- Příprava per-tree datasetu se zachováním replikací (pro konfidenční intervaly) ----------
-def prepare_tree_dataset_with_replication(outputs: ILandOutputs, mark_death: bool = True) -> pd.DataFrame:
-    """
-    Vrátí per-tree dataset se sloupcem `replication` (bez průměrování přes replikace).
-    Mortality logika (výběr cut_year) je shodná s `prepare_tree_dataset()`:
-      - cut_year se odvodí z `treeremoved` agregovaně přes replikace
-      - pro každou replikaci se pak:
-          * pokud mark_death=True: od cut_year výš přepíše species -> 'death'
-          * pokud mark_death=False: řádky >= cut_year odfiltruje
-    Pozn.: tato funkce je potřeba pro výpočet konfidenčních intervalů přes replikace.
-    """
-    def _mode(s: pd.Series):
-        try:
-            m = s.mode(dropna=True)
-            if len(m):
-                return m.iloc[0]
-        except Exception:
-            pass
-        s = s.dropna()
-        return s.iloc[0] if len(s) else None
-
-    death_trees = combine_with_ids(outputs.death)
-    living_trees = combine_with_ids(outputs.living)
-
-    if living_trees.empty:
-        return pd.DataFrame()
-
-    # zajisti replication
-    if "replication" not in living_trees.columns:
-        living_trees["replication"] = "rep_1"
-
-    # Pokud nejsou 'death' záznamy → pouze concat living (bez dalších zásahů)
-    if death_trees.empty:
-        return living_trees.sort_values(["replication", "year", "id"]).reset_index(drop=True)
-
-    # --- výpočet cut_year per id (stejná logika jako v prepare_tree_dataset) ---
-    n_reps = len(outputs.death) if isinstance(outputs.death, dict) else int(death_trees.get("replication", pd.Series()).nunique() or 1)
-
-    trees_to_cut: List[Tuple[int, int]] = []
-    for yr in sorted(death_trees["year"].dropna().unique()):
-        sub = death_trees.loc[death_trees["year"] == yr]
-
-        deth_vol = sub.groupby("species", as_index=False)["volume_m3"].mean()
-
-        prob = (
-            sub.groupby("id", as_index=False)["year"].count()
-               .rename(columns={"year": "prob"})
-        )
-        prob["prob"] = prob["prob"] / float(n_reps)
-        vol_by_id = sub.groupby("id", as_index=False)["volume_m3"].mean()
-        spp_mode = sub.groupby("id")["species"].agg(_mode).rename("spp")
-
-        prob = (
-            prob.merge(vol_by_id, on="id", how="left")
-                .merge(spp_mode, on="id", how="left")
-        )
-
-        for sp in deth_vol["species"].unique():
-            target = float(deth_vol.loc[deth_vol["species"] == sp, "volume_m3"].values[0])
-            if target <= 0:
-                continue
-
-            cand = prob.loc[prob["spp"] == sp].copy()
-            if cand.empty:
-                continue
-
-            cand = cand.sort_values(["prob", "volume_m3"], ascending=[False, False]).reset_index(drop=True)
-            cand["cum"] = cand["volume_m3"].cumsum()
-
-            hit = np.argmax(cand["cum"].values >= target)
-            chosen = cand["id"].values if cand["cum"].values[hit] < target else cand["id"].values[:hit + 1]
-            trees_to_cut.extend([(int(yr), int(tid)) for tid in chosen])
-
-    if not trees_to_cut:
-        return living_trees.sort_values(["replication", "year", "id"]).reset_index(drop=True)
-
-    trees_to_cut = pd.DataFrame(trees_to_cut, columns=["year", "tree_id"])
-    first_cut = (
-        trees_to_cut.groupby("tree_id", as_index=False)["year"]
-        .min()
-        .rename(columns={"tree_id": "id", "year": "cut_year"})
-    )
-
-    out = living_trees.merge(first_cut, on="id", how="left")
-
-    if mark_death:
-        mask = out["cut_year"].notna() & (out["year"] >= out["cut_year"])
-        out.loc[mask, "species"] = "death"
-        out = out.drop(columns=["cut_year"])
-    else:
-        out = out[(out["cut_year"].isna()) | (out["year"] < out["cut_year"])].drop(columns=["cut_year"])
-
-    return out.sort_values(["replication", "year", "id"]).reset_index(drop=True)
-
-# ---------- Load simulations  --------------
-# ---------- Load simulations  --------------
-def load_simulation(root: str, keep_replication: bool = True) -> pd.DataFrame:
-    """
-    Načte iLand výstupy ze složky `root`.
-
-    Parametry:
-      - keep_replication:
-          * False (default): vrací dataset průměrovaný přes replikace (kompatibilní s původním chováním)
-          * True: vrací per-tree dataset se sloupcem `replication` (pro výpočet konfidenčních intervalů)
-
-    Pozn.: logika mortality je řízena globální proměnnou `mark_death`.
-    """
-    outputs = read_outputs_tree_level(root)
-
-    if keep_replication:
-        return prepare_tree_dataset_with_replication(outputs, mark_death)
-
-    return prepare_tree_dataset(outputs, mark_death)
-
-# ------------------------------------------------------------------------------------------------------
-# For coloring plots
-
-def _strip_accents(s: str) -> str:
-    nfkd = unicodedata.normalize("NFKD", s)
-    return "".join(ch for ch in nfkd if not unicodedata.combining(ch))
-
-def latin_to_code(latin: str) -> str:
-    """
-    Kód = první 2 písmena z každého slova (bez diakritiky, jen [a-z]).
-    'Carpinus betulus' -> 'cabe'
-    'Populus × canadensis' -> 'poca'
-    """
-    s = _strip_accents(latin).lower()
-    parts = s.split()
-    bits: List[str] = []
-    for tok in parts:
-        tok = "".join(ch for ch in tok if "a" <= ch <= "z")
-        if tok:
-            bits.append(tok[:2])
-    return "".join(bits)
-
-def latin_binomial_label(latin_raw: str) -> str:
-    """
-    Vytvoří botanicky stylizovaný label: první alfabetický token -> 'Genus' (První písmeno velké),
-    všechny další alfabetické tokeny -> malými písmeny.
-    Nealfabetické tokeny (např. '×') zachová.
-    Příklady:
-      'carpinus betulus'         -> 'Carpinus betulus'
-      'POPULUS × CANADENSIS'     -> 'Populus × canadensis'
-      'Quercus robur fastigiata' -> 'Quercus robur fastigiata'
-    """
-    parts = latin_raw.strip().split()
-    out: List[str] = []
-    first_alpha_done = False
-    for tok in parts:
-        if any(c.isalpha() for c in tok):
-            if not first_alpha_done:
-                out.append(tok[0].upper() + tok[1:].lower())
-                first_alpha_done = True
-            else:
-                out.append(tok.lower())
-        else:
-            out.append(tok)
-    return " ".join(out)
-
-def build_species_maps(color_pallete: Dict[str, str]) -> Tuple[Dict[str,str], Dict[str,str], Dict[str,str]]:
-    """
-    Z palety {latin -> #HEX} vyrobí:
-      code2latin: { 'cabe': 'carpinus betulus', ... }  (lowercase pro konzistenci dat)
-      code2color: { 'cabe': '#E15759', ... }
-      code2label: { 'cabe': 'Carpinus betulus', ... }  (pro legendy/štítky)
-    """
-    code2latin: Dict[str, str] = {}
-    code2color: Dict[str, str] = {}
-    code2label: Dict[str, str] = {}
-
-    for latin_raw, hexcol in color_pallete.items():
-        latin_stripped = latin_raw.strip()
-        code = latin_to_code(latin_stripped)  # generuje z původního (ne lowernutého) řetězce
-        if not code:
-            continue
-        if code not in code2latin:
-            code2latin[code] = latin_stripped.lower()
-            code2color[code] = hexcol
-            code2label[code] = latin_binomial_label(latin_stripped)
-
-    return code2latin, code2color, code2label
-
-
-def read_single_sqlite(path: Path | str, rep_id: str):
-    """
-    Načte jednu iLand SQLite DB (tree + treeremoved) a přidá replication ID.
-    """
+# ============================================================================
+# 1) ČTENÍ JEDNÉ SQLITE (POUZE LIVING)
+# ============================================================================
+def read_single_sqlite_living(path: Path | str, rep_id: str) -> pd.DataFrame:
     path = Path(path)
     if not path.exists():
-        return None, None
+        return pd.DataFrame()
 
-    living = None
+    import sqlite3
 
+    con = sqlite3.connect(str(path))
     try:
-        living = _read_sqlite_table(path, "tree")
-        living["replication"] = rep_id
-    except Exception:
-        pass
+        df = pd.read_sql_query("SELECT * FROM tree", con)
+    finally:
+        con.close()
 
-    return living
+    if df.empty:
+        return df
+
+    df["replication"] = rep_id
+    return df
 
 
-def _agg_quantiles(
+# ============================================================================
+# 2) MAPOVÁNÍ DRUHŮ (iLand kód -> plný název)
+# ============================================================================
+def map_species_label(sim_trees: pd.DataFrame, species_dict: dict) -> pd.DataFrame:
+    """
+    Mapuje iLand species kód (abbreviation, např. 'pini')
+    -> plný latinský název (např. 'Pinus nigra')
+    """
+    out = sim_trees.copy()
+
+    # vytvoř mapu: abbreviation -> species
+    abbrev_to_species = {
+        v.get("abbreviation"): v.get("species")
+        for v in species_dict.values()
+        if isinstance(v, dict) and "abbreviation" in v and "species" in v
+    }
+
+    out["species_label"] = (
+        out["species"]
+        .astype(str)
+        .str.lower()
+        .map(abbrev_to_species)
+        .fillna("Unknown")
+    )
+
+    return out
+
+
+# ============================================================================
+# 3) OZNAČENÍ TARGET TREES (ID + X + Y)
+# ============================================================================
+def mark_target_trees(sim_trees: pd.DataFrame, trees: pd.DataFrame) -> pd.DataFrame:
+    """
+    Označí stromy v simulaci jako:
+      - 'Target tree'
+      - 'Untouched'
+
+    Párování POUZE přes `id` (správné pro iLand).
+    """
+    out = sim_trees.copy()
+
+    # fallback – žádné vstupní stromy
+    if trees is None or trees.empty or "id" not in trees.columns:
+        out["management_group"] = "Untouched"
+        return out
+
+    # target IDs ze vstupu
+    target_ids = set(
+        trees.loc[
+            trees["management_status"] == "Target tree",
+            "id"
+        ]
+        .dropna()
+        .astype(int)
+        .tolist()
+    )
+
+    # označení v simulaci
+    out["management_group"] = np.where(
+        out["id"].astype(int).isin(target_ids),
+        "Target tree",
+        "Untouched",
+    )
+
+    return out
+
+# ============================================================================
+# 4) AGREGACE PRO FAN CHART (KVANTILY)
+# ============================================================================
+def agg_fan(
     df: pd.DataFrame,
     group_cols: list[str],
-    value_col: str,
+    value_col: str = "volume_m3",
     rep_col: str = "replication",
-    quantiles: tuple[float, ...] = (0.05, 0.25, 0.5, 0.75, 0.95),
+    quantiles=(0.05, 0.25, 0.5, 0.75, 0.95),
 ) -> pd.DataFrame:
     """
-    Agreguje přes replikace a vrátí kvantily distribuce.
-    0.5 = medián; mean se vrací zvlášť.
+    Vrátí tabulku:
+      group_cols + q5, q25, q50, q75, q95, mean
     """
+
     d = df.copy()
     if rep_col not in d.columns:
         d[rep_col] = "rep_1"
 
-    # per-rep agregace (SUM)
+    # 1) agregace per-rep (SUM)
     per_rep = (
         d.groupby([rep_col] + group_cols, as_index=False)[value_col]
         .sum()
         .rename(columns={value_col: "value"})
     )
 
-    def _qs(x):
-        out = {f"q{int(q*100)}": float(np.nanquantile(x, q)) for q in quantiles}
-        out["mean"] = float(np.nanmean(x))
-        return pd.Series(out)
+    # 2) agregace přes replikace (fan chart)
+    agg_dict = {
+        "mean": ("value", "mean"),
+    }
+    for q in quantiles:
+        agg_dict[f"q{int(q*100)}"] = ("value", lambda x, q=q: np.nanquantile(x, q))
 
     stats = (
-        per_rep.groupby(group_cols, as_index=False)["value"]
-        .apply(_qs)
-        .reset_index()
+        per_rep
+        .groupby(group_cols, as_index=False)
+        .agg(**agg_dict)
     )
 
     return stats
 
+    #_--____------------------------
+    import pandas as pd
+from pathlib import Path
 
-def _agg_ci(df, group_cols, value_col, rep_col="replication"):
-    per_rep = (
-        df.groupby([rep_col] + group_cols, as_index=False)[value_col]
-          .sum()
-          .rename(columns={value_col: "value"})
+# ============================================================================
+# 5) EXPORT Trees to CSV
+# ============================================================================
+def export_iland_trees_csv(
+    trees: pd.DataFrame,
+    species_dict: dict,
+    project_file: str,
+    filename: str = "trees.csv",
+):
+    """
+    Vytvoří vstupní CSV pro iLand ze stromů v session_state.trees.
+
+    - vybere pouze Target tree + Untouched
+    - mapuje species -> abbreviation (iLand kód)
+    - uloží CSV do složky s project JSON
+    """
+
+    if trees is None or trees.empty:
+        raise ValueError("Input trees DataFrame is empty.")
+
+    # --------------------------------------------------
+    # 1) výběr stromů podle managementu
+    # --------------------------------------------------
+    trees_sel = trees.loc[
+        trees["management_status"].isin(["Target tree", "Untouched"])
+    ].copy()
+
+    if trees_sel.empty:
+        raise ValueError("No trees with management_status Target tree / Untouched.")
+
+    # --------------------------------------------------
+    # 2) mapování species -> abbreviation
+    # --------------------------------------------------
+    latin_to_abbrev = {
+        v["species"]: v["abbreviation"]
+        for v in species_dict.values()
+        if "species" in v and "abbreviation" in v
+    }
+
+    trees_sel["species"] = (
+        trees_sel["species"]
+        .map(latin_to_abbrev)
+        .fillna("none")   # fallback (unknown)
+        .astype(str)
     )
 
-    stats = (
-        per_rep.groupby(group_cols, as_index=False)["value"]
-        .agg(
-            mean="mean",
-            low=lambda x: np.nanquantile(x, 0.025),
-            high=lambda x: np.nanquantile(x, 0.975),
-        )
-    )
-    return stats
+    xmin = trees_sel["x"].min()
+    ymin = trees_sel["y"].min()
+
+    trees_sel["x"] = trees_sel["x"] - xmin
+    trees_sel["y"] = trees_sel["y"] - ymin
+
+    # --------------------------------------------------
+    # 3) příprava povinných sloupců iLand
+    # --------------------------------------------------
+    out = pd.DataFrame({
+        "id": trees_sel["id"].astype(int),
+        "species": trees_sel["species"],
+        "x": trees_sel["x"].astype(float),
+        "y": trees_sel["y"].astype(float),
+        "dbh": trees_sel["dbh"].astype(float),
+        "height": trees_sel["height"].astype(float),
+        "age": 0,   # iLand dovoluje age=0 (nebo můžeš dopočítat)
+    })
+
+    # --------------------------------------------------
+    # 4) sanity check (doporučeno)
+    # --------------------------------------------------
+    if out[["id", "x", "y"]].isna().any().any():
+        raise ValueError("NaN detected in id/x/y – invalid input for iLand.")
+
+    if (out["dbh"] <= 0).any():
+        raise ValueError("dbh <= 0 detected – invalid for iLand.")
+
+    if (out["height"] <= 0).any():
+        raise ValueError("height <= 0 detected – invalid for iLand.")
+
+    # --------------------------------------------------
+    # 5) uložení do složky projektu
+    # --------------------------------------------------
+    project_path = Path(project_file)
+    project_dir = project_path.parent
+    out_path = project_dir / filename
+
+    out.to_csv(out_path, index=False, sep=";")
+
+    return out_path
+
+# ============================================================================
+# 6) MODIFY iLand XML
+# ============================================================================
+
+def set_iland_mortality_regeneration(
+    xml_path: str | Path,
+    mortality_enabled: bool,
+    regeneration_enabled: bool,
+):
+    """
+    Upraví projektové iLand XML:
+      - <mortalityEnabled>
+      - <regenerationEnabled>
+
+    Ostatní části XML zůstávají beze změny.
+    """
+    xml_path = Path(xml_path)
+
+    if not xml_path.exists():
+        raise FileNotFoundError(f"XML file not found: {xml_path}")
+
+    tree = ET.parse(xml_path)
+    root = tree.getroot()
+
+    # najdi <settings> block
+    settings = root.find(".//model/settings")
+    if settings is None:
+        raise RuntimeError("Could not find <model><settings> block in XML.")
+
+    def _set_bool(tag: str, value: bool):
+        el = settings.find(tag)
+        if el is None:
+            # pokud element chybí, vytvoříme ho
+            el = ET.SubElement(settings, tag)
+        el.text = "true" if value else "false"
+
+    _set_bool("mortalityEnabled", mortality_enabled)
+    _set_bool("regenerationEnabled", regeneration_enabled)
+
+    tree.write(xml_path, encoding="utf-8", xml_declaration=True)

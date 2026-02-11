@@ -12,8 +12,28 @@ from src.help_dict import HELP_I18N
 Lang = Literal["cs", "en"]
 DEFAULT_LANG: Lang = "en"
 
+MGMT_STATUS_KEY_MAP: dict[str, str] = {
+    "Competition": "mgmt_status_competition",
+    "Maturity": "mgmt_status_maturity",
+    "Promote rare species": "mgmt_status_promote_rare",
+    "Promote regeneration": "mgmt_status_promote_regeneration",
+    "Sanitary": "mgmt_status_sanitary",
+    "Target tree": "mgmt_status_target_tree",
+    "Technical": "mgmt_status_technical",
+    "Untouched": "mgmt_status_untouched",
+}
+
 
 I18N: dict[str, dict[Lang, str]] = {
+    "mgmt_status_competition": {"cs": "Konkurence", "en": "Competition"},
+    "mgmt_status_maturity": {"cs": "Zralost", "en": "Maturity"},
+    "mgmt_status_promote_rare": {"cs": "Uvolnění vzácných druhů", "en": "Promote rare species"},
+    "mgmt_status_promote_regeneration": {"cs": "Uvolnění obnovy", "en": "Promote regeneration"},
+    "mgmt_status_sanitary": {"cs": "Zdravotní výběr", "en": "Sanitary"},
+    "mgmt_status_target_tree": {"cs": "Cílový strom", "en": "Target tree"},
+    "mgmt_status_technical": {"cs": "Technický zásah", "en": "Technical"},
+    "mgmt_status_untouched": {"cs": "Bez zásahu", "en": "Untouched"},
+
     "altitude": {"cs": "Nadmořská výška:", "en": "Altitude:"},
     "app_localization": {"cs": "Jazyk", "en": "Language:"},
     "area": {"cs": "Rozloha:", "en": "Area:"},
@@ -221,7 +241,7 @@ I18N: dict[str, dict[Lang, str]] = {
         "cs": "Vyberte jednu nebo obě možnosti. Pokud jsou vybrány obě, obě budou vykresleny (Druh = plná čára, Management = čárkovaná).",
         "en": "Select one or both. When both are selected, both are shown (Species = solid, Management = dashed).",
     },
-    "sky_view_management_title": {"cs": "Hodnoty dostupného světla podle managementu", "en": "Sky View Values by Management"},
+    "sky_view_management_title": {"cs": "Hodnoty dostupného světla podle zásahu", "en": "Sky View Values by Management"},
     "sky_view_species_title": {"cs": "Hodnoty dostupného světla podle druhu", "en": "Sky View Values by Species"},
     "sky_view_values": {"cs": "Hodnoty dostupného světla", "en": "Sky View Values"},
     "space_comp_pg_title": {"cs": "Konkurence o prostor – Sdílený objem korun", "en": "Competition for Space – Shared Volume of Crowns"},
@@ -251,7 +271,8 @@ I18N: dict[str, dict[Lang, str]] = {
     "tree_count": {"cs": "Počet stromů", "en": "Tree Count"},
     "tree_height": {"cs": "Výška stromu [m]", "en": "Tree Height [m]"},
     "trees": {"cs": "Stromy", "en": "Trees"},
-    "trees_per_ha": {"cs": "stromů/Ha", "en": "trees/Ha"},
+    "unit_trees": {"cs": "Stromů", "en": "Trees"},
+    "trees_per_ha": {"cs": "Stromů/Ha", "en": "Trees/Ha"},
     "unit_cm": {"cs": "cm", "en": "cm"},
     "unit_m": {"cs": "m", "en": "m"},
     "unit_m2": {"cs": "m²", "en": "m²"},
@@ -596,10 +617,12 @@ I18N: dict[str, dict[Lang, str]] = {
     "warn_missing_required_columns": {
         "cs": "Chybí požadované sloupce: {columns}",
         "en": "Missing required columns: {columns}",
-    }
+    },
 
+    "clima_scenario": {"cs": "Klimatický scénář:", "en": "Climate scenario:"},
     
 }
+
 
 
 # -----------------------------
@@ -664,6 +687,15 @@ def t_help(key: str, **kwargs: Any) -> str:
             return text
 
     return text
+
+
+def t_mgmt(status: str) -> str:
+    """
+    Přeloží management_status (EN hodnota v datech) do aktuálního jazyka.
+    Fallback: vrátí původní hodnotu.
+    """
+    key = MGMT_STATUS_KEY_MAP.get(status)
+    return t(key) if key else status
 
 # -----------------------------
 # Validation
