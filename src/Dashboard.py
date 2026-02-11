@@ -218,7 +218,9 @@ with c2:
     if active == "__USER__":
         intervention_label = t("usr_mgmt_unsaved")  # např. "Uživatelský zásah (neuložený)"
     else:
-        intervention_label = f"{t('management_examples')} #{active}"
+        #intervention_label = f"{t('management_examples')} #{active}"
+        active_label = next((lbl for lbl, mid in saved_items if mid == active), None)
+        intervention_label = active_label if active_label else t("usr_mgmt_unsaved")
 
 # --- 1) Render tlačítko ---
     if st.button(

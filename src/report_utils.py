@@ -177,9 +177,14 @@ def build_intervention_report_pdf(
     created_dt = created_dt or datetime.now()
 
     def resolve_intervention_label(lbl: str) -> str:
-        if lbl.startswith("#"):
-            return t(lbl.lstrip("#"))
-        return lbl
+        value = _safe_str(lbl)
+        if value.startswith("#"):
+            key = value.lstrip("#")
+            translated = t(key)
+            if translated == key:
+                return t("usr_mgmt_unsaved")
+            return translated
+        return value or t("usr_mgmt_unsaved")
 
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=landscape(A4))

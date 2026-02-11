@@ -158,7 +158,7 @@ def build_three_panel_figure(
         dbh = pd.to_numeric(d["dbh"], errors="coerce")
         d["basal_area_m2"] = np.pi * (dbh / 200.0) ** 2
 
-    # Canopy cover (plot-level, NOT per-tree sum!)
+    # Canopy cover contribution per tree (relative to plot area)
     try:
         area_ha = float(plot_info["size_ha"].iloc[0])
         area_ha = area_ha if area_ha > 0 else 1.0
@@ -167,7 +167,7 @@ def build_three_panel_figure(
 
     if "surfaceAreaProjection" in d.columns:
         sap = pd.to_numeric(d["surfaceAreaProjection"], errors="coerce").fillna(0.0)
-        d["canopy_cover_pct"] = (sap.sum() / (area_ha * 10_000.0)) * 100.0
+        d["canopy_cover_pct"] = (sap / (area_ha * 10_000.0)) * 100.0
 
     masks = _make_masks(d)
     dsel = d[masks.get(dist_mode, pd.Series(True, index=d.index))].copy()
@@ -194,81 +194,63 @@ def build_three_panel_figure(
     ax2 = fig.add_subplot(gs[0, 2])
 
     # ===== PIE =====
-    if metric_id == METRIC_CANOPY_COVER:
-        covered = float(dsel["canopy_cover_pct"].iloc[0]) if not dsel.empty else 0.0
-        uncovered = max(0.0, 100.0 - covered)
+    pie = (
+        dsel.groupby(hue_col)[value_col].sum()
+        if value_col
+        else dsel.groupby(hue_col).size()
+    ).reindex(categories, fill_value=0)
 
-        ax0.pie(
-            [covered, uncovered],
-            labels=[t("covered"), t("uncovered")],
-            colors=["#4CAF50", "#EEEEEE"],
-            startangle=90,
-            counterclock=False,
-            wedgeprops=dict(width=0.5, edgecolor="white"),
-        )
-        ax0.text(0, 0, f"{covered:.1f} %", ha="center", va="center", fontsize=12, fontweight="bold")
-        ax0.set_title(t("stand_canopy_cover"), fontsize=11)
-        ax1.axis("off")
-        ax2.axis("off")
+    ax0.pie(
+        pie.values,
+        colors=[cmap.get(k, "#AAAAAA") for k in pie.index],
+        startangle=90,
+        counterclock=False,
+        wedgeprops=dict(width=0.5, edgecolor="white"),
+    )
 
-    else:
-        pie = (
-            dsel.groupby(hue_col)[value_col].sum()
-            if value_col
-            else dsel.groupby(hue_col).size()
-        ).reindex(categories, fill_value=0)
+    total = pie.sum()
+    txt = f"Σ\n{int(total)}\n{unit}" if value_col is None else f"Σ\n{total:,.1f}\n{unit}".replace(",", " ")
+    ax0.text(0, 0, txt, ha="center", va="center", fontsize=12, fontweight="bold")
+    ax0.set_title(t("stand_canopy_cover") if metric_id == METRIC_CANOPY_COVER else t("stand_composition"), fontsize=11)
 
-        ax0.pie(
-            pie.values,
-            colors=[cmap.get(k, "#AAAAAA") for k in pie.index],
-            startangle=90,
-            counterclock=False,
-            wedgeprops=dict(width=0.5, edgecolor="white"),
-        )
+    # ===== STACKED =====
+    dbh_bins = _make_bins(dsel.get("dbh", pd.Series()), 10)
+    h_bins = _make_bins(dsel.get("height", pd.Series()), 5)
 
-        total = pie.sum()
-        txt = f"Σ\n{int(total)}\n{unit}" if value_col is None else f"Σ\n{total:,.1f}\n{unit}".replace(",", " ")
-        ax0.text(0, 0, txt, ha="center", va="center", fontsize=12, fontweight="bold")
-        ax0.set_title(t("stand_composition"), fontsize=11)
+    dbh_mat, dbh_lbl = _agg_stacked(dsel, "dbh", dbh_bins, hue_col, value_col, categories)
+    h_mat, h_lbl = _agg_stacked(dsel, "height", h_bins, hue_col, value_col, categories)
 
-        # ===== STACKED =====
-        dbh_bins = _make_bins(dsel.get("dbh", pd.Series()), 10)
-        h_bins = _make_bins(dsel.get("height", pd.Series()), 5)
+    for ax, mat, lbls, unit_lbl in [
+        (ax1, dbh_mat, dbh_lbl, t("unit_cm")),
+        (ax2, h_mat, h_lbl, t("unit_m")),
+    ]:
+        x = np.arange(len(lbls))
+        bottom = np.zeros(len(lbls))
+        for i, cat in enumerate(categories):
+            if mat.shape[1] == 0:
+                continue
+            y = mat[i]
+            if np.allclose(y, 0):
+                continue
+            ax.bar(x, y, bottom=bottom, color=cmap.get(cat, "#AAAAAA"), label=cat)
+            bottom += y
 
-        dbh_mat, dbh_lbl = _agg_stacked(dsel, "dbh", dbh_bins, hue_col, value_col, categories)
-        h_mat, h_lbl = _agg_stacked(dsel, "height", h_bins, hue_col, value_col, categories)
+        ax.set_xticks(x)
+        ax.set_xticklabels([f"{l} {unit_lbl}" for l in lbls], rotation=35, ha="right", fontsize=8)
+        ax.set_ylabel(y_title)
+        ax.grid(True, axis="y", alpha=0.25)
 
-        for ax, mat, lbls, unit_lbl in [
-            (ax1, dbh_mat, dbh_lbl, t("unit_cm")),
-            (ax2, h_mat, h_lbl, t("unit_m")),
-        ]:
-            x = np.arange(len(lbls))
-            bottom = np.zeros(len(lbls))
-            for i, cat in enumerate(categories):
-                if mat.shape[1] == 0:
-                    continue
-                y = mat[i]
-                if np.allclose(y, 0):
-                    continue
-                ax.bar(x, y, bottom=bottom, color=cmap.get(cat, "#AAAAAA"), label=cat)
-                bottom += y
-
-            ax.set_xticks(x)
-            ax.set_xticklabels([f"{l} {unit_lbl}" for l in lbls], rotation=35, ha="right", fontsize=8)
-            ax.set_ylabel(y_title)
-            ax.grid(True, axis="y", alpha=0.25)
-
-        fig.legend(
-            loc="lower center",
-            ncol=min(6, len(categories)),
-            frameon=False,
-            bbox_to_anchor=(0.5, 0.02),
-            title=hue_title,
-            fontsize=8,
-            title_fontsize=9,
-        )
+    fig.legend(
+        loc="lower center",
+        ncol=min(6, len(categories)),
+        frameon=False,
+        bbox_to_anchor=(0.5, -0.01),
+        title=hue_title,
+        fontsize=8,
+        title_fontsize=9,
+    )
 
     fig.suptitle(f"{t(dist_mode)} — {t(metric_id)} — {t(color_mode)}", fontsize=12, fontweight="bold")
-    fig.subplots_adjust(bottom=0.25, top=0.88)
+    fig.subplots_adjust(bottom=0.33, top=0.88)
 
     return fig
