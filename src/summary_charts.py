@@ -8,6 +8,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
+from src.i18n import t_mgmt
+
 # ---------- Stable IDs ----------
 STATUS_BEFORE = "label_before"
 STATUS_AFTER = "label_after"
@@ -178,11 +180,13 @@ def build_three_panel_figure(
         categories = sorted(d[hue_col].astype(str).dropna().unique())
         cmap = _management_colors(d)
         hue_title = t("management_label")
+        legend_labels = [t_mgmt(cat) for cat in categories]
     else:
         hue_col = "species"
         categories = sorted(d[hue_col].astype(str).dropna().unique())
         cmap = _species_colors(d)
         hue_title = t("species")
+        legend_labels = categories
 
     value_col, y_title, unit = _metric_meta(t, metric_id)
 
@@ -240,7 +244,14 @@ def build_three_panel_figure(
         ax.set_ylabel(y_title)
         ax.grid(True, axis="y", alpha=0.25)
 
+    handles = [
+        plt.Rectangle((0, 0), 1, 1, facecolor=cmap.get(cat, "#AAAAAA"), edgecolor="none")
+        for cat in categories
+    ]
+
     fig.legend(
+        handles,
+        legend_labels,
         loc="lower center",
         ncol=min(6, len(categories)),
         frameon=False,

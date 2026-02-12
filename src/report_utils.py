@@ -218,6 +218,33 @@ def build_intervention_report_pdf(
 
     stats = compute_report_table(trees, plot_info)
 
+    pi = plot_info.iloc[0] if isinstance(plot_info, pd.DataFrame) and not plot_info.empty else pd.Series(dtype=object)
+
+    c.setFont(FONT_BOLD, 13)
+    c.drawString(M, y, t("overview_header"))
+    y -= 8 * mm
+
+    c.setFont(FONT_REG, 10)
+    overview_lines = [
+        f"{t('forest_type')}: {_safe_str(pi.get('forest_type', '—'), '—')}",
+        f"{t('number_of_trees_label')}: {_safe_str(pi.get('no_trees', '—'), '—')}",
+        f"{t('wood_volume_label')}: {_safe_str(pi.get('volume', '—'), '—')} m³",
+        f"{t('area')}: {_safe_str(pi.get('size_ha', '—'), '—')} ha",
+        f"{t('altitude')}: {_safe_str(pi.get('altitude', '—'), '—')} m",
+        f"{t('precipitation')}: {_safe_str(pi.get('precipitation', '—'), '—')} mm/year",
+        f"{t('average_temperature')}: {_safe_str(pi.get('temperature', '—'), '—')} °C",
+        f"{t('established')}: {_safe_str(pi.get('established', '—'), '—')}",
+        f"{t('location')}: {_safe_str(pi.get('state', '—'), '—')}",
+        f"{t('owner')}: {_safe_str(pi.get('owner', '—'), '—')}",
+        f"{t('scan_date')}: {_safe_str(pi.get('scan_date', '—'), '—')}",
+    ]
+
+    for line in overview_lines:
+        c.drawString(M, y, f"• {line}")
+        y -= 4.5 * mm
+
+    y -= 2 * mm
+
     c.setFont(FONT_BOLD, 13)
     c.drawString(M, y, t("report_intervention_summary"))
     y -= 8 * mm
