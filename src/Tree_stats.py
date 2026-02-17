@@ -484,6 +484,17 @@ def render_triple_by_class(
     )
 
     def add_panel_traces(long_df: pd.DataFrame, col: int, show_legend_for: set[str]):
+
+        if long_df.empty:
+            totals_by_bin = {lbl: 0.0 for lbl in labels}
+        else:
+            totals_by_bin = (
+                long_df.groupby("bin", as_index=True)["value"]
+                .sum()
+                .reindex(labels, fill_value=0)
+                .to_dict()
+            )
+
         for cat in categories:
             label = t_mgmt(cat) if hue_col == "management_status" else str(cat)
             if long_df.empty:
@@ -496,18 +507,23 @@ def render_triple_by_class(
                     .fillna(0)
                     .tolist()
                 )
+
+            customdata = [[totals_by_bin.get(lbl, 0.0)] for lbl in labels]
+
             fig.add_trace(
                 go.Bar(
                     x=labels,
                     y=y_vals,
+                    customdata=customdata,
                     name=label,
                     marker_color=color_for(cat),
                     legendgroup=str(cat),
                     showlegend=(cat in show_legend_for),
                     hovertemplate=(
                         "%{x}<br>"
+                        f"{t('sum_label')}: %{{customdata[0]:.2f}}<br><br>"
                         f"{t('category')}: {cat}<br>"
-                        f"{t('value_label')}: %{{y:.2f}}"
+                        f"{t('in_class')}: %{{y:.2f}}"
                         "<extra></extra>"
                     ),
                 ),

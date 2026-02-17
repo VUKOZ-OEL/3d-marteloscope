@@ -38,7 +38,8 @@ colors_page = st.Page("src/Colors_settings.py", title=t("colors"), icon=":materi
 # Temp tests
 sandbox_page = st.Page("src/sandbox.py", title=t("Sandbox"), icon=":material/thumb_up:")
 
-# file_path = "data/Krivoklat.json"
+#file_path = "d:/GS_LCR_DELIVERABLE/Buchlovice/Buchlovice.json"
+#file_path = "d:/GS_LCR_DELIVERABLE/test/test.json"
 file_path = "data/pokojna_test_v2_2.json"
 # Init data
 if not st.session_state.get("data_initialized"):

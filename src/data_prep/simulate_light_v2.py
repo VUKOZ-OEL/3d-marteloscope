@@ -34,8 +34,8 @@ MAX_ERR_PCT = 0.5
 
 RAY_T0 = 2.0 * VOXEL_SIZE
 
-INPUT_PROJECT_JSON = r"D:/GS_LCR_DELIVERABLE/Buchlovice/Buchlovice.json"
-OUTPUT_PROJECT_JSON = r"D:/GS_LCR_DELIVERABLE/Buchlovice/Buchlovice.json"
+INPUT_PROJECT_JSON = r"D:/GS_LCR_DELIVERABLE/Krivoklat/Krivoklat.json"
+OUTPUT_PROJECT_JSON = r"D:/GS_LCR_DELIVERABLE/Krivoklat/Krivoklat_light.json"
 LAS_DIR_OVERRIDE = r""
 LAS_EXT = ".las"
 

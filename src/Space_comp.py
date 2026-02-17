@@ -182,6 +182,50 @@ with c8:
         (h_min, h_max),
     )
 
+# -------------------------------------------------------------------
+# BOTTOM FILTERS
+# -------------------------------------------------------------------
+c_bot1, c_bot2 = st.columns([2, 15])
+
+with c_bot1:
+    if "species_sel" not in st.session_state:
+        st.session_state["species_sel"] = sp_all.copy()
+
+    st.pills(
+        f"**{t('filter_species')}**",
+        options=sp_all,
+        selection_mode="multi",
+        key="species_sel",
+    )
+
+with c_bot2:
+    #st.plotly_chart(fig, use_container_width=True)
+    chart_placeholder = st.empty()
+
+c31, c32 = st.columns([2, 15])
+
+with c32:
+
+    mgmt_label_map = {m: t_mgmt(m) for m in mg_all}
+    mgmt_labels = list(mgmt_label_map.values())
+    label_to_mgmt = {v: k for k, v in mgmt_label_map.items()}
+
+    # ✅ Inicializace pouze při prvním běhu
+    if "mgmt_sel_labels" not in st.session_state:
+        st.session_state["mgmt_sel_labels"] = mgmt_labels.copy()
+        st.session_state["mgmt_sel"] = mg_all.copy()
+
+    mgmt_sel_labels = st.pills(
+        f"**{t('filter_management')}**",
+        options=mgmt_labels,
+        selection_mode="multi",
+        key="mgmt_sel_labels",
+    )
+
+    # vždy synchronizujeme interní hodnoty
+    st.session_state["mgmt_sel"] = [
+        label_to_mgmt[lbl] for lbl in mgmt_sel_labels
+    ]
 
 # -------------------------------------------------------------------
 # READ SPECIES & MANAGEMENT SELECTIONS FROM SESSION
@@ -459,41 +503,8 @@ for c in (2, 3):
 fig.update_layout(height=460, margin=dict(l=10, r=10, t=60, b=40))
 
 
-# -------------------------------------------------------------------
-# BOTTOM FILTERS
-# -------------------------------------------------------------------
-c_bot1, c_bot2 = st.columns([2, 15])
 
-with c_bot1:
-    st.pills(
-        f"**{t('filter_species')}**",
-        options=sp_all,
-        default=species_sel,
-        selection_mode="multi",
-        key="species_sel",
-    )
-
-with c_bot2:
-    st.plotly_chart(fig, use_container_width=True)
-
-c31, c32 = st.columns([2, 15])
-
-with c32:
-    mgmt_label_map = {m: t_mgmt(m) for m in mg_all}
-    mgmt_labels = list(mgmt_label_map.values())
-    label_to_mgmt = {v: k for k, v in mgmt_label_map.items()}
-
-    mgmt_sel_labels = st.pills(
-        f"**{t('filter_management')}**",
-        options=mgmt_labels,
-        default=[mgmt_label_map[m] for m in mg_sel_set],
-        selection_mode="multi",
-        help=t("filter_management_help"),
-    )
-
-    mg_sel = [label_to_mgmt[lbl] for lbl in mgmt_sel_labels]
-    mg_sel_set = set(mg_sel)
-    st.session_state["mgmt_sel"] = mg_sel
+chart_placeholder.plotly_chart(fig, use_container_width=True)
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
     st.markdown(t_help("space_comp_help"))

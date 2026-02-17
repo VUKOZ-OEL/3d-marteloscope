@@ -145,7 +145,7 @@ def ply_to_wkt_polygon(ply_path: str, alpha=0.3, simplify_tolerance=0.5) -> str:
                 continue
 
             try:
-                x, y = float(parts[0]), float(parts[1])
+                x, y = float(parts[0]) * 0.0001, float(parts[1]) * 0.0001
 
                 # odstranit artefakt 0,0
                 if x == 0 and y == 0:
@@ -160,6 +160,11 @@ def ply_to_wkt_polygon(ply_path: str, alpha=0.3, simplify_tolerance=0.5) -> str:
         return None
 
     points = list(zip(xs, ys))
+    
+    points = [
+        (x, y) for x, y in points
+        if not (-0.1 < x < 0.1 or -0.1 < y < 0.1)
+    ]
 
     # --- 1) Vytvoř concave hull ---
     hull = alpha_shape(points, alpha=alpha)
@@ -439,7 +444,7 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
     doplní chybějící 2D projekce koruny (PLY → WKT) do SQLite přes UPDATE
     a spočte metriky projection_exposure a projection_exposure_after_mgmt.
     """
-
+    print("load_project_json")
     # --------------------------------------------------------------------------------------
     # 0) Sloupce, které SQL nesmí nikdy přepsat
     # --------------------------------------------------------------------------------------
@@ -464,7 +469,6 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
 
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-
     # --------------------------------------------------------------------------------------
     # 2) Lookup tabulky species + management
     # --------------------------------------------------------------------------------------
@@ -489,7 +493,7 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
             }
         except:
             pass
-
+    
     # --------------------------------------------------------------------------------------
     # 3) Segmenty → DataFrame
     # --------------------------------------------------------------------------------------
@@ -543,7 +547,9 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
 
         rows.append(base)
 
+
     df_json = pd.DataFrame(rows)
+    df_json["dbh"] = df_json["dbh"] * 100
 
     if df_json.empty:
         return df_json
@@ -639,13 +645,14 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
 
     # Najít chybějící WKT polygony
     missing = df_json[df_json["planar_projection_poly"].isna()]
-
+    print("before poly loop")
     if not missing.empty:
         # dopočítat WKT z PLY
         for tid in missing["id"]:
+            
             ply_name = f"{project_name}.{tid}.concaveHullProjection.ply"
             ply_path = os.path.join(project_dir, ply_name)
-
+            print(ply_path)
             wkt_poly = ply_to_wkt_polygon(ply_path)
             if wkt_poly:
                 df_json.loc[tid, "planar_projection_poly"] = wkt_poly
@@ -1041,6 +1048,3 @@ def refresh_management_colors(
 
     out[color_col] = out[status_col].astype(str).map(mg_map).fillna(default_color)
     return out
-
-
-

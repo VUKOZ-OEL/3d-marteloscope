@@ -64,7 +64,7 @@ def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) ->
 file_path = "d:/GS_LCR_DELIVERABLE/Krivoklat/Krivoklat.json"
 out_file = "d:/GS_LCR_DELIVERABLE/Krivoklat/Krivoklat.json"
 trees = iou.load_project_json(file_path)
-trees.to_feather("d:/GS_LCR_DELIVERABLE/Krivoklat/Krivoklat.json.feather")
+trees.to_feather("d:/GS_LCR_DELIVERABLE/Krivoklat.json.feather")
 
 feather_att = pd.read_feather("d:/GS_LCR_DELIVERABLE/Krivoklat2json.feather")
 

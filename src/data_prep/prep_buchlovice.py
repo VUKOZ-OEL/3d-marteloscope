@@ -62,24 +62,27 @@ def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) ->
 
 
 file_path = "d:/GS_LCR_DELIVERABLE/Buchlovice/Buchlovice.json"
-out_file = "d:/GS_LCR_DELIVERABLE/Buchlovice/Buchlovice_2.json"
+out_file = "d:/GS_LCR_DELIVERABLE/Buchlovice/Buchlovice.json"
 trees = iou.load_project_json(file_path)
-trees.to_feather("d:/GS_LCR_DELIVERABLE/Buchlovice/Buchlovice.json.feather")
-
+#trees.to_feather("d:/GS_LCR_DELIVERABLE/Buchlovice.json.feather")
 feather_att = pd.read_feather("D:/GS_LCR_DELIVERABLE/buchlovice2json.feather")
 
 feather_att = feather_att.sort_values(by="id")
 
 
-trees["dbh"] = feather_att["dbh"]/100
+
+trees["dbh"] = feather_att["dbh"]
+trees["dbhPosition"] = trees[["x", "y", "z"]].values.tolist()
 trees["species"] = feather_att["species"]
 trees["speciesId"] = feather_att["speciesId"]
+
 #trees["volume"] = feather_att["volume"]
 #trees["crown_eccentricity"] = feather_att["crown_eccentricity"]
 
-trees["heightXdbh"] = trees["heightXdbh"]/100
-trees["light_avail"] = 0
+#trees["heightXdbh"] = trees["heightXdbh"]
+#trees["light_avail"] = 0
 
+#view(trees)
 
 write_json(file_path, trees, out_file)
 

@@ -302,7 +302,7 @@ I18N: dict[str, dict[Lang, str]] = {
     # --------------------------------------------- added later
     # DASHBOARD
     "number_of_trees_label": {"cs": "Počet stromů:", "en": "Number of trees:"},
-    "wood_volume_label": {"cs": "Objem dřeva:", "en": "Wood volume:"},
+    "wood_volume_label": {"cs": "Zásoba dříví:", "en": "Wood volume:"},
     "btn_clear_management": {"cs": "Vymazat zásah", "en": "Clear management"},
     "success_load_mgmt": {"cs": "Zásah načten", "en": "Selection loaded"},
     # management examples keys - aliases of column name
@@ -319,6 +319,7 @@ I18N: dict[str, dict[Lang, str]] = {
     "no_data": {"cs": "Žádná data", "en": "No data"},
     "uncovered": {"cs": "Nezakryto", "en": "Uncovered"},
     "column_sum": {"cs": "Suma v kategorii", "en": "Category sum"},
+    "in_class": {"cs": "V kategorii", "en": "In class"},
 
     "warn_no_data_for_filters": {
         "cs": "Pro zvolenou kombinaci filtrů nejsou k dispozici žádná data. Upravte prosím filtry a zkuste to znovu.",
