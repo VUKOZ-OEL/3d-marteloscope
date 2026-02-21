@@ -343,7 +343,7 @@ I18N: dict[str, dict[Lang, str]] = {
 
     ## Tree statistics
     "explore_tree_statistics": {
-        "cs": "Prozkoumat statistiky stromů",
+        "cs": "Statistiky stromů",
         "en": "Explore tree statistics",
     },
 
@@ -621,6 +621,10 @@ I18N: dict[str, dict[Lang, str]] = {
     },
 
     "clima_scenario": {"cs": "Klimatický scénář:", "en": "Climate scenario:"},
+
+    "rerun_light_label": {"cs": "Spust výpočet dostupného světla:", "en": "Re-run Sky View Factor computation:"},
+    "set_voxel_size": {"cs": "Velikost voxelu:", "en": "Voxel size:"},
+    "run_light_btn": {"cs": "Start výpočtu:", "en": "Start computation:"},
     
 }
 

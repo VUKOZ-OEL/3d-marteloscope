@@ -59,25 +59,23 @@ def write_json(original_path: str, df: pd.DataFrame, output_path: str = None) ->
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-file_path = "d:/GS_LCR_DELIVERABLE/Krivoklat/Krivoklat.json"
-out_file = "d:/GS_LCR_DELIVERABLE/Krivoklat/Krivoklat.json"
+
+
+file_path = "d:/GS_LCR_DELIVERABLE/Klepacov/Klepacov.json"
+out_file = "d:/GS_LCR_DELIVERABLE/Klepacov/Klepacov.json"
 trees = iou.load_project_json(file_path)
-trees.to_feather("d:/GS_LCR_DELIVERABLE/Krivoklat.json.feather")
 
-feather_att = pd.read_feather("D:/GS_LCR_DELIVERABLE/Krivoklat2json.feather")
-
+trees.to_feather("d:/GS_LCR_DELIVERABLE/Klepacov.json.feather")
+feather_att = pd.read_feather("D:/GS_LCR_DELIVERABLE/klepacov2json.feather")
 
 feather_att = feather_att.sort_values(by="id")
-
 
 trees["dbh"] = feather_att["dbh"]/100
 trees["species"] = feather_att["species"]
 trees["speciesId"] = feather_att["speciesId"]
-#trees["volume"] = feather_att["volume"]
-trees["crown_eccentricity"] = feather_att["crown_eccentricity"]
+trees["vertical_crown_projection"] = feather_att["vertical_crown_projection"]
+trees["crown_eccentricity"] = feather_att["ecc2stem_axis"]
+trees["stem_volume"] = feather_att["stem_volume_L"]/1000
+trees["dbhPosition"] = list(zip(trees["x"], trees["y"], trees["z"] + 1.3))
 
-trees["heightXdbh"] = feather_att["heightXdbh"]/100
-
-write_json(file_path, trees, out_file)
-
-
+write_json(file_path,trees,out_file)

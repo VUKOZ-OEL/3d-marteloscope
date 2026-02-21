@@ -13,6 +13,8 @@ from src.import_utils import (
     load_usr_attributes_wide,
 )
 
+from src.data_prep.simulate_light import compute_light_competition
+
 # =================================================
 # INIT
 # =================================================
@@ -24,7 +26,7 @@ if "user_attributes" not in st.session_state:
 
 tree_ids = get_tree_ids(sqlite_path)
 
-c1, _ ,c2, = st.columns([5, 1, 5])
+c1, _ ,c2, _, c3 = st.columns([5, 1, 5,1,5])
 
 with c1:
     st.markdown(f"### {t('import_label')}")
@@ -113,6 +115,40 @@ with c2:
 
             st.success(t("remove_sucess"))
 
+with c3:
+
+    st.markdown(f"#### **{t('rerun_light_label')}**")
+    st.markdown(f"**{t('set_voxel_size')}**")
+    json_path = st.session_state.project_file
+
+    c31,_, c32 = st.columns([3,1,4])
+
+    
+    with c31:
+        voxel = st.number_input(
+            f"**{t('set_voxel_size')}**",
+            min_value=0.05,
+            max_value=1.01,
+            value=0.25,
+            step=0.05,
+            format="%.2f",
+            label_visibility="collapsed",
+        )
+
+    with c32:
+        if st.button(f"### **{t('run_light_btn')}**", type = "primary"):
+            progress = st.progress(0)
+            status = st.empty()
+
+            def update_progress(p, msg):
+                progress.progress(p)
+                status.text(msg)
+
+            df_result = compute_light_competition(
+                json_path,
+                voxel,
+                progress_callback=update_progress
+            )
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
     st.markdown(t_help("add_att_help"))

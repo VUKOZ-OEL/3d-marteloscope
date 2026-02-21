@@ -21,7 +21,7 @@ NEIGHBOR_RADIUS = 40.0       # [m] horizontální okno pro sousedy
 Z_MARGIN_UP = 10.0           # [m] rezerva nad Z cílového bodu
 Z_MIN = 0.0                  # [m] spodní mez
 N_RAY_SAMPLES = 5000         # počet paprsků v kuželu (vyšší= přesnější, pomalejší)
-RAY_T0 = 2.0 * VOXEL_SIZE    # malé odsazení od apexu
+RAY_T0 = 0 * VOXEL_SIZE    # malé odsazení od apexu
 
 # --- VSTUP / VÝSTUP ---
 INPUT_PROJECT_JSON = r"D:/GS_LCR_DELIVERABLE/Buchlovice/Buchlovice.json"
@@ -439,6 +439,172 @@ def load_project_json_light(file_path: str, las_dir_override: str = "") -> pd.Da
 
     df["id"] = df["id"].astype(int)
     return df.reset_index(drop=True)
+
+# =====================================================
+def compute_light_competition(
+    project_json_path: str,
+    voxel_size: float,
+    las_dir_override: str = "",
+    progress_callback=None,
+) -> pd.DataFrame:
+    """
+    Spustí raytracing výpočet světla nad projektovým JSON.
+
+    Parameters
+    ----------
+    project_json_path : str
+        Cesta k projektovému JSON.
+    voxel_size : float
+        Velikost voxelu [m].
+    las_dir_override : str
+        Volitelná složka s LAS soubory.
+    progress_callback : callable
+        Funkce(progress: float, message: str) – pro Streamlit progress bar.
+
+    Returns
+    -------
+    pd.DataFrame
+        Výsledný DataFrame s light_avail a light_comp.
+    """
+
+    global VOXEL_SIZE
+    VOXEL_SIZE = float(voxel_size)
+
+    df = load_project_json_light(project_json_path, las_dir_override=las_dir_override)
+
+    if df.empty:
+        raise RuntimeError("V JSONu nebyly nalezeny validní segmenty.")
+
+    # kontrola LAS
+    missing = df[~df["las_file"].apply(os.path.exists)]
+    if not missing.empty:
+        raise FileNotFoundError(
+            "Chybí LAS soubory:\n"
+            + "\n".join(missing["las_file"].tolist())
+        )
+
+    xs = df["x"].to_numpy(float)
+    ys = df["y"].to_numpy(float)
+    zs = df["z"].to_numpy(float)
+    ids = df["id"].to_numpy(int)
+    las_files = df["las_file"].astype(str).to_numpy()
+
+    half_angle = math.radians(APEX_ANGLE_DEG / 2.0)
+    axis = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+
+    results_rows = []
+
+    total_trees = len(df)
+
+    for i in range(total_trees):
+
+        if progress_callback:
+            progress_callback(i / total_trees, f"{i/total_trees*100:.1f} %")
+
+        tree_id = int(ids[i])
+        x, y, z = float(xs[i]), float(ys[i]), float(zs[i])
+
+        dx = xs - x
+        dy = ys - y
+        r2 = dx * dx + dy * dy
+        neighbor_mask = (r2 <= NEIGHBOR_RADIUS ** 2)
+        neighbor_mask[i] = False
+        neighbor_idx = np.where(neighbor_mask)[0]
+
+        if neighbor_idx.size == 0:
+            results_rows.append({
+                "id": tree_id,
+                OUT_LIGHT_AVAIL_KEY: 100.0,
+                OUT_LIGHT_COMP_KEY: {}
+            })
+            continue
+
+        z_min = Z_MIN
+        z_max = z + CONE_HEIGHT + Z_MARGIN_UP
+
+        pts_list = []
+        payload_list = []
+
+        for j in neighbor_idx:
+            pts_j = laspy_read_points_window(
+                las_files[j], x, y, z_min, z_max, NEIGHBOR_RADIUS
+            )
+            if pts_j.shape[0] == 0:
+                continue
+            pts_list.append(pts_j)
+            payload_list.append(
+                np.full(pts_j.shape[0], int(ids[j]), dtype=np.int64)
+            )
+
+        if not pts_list:
+            results_rows.append({
+                "id": tree_id,
+                OUT_LIGHT_AVAIL_KEY: 100.0,
+                OUT_LIGHT_COMP_KEY: {}
+            })
+            continue
+
+        pts = np.vstack(pts_list)
+        payload_all = np.concatenate(payload_list)
+
+        apex = np.array([x, y, z], dtype=np.float64)
+        mask_cone = points_in_inverted_cone(apex, axis, half_angle, CONE_HEIGHT, pts)
+
+        pts_cone = pts[mask_cone]
+        payload_cone = payload_all[mask_cone]
+
+        if pts_cone.shape[0] == 0:
+            results_rows.append({
+                "id": tree_id,
+                OUT_LIGHT_AVAIL_KEY: 100.0,
+                OUT_LIGHT_COMP_KEY: {}
+            })
+            continue
+
+        occ_set, occ_payload = voxel_hash(
+            pts_cone,
+            VOXEL_SIZE,
+            extra_payload=payload_cone,
+            reducer="mode"
+        )
+
+        dirs = sample_directions_in_cone(axis, half_angle, N_RAY_SAMPLES)
+        hits = raytrace_voxels(
+            apex, dirs, VOXEL_SIZE, CONE_HEIGHT,
+            occ_set, occ_payload, t0=RAY_T0
+        )
+
+        total = len(hits)
+        blocked = sum(1 for h, _ in hits if h)
+        free_pct = 100.0 * (total - blocked) / total if total else 100.0
+
+        by_id = Counter()
+        for h, pid in hits:
+            if h:
+                by_id[int(pid) if pid is not None else -1] += 1
+
+        breakdown = {
+            ("unknown" if k == -1 else str(k)):
+            round(100.0 * v / total, 3)
+            for k, v in by_id.items()
+        }
+
+        results_rows.append({
+            "id": tree_id,
+            OUT_LIGHT_AVAIL_KEY: round(free_pct, 3),
+            OUT_LIGHT_COMP_KEY: breakdown
+        })
+
+    df_res = pd.DataFrame(results_rows)
+    df_out = df.merge(df_res, on="id", how="left")
+
+    write_json(project_json_path, df_out)
+
+    if progress_callback:
+        progress_callback(1.0, "100 %")
+
+    return df_out
+
 
 
 # =============================================================================

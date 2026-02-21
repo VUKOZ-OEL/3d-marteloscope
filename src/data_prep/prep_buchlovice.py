@@ -69,20 +69,13 @@ feather_att = pd.read_feather("D:/GS_LCR_DELIVERABLE/buchlovice2json.feather")
 
 feather_att = feather_att.sort_values(by="id")
 
-
-
 trees["dbh"] = feather_att["dbh"]
-trees["dbhPosition"] = trees[["x", "y", "z"]].values.tolist()
 trees["species"] = feather_att["species"]
 trees["speciesId"] = feather_att["speciesId"]
-
-#trees["volume"] = feather_att["volume"]
-#trees["crown_eccentricity"] = feather_att["crown_eccentricity"]
-
-#trees["heightXdbh"] = trees["heightXdbh"]
-#trees["light_avail"] = 0
-
-#view(trees)
+trees["vertical_crown_projection"] = feather_att["vertical_crown_projection"]
+trees["crown_eccentricity"] = feather_att["ecc2stem_axis"]
+trees["stem_volume"] = feather_att["stem_volume_L"]/1000
+trees["dbhPosition"] = list(zip(trees["x"], trees["y"], trees["z"] + 1.3))
 
 write_json(file_path, trees, out_file)
 

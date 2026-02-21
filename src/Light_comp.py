@@ -172,11 +172,59 @@ with c4:
         help=t("height_filter_help"),
     )
 
+# ---------- LAYOUT: CHART + FILTERS BELOW ----------
+c_bot1, c_bot2 = st.columns([2, 15])
+with c_bot1:
+
+    # Inicializace pouze při prvním běhu
+    if "light_species_sel" not in st.session_state:
+        st.session_state["light_species_sel"] = sp_all.copy()
+
+    st.pills(
+        f"**{t('filter_species')}:**",
+        options=sp_all if sp_all else ["(none)"],
+        selection_mode="multi",
+        key="light_species_sel",
+    )
+    
+with c_bot2:
+    #st.plotly_chart(fig, use_container_width=True)
+    chart_placeholder = st.empty()
+
+c31, c32 = st.columns([2, 15])
+with c32:
+
+    # 1️⃣ Nejprve vytvořit mapování
+    mgmt_label_map = {m: t_mgmt(m) for m in mg_all}
+    mgmt_labels = list(mgmt_label_map.values())
+    label_to_mgmt = {v: k for k, v in mgmt_label_map.items()}
+
+    # 2️⃣ Inicializace jen při prvním běhu
+    if "light_mgmt_sel_labels" not in st.session_state:
+        st.session_state["light_mgmt_sel_labels"] = mgmt_labels.copy()
+        st.session_state["light_mgmt_sel"] = mg_all.copy()
+
+    # 3️⃣ Widget
+    light_mgmt_sel_labels = st.pills(
+        f"**{t('filter_management')}:**",
+        options=mgmt_labels if mgmt_labels else ["(none)"],
+        selection_mode="multi",
+        help=t("filter_management_help"),
+        key="light_mgmt_sel_labels",
+    )
+
+    # 4️⃣ Synchronizace interní hodnoty
+    st.session_state["light_mgmt_sel"] = [
+        label_to_mgmt[lbl] for lbl in light_mgmt_sel_labels if lbl in label_to_mgmt
+    ]
+
+
+
 # ---------- READ CURRENT FILTER VALUES FROM SESSION (species / mgmt) ----------
-species_sel = st.session_state.get("species_sel", sp_all if sp_all else ["(none)"])
+light_species_sel = st.session_state.get("light_species_sel", sp_all if sp_all else ["(none)"])
 mgmt_sel = st.session_state.get("mgmt_sel", mg_all if mg_all else ["(none)"])
 
-species_sel = list(species_sel) if isinstance(species_sel, (list, tuple, set)) else [species_sel]
+light_species_sel = list(light_species_sel) if isinstance(light_species_sel, (list, tuple, set)) else [light_species_sel]
 mg_sel_set = set(mgmt_sel) if isinstance(mgmt_sel, (list, set, tuple)) else {mgmt_sel}
 
 # ---------- BASE MASKS ----------
@@ -197,8 +245,8 @@ if "height" in df.columns:
 
 # Species mask
 mask_species = pd.Series(True, index=df.index)
-if species_sel and "(none)" not in species_sel and "species" in df.columns:
-    mask_species = df["species"].astype(str).isin(species_sel)
+if light_species_sel and "(none)" not in light_species_sel and "species" in df.columns:
+    mask_species = df["species"].astype(str).isin(light_species_sel)
 
 # Management mask
 mask_mgmt = pd.Series(True, index=df.index)
@@ -463,37 +511,9 @@ else:
 
 fig.update_layout(height=460, margin=dict(l=10, r=10, t=60, b=40))
 
-# ---------- LAYOUT: CHART + FILTERS BELOW ----------
-c_bot1, c_bot2 = st.columns([2, 15])
-with c_bot1:
-    st.pills(
-        f"**{t('filter_species')}:**",
-        options=sp_all if sp_all else ["(none)"],
-        default=species_sel,
-        selection_mode="multi",
-        help=t("filter_species_help"),
-        key="species_sel",
-    )
-with c_bot2:
-    st.plotly_chart(fig, use_container_width=True)
 
-c31, c32 = st.columns([2, 15])
-with c32:
-    mgmt_label_map = {m: t_mgmt(m) for m in mg_all}
-    mgmt_labels = list(mgmt_label_map.values())
-    label_to_mgmt = {v: k for k, v in mgmt_label_map.items()}
 
-    mgmt_sel_labels = st.pills(
-        f"**{t('filter_management')}:**",
-        options=mgmt_labels if mgmt_labels else ["(none)"],
-        default=[mgmt_label_map[m] for m in mg_sel_set] if mg_sel_set else mgmt_labels,
-        selection_mode="multi",
-        help=t("filter_management_help"),
-    )
-
-    mgmt_sel = [label_to_mgmt[lbl] for lbl in mgmt_sel_labels if lbl in label_to_mgmt]
-    mg_sel_set = set(mgmt_sel)
-    st.session_state["mgmt_sel"] = mgmt_sel
+chart_placeholder.plotly_chart(fig, use_container_width=True)
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
     st.markdown(t_help("light_comp_help"))

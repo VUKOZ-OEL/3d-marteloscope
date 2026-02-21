@@ -444,7 +444,6 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
     doplní chybějící 2D projekce koruny (PLY → WKT) do SQLite přes UPDATE
     a spočte metriky projection_exposure a projection_exposure_after_mgmt.
     """
-    print("load_project_json")
     # --------------------------------------------------------------------------------------
     # 0) Sloupce, které SQL nesmí nikdy přepsat
     # --------------------------------------------------------------------------------------
@@ -545,11 +544,24 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
         else:
             base["x"], base["y"] = 0.0, 0.0
 
+        # Crown centroid height = crownCenter.z - position.z
+        crown_center = attrs.get("crownCenter")
+        if (
+            isinstance(crown_center, list) and len(crown_center) >= 3
+            and isinstance(pos, list) and len(pos) >= 3
+        ):
+            try:
+                base["crown_centroid_height"] = float(crown_center[2]) - float(pos[2])
+            except (TypeError, ValueError):
+                base["crown_centroid_height"] = np.nan
+        else:
+            base["crown_centroid_height"] = np.nan
+
         rows.append(base)
 
 
     df_json = pd.DataFrame(rows)
-    df_json["dbh"] = df_json["dbh"] * 100
+    df_json["dbh"] = df_json["dbh"] * 100 
 
     if df_json.empty:
         return df_json
@@ -645,7 +657,7 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
 
     # Najít chybějící WKT polygony
     missing = df_json[df_json["planar_projection_poly"].isna()]
-    print("before poly loop")
+
     if not missing.empty:
         # dopočítat WKT z PLY
         for tid in missing["id"]:

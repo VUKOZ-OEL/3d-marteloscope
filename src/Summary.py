@@ -19,10 +19,10 @@ CHART_HEIGHT = 360
 df = df.copy()
 
 # bezpečné vytvoření 'volume'
-if "Volume_m3" in df.columns:
-    df["volume"] = pd.to_numeric(df["Volume_m3"], errors="coerce")
+if "stem_volume" in df.columns:
+    df["stem_volume"] = pd.to_numeric(df["stem_volume"], errors="coerce")
 else:
-    df["volume"] = np.nan
+    df["stem_volume"] = np.nan
 
 # dopočet bazální plochy [m²] z DBH [cm]  -> BA = π * (dbh_cm / 200)^2
 if "dbh" in df.columns:
@@ -72,7 +72,15 @@ METRIC_CANOPY_COVER = "metric_canopy_cover_pct"
 METRIC_STOCKING = "metric_stocking"
 
 # --- dostupnost stocking dat
-has_stocking = df is not None and not df.empty
+has_stocking = (
+    hasattr(st.session_state, "stocking_reference")
+    and st.session_state.stocking_reference is not None
+    and not st.session_state.stocking_reference.empty
+    and pd.to_numeric(
+        st.session_state.stocking_reference.get("ref_volume", pd.Series([])),
+        errors="coerce"
+    ).fillna(0).gt(0).any()
+)
 
 metric_options = [
     METRIC_TREE_COUNT,
@@ -179,7 +187,7 @@ def _metric_meta(metric_id: str):
         return None, t("trees"), t("trees_per_ha"), t("trees"), "trees"
 
     if metric_id == METRIC_VOLUME:
-        return "volume", f"{t('value_volume')} (m³)", t("m3_per_ha"), f"{t('value_volume')} (m³)", "m³"
+        return "stem_volume", f"{t('value_volume')} (m³)", t("m3_per_ha"), f"{t('value_volume')} (m³)", "m³"
 
     if metric_id == METRIC_BASAL_AREA:
         return "basal_area_m2", f"{t('basal_area')} (m²)", t("m2_per_ha"), f"{t('basal_area')} (m²)", "m²"

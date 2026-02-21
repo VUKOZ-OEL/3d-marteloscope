@@ -39,8 +39,9 @@ colors_page = st.Page("src/Colors_settings.py", title=t("colors"), icon=":materi
 sandbox_page = st.Page("src/sandbox.py", title=t("Sandbox"), icon=":material/thumb_up:")
 
 #file_path = "d:/GS_LCR_DELIVERABLE/Buchlovice/Buchlovice.json"
-#file_path = "d:/GS_LCR_DELIVERABLE/test/test.json"
-file_path = "data/pokojna_test_v2_2.json"
+#file_path = "d:/GS_LCR_DELIVERABLE/Klepacov/Klepacov.json"
+file_path = "d:/GS_LCR_DELIVERABLE/Krivoklat/Krivoklat.json"
+
 # Init data
 if not st.session_state.get("data_initialized"):
     st.session_state.project_file = file_path
@@ -107,7 +108,7 @@ pages = {
     t("menu_settings"): [
         add_atts_page,
        # colors_page,
-        sandbox_page,
+       # sandbox_page,
     ],
 
 }
