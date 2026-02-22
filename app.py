@@ -40,7 +40,12 @@ sandbox_page = st.Page("src/sandbox.py", title=t("Sandbox"), icon=":material/thu
 
 #file_path = "d:/GS_LCR_DELIVERABLE/Buchlovice/Buchlovice.json"
 #file_path = "d:/GS_LCR_DELIVERABLE/Klepacov/Klepacov.json"
-file_path = "d:/GS_LCR_DELIVERABLE/Krivoklat/Krivoklat.json"
+#file_path = "d:/GS_LCR_DELIVERABLE/Krivoklat/Krivoklat.json"
+
+if len(sys.argv) > 1:
+    file_path = sys.argv[1]
+else:
+    file_path = "c:/default.json"
 
 # Init data
 if not st.session_state.get("data_initialized"):
