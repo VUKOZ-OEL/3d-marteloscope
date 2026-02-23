@@ -82,8 +82,8 @@ def run_iland(xml_path: bytes, years: int, *, timeout: int | None = None) -> dic
     else:
         base_dir = Path(__file__).resolve().parent
 
-    #dll_path = str((base_dir / DLL_NAME).resolve())
-    dll_path = "C:/Users/krucek/Documents/GitHub/VUK/3d-forest/out/install/x64-Debug/bin/ILandModel.dll"
+    dll_path = str((base_dir / DLL_NAME).resolve()) # CHECK CORRECT PATH
+    #dll_path = "C:/Users/krucek/Documents/GitHub/VUK/3d-forest/out/install/x64-Debug/bin/ILandModel.dll"
 
     if not os.path.exists(dll_path):
         raise FileNotFoundError(f"iLand DLL not found: {dll_path}")

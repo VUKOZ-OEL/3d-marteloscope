@@ -65,18 +65,18 @@ trees = iou.load_project_json(file_path)
 trees.to_feather("d:/GS_LCR_DELIVERABLE/Krivoklat.json.feather")
 
 feather_att = pd.read_feather("D:/GS_LCR_DELIVERABLE/Krivoklat2json.feather")
-
+feather_att = pd.read_parquet("D:/GS_LCR_DELIVERABLE/Krivoklat2json.parquet")
 
 feather_att = feather_att.sort_values(by="id")
 
 
-trees["dbh"] = feather_att["dbh"]/100
+trees["dbh"] = feather_att["dbh"]
 trees["species"] = feather_att["species"]
 trees["speciesId"] = feather_att["speciesId"]
-#trees["volume"] = feather_att["volume"]
-trees["crown_eccentricity"] = feather_att["crown_eccentricity"]
-
-trees["heightXdbh"] = feather_att["heightXdbh"]/100
+trees["vertical_crown_projection"] = feather_att["vertical_crown_projection"]
+trees["crown_eccentricity"] = feather_att["ecc2stem_axis"]
+trees["stem_volume"] = feather_att["stem_volume_L"]/1000
+trees["dbhPosition"] = list(zip(trees["x"], trees["y"], trees["z"] + 1.3))
 
 write_json(file_path, trees, out_file)
 
