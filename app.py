@@ -33,7 +33,7 @@ canopy_page = st.Page("src/Canopy_stats.py", title=t("page_canopy_occupancy"), i
 space_page = st.Page("src/Space_comp.py", title=t("page_space_competition"), icon=":material/join:")
 light_page = st.Page("src/Light_comp.py", title=t("page_sky_view_factor"), icon=":material/light_mode:")
 # Simulation
-simul_page = st.Page("src/Simulation.py", title=t("page_prediction"), icon=":material/clock_arrow_up:")
+#simul_page = st.Page("src/Simulation.py", title=t("page_prediction"), icon=":material/clock_arrow_up:")
 # Settings
 add_atts_page = st.Page("src/Add_attributes_prj.py", title=t("page_add_attributes"), icon=":material/list_alt_add:")
 colors_page = st.Page("src/Colors_settings.py", title=t("colors"), icon=":material/colors:")
@@ -135,7 +135,7 @@ pages = {
         light_page,
     ],
     t("menu_growth"): [
-        simul_page,
+      #  simul_page,
     ],
     t("menu_settings"): [
         add_atts_page,
