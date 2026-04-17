@@ -25,10 +25,10 @@ MGMT_STATUS_KEY_MAP: dict[str, str] = {
 
 
 I18N: dict[str, dict[Lang, str]] = {
-    "mgmt_status_competition": {"cs": "Konkurence", "en": "Competition"},
-    "mgmt_status_maturity": {"cs": "Zralost", "en": "Maturity"},
-    "mgmt_status_promote_rare": {"cs": "Uvolnění vzácných druhů", "en": "Promote rare species"},
-    "mgmt_status_promote_regeneration": {"cs": "Uvolnění obnovy", "en": "Promote regeneration"},
+    "mgmt_status_competition": {"cs": "Konkurence", "en": "XL"},
+    "mgmt_status_maturity": {"cs": "Zralost", "en": "L"},
+    "mgmt_status_promote_rare": {"cs": "Uvolnění vzácných druhů", "en": "S"},
+    "mgmt_status_promote_regeneration": {"cs": "Uvolnění obnovy", "en": "M"},
     "mgmt_status_sanitary": {"cs": "Zdravotní výběr", "en": "Sanitary"},
     "mgmt_status_target_tree": {"cs": "Cílový strom", "en": "Target tree"},
     "mgmt_status_technical": {"cs": "Technický zásah", "en": "Technical"},
@@ -309,6 +309,21 @@ I18N: dict[str, dict[Lang, str]] = {
     "usr_mgmt": {"cs": "Výběr definovaný uživatelem", "en": "Users defined selection"},
     "ph_mgmt_ex_1": {"cs": "Pokojná hora - modelový zásah", "en": "Pokojná hora - example"},
     "scan_date": {"cs": "Lidarová data sebrána v:", "en": "Lidar data collection:"},
+
+    # Project switcher
+    "project_selector_header": {"cs": "Volba projektu", "en": "Project selection"},
+    "project_selector_label": {"cs": "Projekt (data/):", "en": "Project (data/):"},
+    "project_selector_help": {
+        "cs": "Vyberte JSON projekt ze složky /data. Po potvrzení se všechna data kompletně znovu načtou.",
+        "en": "Pick a JSON project from the /data folder. On confirm, all data will be fully reloaded.",
+    },
+    "project_load_btn": {"cs": "Načíst projekt", "en": "Load project"},
+    "project_loaded_success": {"cs": "Projekt byl načten: {name}", "en": "Project loaded: {name}"},
+    "project_current": {"cs": "Aktuální projekt:", "en": "Current project:"},
+    "project_no_files_found": {
+        "cs": "Ve složce /data nebyly nalezeny žádné JSON soubory.",
+        "en": "No JSON files found in the /data folder.",
+    },
 
     # Summary
     "metric_tree_count": {"cs": "Počet stromů", "en": "Tree count"},

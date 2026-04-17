@@ -6,6 +6,7 @@ from pathlib import Path
 import sqlite3
 import html
 import os
+import glob
 import numpy as np
 import re
 import math
@@ -25,7 +26,55 @@ __all__ = [
     "_unique_sorted",
     "show_success",
     "load_stocking_reference",
+    "discover_projects",
+    "reset_project_state",
+    "PROJECT_STATE_KEYS",
 ]
+
+
+# --- Project-switch helpers ---------------------------------------------------
+
+# Keys removed from session_state when the project is switched.
+# Listing them here guarantees a true full reload - every cached DataFrame,
+# user-intervention snapshot, simulation result, export artefact etc. gets
+# dropped so nothing from the previous project survives.
+PROJECT_STATE_KEYS = (
+    "data_initialized",
+    "sqlite_path",
+    "trees",
+    "mgmt_example",
+    "plot_info",
+    "color_palette",
+    "user_attributes",
+    "stocking_reference",
+    "usr_mgmt_cache",
+    "active_mgmt_selection",
+    "simulation",
+    "export_pdf_path",
+    "export_pdf_bytes",
+    "export_pdf_name",
+    "export_pdf_ready_ts",
+    "flash_success",
+    "flash_success_ts",
+)
+
+
+def reset_project_state() -> None:
+    """Remove all data-related keys from st.session_state.
+
+    Used when switching to a different project so that the next rerun of
+    app.py rehydrates every DataFrame from the newly selected JSON file.
+    """
+    for k in PROJECT_STATE_KEYS:
+        st.session_state.pop(k, None)
+
+
+def discover_projects(base_dir: str) -> List[str]:
+    """Return sorted list of JSON project files found in <base_dir>/data."""
+    data_dir = os.path.join(base_dir, "data")
+    if not os.path.isdir(data_dir):
+        return []
+    return sorted(glob.glob(os.path.join(data_dir, "*.json")))
 
 
 # --- Pomocné funkce (samostatné a robustní) ----------------------------------
@@ -283,7 +332,7 @@ def load_color_palette(file_path: str) -> Dict[str, Dict[str, str]]:
     Vrací dict:
       {
         "species": { "<latin>": "#RRGGBB", ... },
-        "management": { "<label>": "#RRGGBB", ... }
+        "management": { "<en>": "#RRGGBB", ... }
       }
     """
     with open(file_path, "r", encoding="utf-8") as f:
@@ -302,11 +351,11 @@ def load_color_palette(file_path: str) -> Dict[str, Dict[str, str]]:
         if latin and hexc:
             sp_map[str(latin)] = hexc
 
-    # --- managementStatus: label -> color ---
+    # --- managementStatus: en -> color ---
     for item in data.get("managementStatus", []) or []:
         if not isinstance(item, dict):
             continue
-        label = item.get("label")
+        label = item.get("en")
         col = item.get("color")
         hexc = _to_hex(col)
         if label and hexc:
@@ -487,7 +536,7 @@ def load_project_json(file_path: str, exclude_from_sql_update: List[str] = None)
         try:
             mid = int(item.get("id"))
             mg_id_map[mid] = {
-                "label": item.get("label", "Unknown"),
+                "label": item.get("en", "Unknown"),
                 "color": _to_hex(item.get("color")),
             }
         except:

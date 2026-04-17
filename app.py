@@ -1,5 +1,6 @@
-import sys
 import streamlit as st
+import sys
+import os
 import src.io_utils as iou
 from src.i18n import (
     I18N,
@@ -36,26 +37,51 @@ simul_page = st.Page("src/Simulation.py", title=t("page_prediction"), icon=":mat
 # Settings
 add_atts_page = st.Page("src/Add_attributes_prj.py", title=t("page_add_attributes"), icon=":material/list_alt_add:")
 colors_page = st.Page("src/Colors_settings.py", title=t("colors"), icon=":material/colors:")
-# Temp tests
-sandbox_page = st.Page("src/sandbox.py", title=t("Sandbox"), icon=":material/thumb_up:")
 
-#file_path = "d:/GS_LCR_DELIVERABLE/Buchlovice/Buchlovice.json"
-#file_path = "d:/GS_LCR_DELIVERABLE/Klepacov/Klepacov.json"
-#file_path = "d:/GS_LCR_DELIVERABLE/Krivoklat/Krivoklat.json"
 
 if len(sys.argv) > 1:
     file_path = sys.argv[1]
 else:
     file_path = "c:/default.json"
 
+if len(sys.argv) > 2:
+    bin_path = sys.argv[2]
+else:
+    bin_path = ""
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# --- Dostupné projekty (JSON soubory ve složce /data) -----------------------
+# Skenuje se pokaždé, aby se v dropdownu objevily i nově přidané soubory.
+st.session_state.available_projects = iou.discover_projects(BASE_DIR)
+
+# --- Určení, který projekt načíst -------------------------------------------
+# Priorita:
+#   1) project_file už je v session_state (např. Dashboard přepnul projekt)
+#   2) cesta z sys.argv[1], pokud soubor existuje
+#   3) první JSON nalezený v /data
+#   4) fallback na původní default ("c:/default.json")
+if not st.session_state.get("project_file"):
+    if len(sys.argv) > 1 and os.path.exists(file_path):
+        st.session_state.project_file = file_path
+    elif st.session_state.available_projects:
+        st.session_state.project_file = st.session_state.available_projects[0]
+    else:
+        st.session_state.project_file = file_path
+
+# bin_path nastavíme jen jednou, aby ho nepřepsal rerun
+if "bin_path" not in st.session_state:
+    st.session_state.bin_path = bin_path
+
 # Init data
 if not st.session_state.get("data_initialized"):
-    st.session_state.project_file = file_path
-    st.session_state.sqlite_path = st.session_state.project_file.replace(".json", ".sqlite")
-    st.session_state.trees = iou.load_project_json(file_path)
-    st.session_state.mgmt_example = iou.load_mgmt_example_sqlite(file_path,"mgmt_example")
-    st.session_state.plot_info = iou.load_plot_info(file_path)
-    st.session_state.color_palette = iou.load_color_palette(file_path)
+    active_project = st.session_state.project_file
+    st.session_state.python_script_dir = BASE_DIR
+    st.session_state.sqlite_path = active_project.replace(".json", ".sqlite")
+    st.session_state.trees = iou.load_project_json(active_project)
+    st.session_state.mgmt_example = iou.load_mgmt_example_sqlite(active_project, "mgmt_example")
+    st.session_state.plot_info = iou.load_plot_info(active_project)
+    st.session_state.color_palette = iou.load_color_palette(active_project)
     st.session_state.data_initialized = True
 
     if "mgmt_example" in st.session_state and "trees" in st.session_state:

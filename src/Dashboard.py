@@ -1,6 +1,8 @@
 from datetime import datetime
 import streamlit as st
 import pandas as pd
+import tempfile, os
+import webbrowser
 
 import src.io_utils as iou
 from src.i18n import t, t_help
@@ -15,6 +17,58 @@ from src.db_utils import (
 
 
 from src.report_utils import generate_all_summary_figs, build_intervention_report_pdf, SummaryVariant
+
+# ---------- PROJECT SWITCHER ----------
+# Dropdown + Load tlačítko úplně nahoře na první stránce.
+# Po kliknutí na Load dojde ke kompletnímu vyčištění session_state
+# (trees, mgmt_example, plot_info, color_palette, user_attributes, …)
+# a nový JSON projekt je načten na dalším rerunu z app.py.
+_available_projects = st.session_state.get("available_projects", []) or []
+_current_project = st.session_state.get("project_file", "")
+
+with st.container(border=True):
+    st.markdown(f"##### {t('project_selector_header')}")
+
+    if not _available_projects:
+        st.info(t("project_no_files_found"))
+    else:
+        # Mapování: zobrazený název (basename) -> absolutní cesta.
+        # Pokud by se v /data někdy objevily dva soubory se stejným jménem
+        # (jiné adresáře), bylo by potřeba label zkombinovat s cestou –
+        # tady ale všechny soubory ležící ve /data mají unikátní název.
+        _proj_options: dict[str, str] = {os.path.basename(p): p for p in _available_projects}
+        _labels = list(_proj_options.keys())
+
+        _current_label = os.path.basename(_current_project) if _current_project else _labels[0]
+        _default_idx = _labels.index(_current_label) if _current_label in _labels else 0
+
+        ps_col_a, ps_col_b = st.columns([4, 1], vertical_alignment="bottom")
+        with ps_col_a:
+            _selected_label = st.selectbox(
+                f"**{t('project_selector_label')}**",
+                _labels,
+                index=_default_idx,
+                key="project_selectbox",
+                help=t("project_selector_help"),
+            )
+            st.caption(f"{t('project_current')} `{os.path.basename(_current_project)}`")
+        with ps_col_b:
+            if st.button(
+                t("project_load_btn"),
+                icon=":material/refresh:",
+                use_container_width=True,
+                key="btn_load_project",
+                type="primary",
+            ):
+                _new_path = _proj_options[_selected_label]
+                if _new_path != _current_project:
+                    # kompletní reload – smaž data-derived session state
+                    iou.reset_project_state()
+                    st.session_state.project_file = _new_path
+                    st.session_state.flash_success = t("project_loaded_success").format(
+                        name=_selected_label
+                    )
+                    st.rerun()
 
 # ---------- DATA ----------
 plot_info = st.session_state.plot_info
@@ -246,20 +300,27 @@ with c2:
                 created_dt=datetime.now(),
             )
 
+            file_path = os.path.join(
+                tempfile.gettempdir(),
+                f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            )
+
+            with open(file_path, "wb") as f:
+                f.write(pdf_bytes)
+
+            st.session_state["export_pdf_path"] = file_path
             st.session_state["export_pdf_bytes"] = pdf_bytes
             st.session_state["export_pdf_name"] = f"report_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
             st.session_state["export_pdf_ready_ts"] = datetime.now().isoformat()
 
+    
     # --- 2) Download se ukáže až po renderu ---
-    if st.session_state.get("export_pdf_bytes"):
-        st.download_button(
-            label=t("export_download_ready"),
-            data=st.session_state["export_pdf_bytes"],
-            file_name=st.session_state.get("export_pdf_name", "report.pdf"),
-            mime="application/pdf",
-            icon=":material/download:",
-            use_container_width=True,
-        )
+    if st.session_state.get("export_pdf_path"):
+        file_path = st.session_state["export_pdf_path"]
+
+        if st.button(t("export_download_ready")):
+            url = "file:///" + file_path.replace("\\", "/")
+            webbrowser.open(url)
 
 
 with st.expander(label=t("expander_help_label"),icon=":material/help:"):
