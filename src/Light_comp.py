@@ -219,7 +219,7 @@ with c32:
 
 # ---------- READ CURRENT FILTER VALUES FROM SESSION (species / mgmt) ----------
 light_species_sel = st.session_state.get("light_species_sel", sp_all if sp_all else ["(none)"])
-mgmt_sel = st.session_state.get("mgmt_sel", mg_all if mg_all else ["(none)"])
+mgmt_sel = st.session_state.get("light_mgmt_sel", mg_all if mg_all else ["(none)"])
 
 light_species_sel = list(light_species_sel) if isinstance(light_species_sel, (list, tuple, set)) else [light_species_sel]
 mg_sel_set = set(mgmt_sel) if isinstance(mgmt_sel, (list, set, tuple)) else {mgmt_sel}
@@ -389,8 +389,25 @@ fig.add_annotation(
     font=dict(size=20, color="#000000"),
 )
 
-fig.update_xaxes(row=1, col=1, visible=False, range=[-1.3, 1.3], scaleanchor="y1", scaleratio=1)
-fig.update_yaxes(row=1, col=1, visible=False, range=[-1.3, 1.3])
+fig.update_xaxes(
+    row=1, col=1,
+    visible=False,
+    range=[-1.3, 1.3],
+    fixedrange=True,
+    scaleanchor="y1",
+    scaleratio=1
+)
+
+fig.update_yaxes(
+    row=1, col=1,
+    visible=False,
+    range=[-1.3, 1.3],
+    fixedrange=True
+)
+
+fig.update_layout(
+    yaxis=dict(scaleanchor="x", scaleratio=1),
+)
 
 # === 2 & 3) RIGHT CHARTS: MODE-DEPENDENT ===
 if chart_mode == t("who_competes"):
