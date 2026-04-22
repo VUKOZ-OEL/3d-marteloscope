@@ -12237,7 +12237,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.9,
+        "dbh": 0.059000000000000004,
         "dbhNormal": [
           0,
           0,
@@ -12322,7 +12322,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.2,
+        "dbh": 0.052000000000000005,
         "dbhNormal": [
           0,
           0,
@@ -12425,7 +12425,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 13.900000000000002,
+        "dbh": 0.139,
         "dbhNormal": [
           0,
           0,
@@ -12513,7 +12513,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.2,
+        "dbh": 0.052000000000000005,
         "dbhNormal": [
           0,
           0,
@@ -12608,7 +12608,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.2,
+        "dbh": 0.052000000000000005,
         "dbhNormal": [
           0,
           0,
@@ -12707,7 +12707,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 73.0,
+        "dbh": 0.73,
         "dbhNormal": [
           0,
           0,
@@ -12784,7 +12784,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 9.0,
+        "dbh": 0.09,
         "dbhNormal": [
           0,
           0,
@@ -12904,7 +12904,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 12.6,
+        "dbh": 0.126,
         "dbhNormal": [
           0,
           0,
@@ -13003,7 +13003,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.1,
+        "dbh": 0.051,
         "dbhNormal": [
           0,
           0,
@@ -13154,7 +13154,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 35.0,
+        "dbh": 0.35,
         "dbhNormal": [
           0,
           0,
@@ -13255,7 +13255,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 28.999999999999996,
+        "dbh": 0.29,
         "dbhNormal": [
           0,
           0,
@@ -13365,7 +13365,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 25.0,
+        "dbh": 0.25,
         "dbhNormal": [
           0,
           0,
@@ -13450,7 +13450,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 6.800000000000001,
+        "dbh": 0.068,
         "dbhNormal": [
           0,
           0,
@@ -13547,7 +13547,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.7,
+        "dbh": 0.057,
         "dbhNormal": [
           0,
           0,
@@ -13672,7 +13672,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 74.0,
+        "dbh": 0.74,
         "dbhNormal": [
           0,
           0,
@@ -13780,7 +13780,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 56.99999999999999,
+        "dbh": 0.57,
         "dbhNormal": [
           0,
           0,
@@ -13869,7 +13869,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.6,
+        "dbh": 0.055999999999999994,
         "dbhNormal": [
           0,
           0,
@@ -13959,7 +13959,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.1,
+        "dbh": 0.081,
         "dbhNormal": [
           0,
           0,
@@ -14045,7 +14045,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.0,
+        "dbh": 0.09,
         "dbhNormal": [
           0,
           0,
@@ -14140,7 +14140,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 13.5,
+        "dbh": 0.135,
         "dbhNormal": [
           0,
           0,
@@ -14257,7 +14257,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 33.0,
+        "dbh": 0.33,
         "dbhNormal": [
           0,
           0,
@@ -14358,7 +14358,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.1,
+        "dbh": 0.091,
         "dbhNormal": [
           0,
           0,
@@ -14476,7 +14476,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 32.0,
+        "dbh": 0.32,
         "dbhNormal": [
           0,
           0,
@@ -14589,7 +14589,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.2,
+        "dbh": 0.062,
         "dbhNormal": [
           0,
           0,
@@ -14674,7 +14674,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.6,
+        "dbh": 0.055999999999999994,
         "dbhNormal": [
           0,
           0,
@@ -14772,7 +14772,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.400000000000001,
+        "dbh": 0.07400000000000001,
         "dbhNormal": [
           0,
           0,
@@ -14888,7 +14888,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 65.0,
+        "dbh": 0.65,
         "dbhNormal": [
           0,
           0,
@@ -14997,7 +14997,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 24.0,
+        "dbh": 0.24,
         "dbhNormal": [
           0,
           0,
@@ -15109,7 +15109,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 73.0,
+        "dbh": 0.73,
         "dbhNormal": [
           0,
           0,
@@ -15199,7 +15199,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.0,
+        "dbh": 0.08,
         "dbhNormal": [
           0,
           0,
@@ -15296,7 +15296,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.7,
+        "dbh": 0.087,
         "dbhNormal": [
           0,
           0,
@@ -15416,7 +15416,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.200000000000001,
+        "dbh": 0.07200000000000001,
         "dbhNormal": [
           0,
           0,
@@ -15535,7 +15535,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 25.5,
+        "dbh": 0.255,
         "dbhNormal": [
           0,
           0,
@@ -15625,7 +15625,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -15716,7 +15716,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -15816,7 +15816,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.5,
+        "dbh": 0.065,
         "dbhNormal": [
           0,
           0,
@@ -15911,7 +15911,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -16039,7 +16039,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 119.39999999999999,
+        "dbh": 1.194,
         "dbhNormal": [
           0,
           0,
@@ -16155,7 +16155,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 37.0,
+        "dbh": 0.37,
         "dbhNormal": [
           0,
           0,
@@ -16270,7 +16270,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 20.0,
+        "dbh": 0.2,
         "dbhNormal": [
           0,
           0,
@@ -16358,7 +16358,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.5,
+        "dbh": 0.065,
         "dbhNormal": [
           0,
           0,
@@ -16479,7 +16479,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 68.0,
+        "dbh": 0.68,
         "dbhNormal": [
           0,
           0,
@@ -16558,7 +16558,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 57.99999999999999,
+        "dbh": 0.58,
         "dbhNormal": [
           0,
           0,
@@ -16651,7 +16651,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.4,
+        "dbh": 0.064,
         "dbhNormal": [
           0,
           0,
@@ -16745,7 +16745,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -16845,7 +16845,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -16959,7 +16959,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.6,
+        "dbh": 0.086,
         "dbhNormal": [
           0,
           0,
@@ -17088,7 +17088,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 43.0,
+        "dbh": 0.43,
         "dbhNormal": [
           0,
           0,
@@ -17198,7 +17198,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.3,
+        "dbh": 0.10300000000000001,
         "dbhNormal": [
           0,
           0,
@@ -17299,7 +17299,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -17409,7 +17409,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 63.0,
+        "dbh": 0.63,
         "dbhNormal": [
           0,
           0,
@@ -17486,7 +17486,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 9.3,
+        "dbh": 0.09300000000000001,
         "dbhNormal": [
           0,
           0,
@@ -17594,7 +17594,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.3,
+        "dbh": 0.073,
         "dbhNormal": [
           0,
           0,
@@ -17708,7 +17708,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 73.0,
+        "dbh": 0.73,
         "dbhNormal": [
           0,
           0,
@@ -17784,7 +17784,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.3,
+        "dbh": 0.053,
         "dbhNormal": [
           0,
           0,
@@ -17884,7 +17884,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -17999,7 +17999,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.8,
+        "dbh": 0.078,
         "dbhNormal": [
           0,
           0,
@@ -18092,7 +18092,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.6,
+        "dbh": 0.055999999999999994,
         "dbhNormal": [
           0,
           0,
@@ -18190,7 +18190,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 18.5,
+        "dbh": 0.185,
         "dbhNormal": [
           0,
           0,
@@ -18277,7 +18277,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.4,
+        "dbh": 0.054000000000000006,
         "dbhNormal": [
           0,
           0,
@@ -18380,7 +18380,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.3,
+        "dbh": 0.053,
         "dbhNormal": [
           0,
           0,
@@ -18479,7 +18479,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 20.0,
+        "dbh": 0.2,
         "dbhNormal": [
           0,
           0,
@@ -18584,7 +18584,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 34.0,
+        "dbh": 0.34,
         "dbhNormal": [
           0,
           0,
@@ -18683,7 +18683,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.200000000000001,
+        "dbh": 0.07200000000000001,
         "dbhNormal": [
           0,
           0,
@@ -18774,7 +18774,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.400000000000001,
+        "dbh": 0.07400000000000001,
         "dbhNormal": [
           0,
           0,
@@ -18861,7 +18861,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -18963,7 +18963,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.0,
+        "dbh": 0.1,
         "dbhNormal": [
           0,
           0,
@@ -19069,7 +19069,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.2,
+        "dbh": 0.062,
         "dbhNormal": [
           0,
           0,
@@ -19166,7 +19166,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -19257,7 +19257,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -19362,7 +19362,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 67.5,
+        "dbh": 0.675,
         "dbhNormal": [
           0,
           0,
@@ -19457,7 +19457,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -19534,7 +19534,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -19644,7 +19644,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.4,
+        "dbh": 0.054000000000000006,
         "dbhNormal": [
           0,
           0,
@@ -19726,7 +19726,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 10.0,
+        "dbh": 0.1,
         "dbhNormal": [
           0,
           0,
@@ -19822,7 +19822,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 53.0,
+        "dbh": 0.53,
         "dbhNormal": [
           0,
           0,
@@ -19910,7 +19910,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -20020,7 +20020,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.2,
+        "dbh": 0.092,
         "dbhNormal": [
           0,
           0,
@@ -20111,7 +20111,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.1,
+        "dbh": 0.051,
         "dbhNormal": [
           0,
           0,
@@ -20203,7 +20203,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.7,
+        "dbh": 0.057,
         "dbhNormal": [
           0,
           0,
@@ -20301,7 +20301,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.1,
+        "dbh": 0.051,
         "dbhNormal": [
           0,
           0,
@@ -20416,7 +20416,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 148.7,
+        "dbh": 1.4869999999999999,
         "dbhNormal": [
           0,
           0,
@@ -20508,7 +20508,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -20626,7 +20626,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 34.0,
+        "dbh": 0.34,
         "dbhNormal": [
           0,
           0,
@@ -20717,7 +20717,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -20830,7 +20830,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 49.0,
+        "dbh": 0.49,
         "dbhNormal": [
           0,
           0,
@@ -20917,7 +20917,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.5,
+        "dbh": 0.095,
         "dbhNormal": [
           0,
           0,
@@ -21016,7 +21016,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 19.0,
+        "dbh": 0.19,
         "dbhNormal": [
           0,
           0,
@@ -21127,7 +21127,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 12.5,
+        "dbh": 0.125,
         "dbhNormal": [
           0,
           0,
@@ -21218,7 +21218,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.800000000000001,
+        "dbh": 0.068,
         "dbhNormal": [
           0,
           0,
@@ -21304,7 +21304,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 16.0,
+        "dbh": 0.16,
         "dbhNormal": [
           0,
           0,
@@ -21403,7 +21403,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.5,
+        "dbh": 0.075,
         "dbhNormal": [
           0,
           0,
@@ -21500,7 +21500,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -21591,7 +21591,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.6,
+        "dbh": 0.055999999999999994,
         "dbhNormal": [
           0,
           0,
@@ -21679,7 +21679,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.5,
+        "dbh": 0.075,
         "dbhNormal": [
           0,
           0,
@@ -21782,7 +21782,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.5,
+        "dbh": 0.085,
         "dbhNormal": [
           0,
           0,
@@ -21867,7 +21867,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -21960,7 +21960,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.2,
+        "dbh": 0.052000000000000005,
         "dbhNormal": [
           0,
           0,
@@ -22055,7 +22055,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -22157,7 +22157,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 31.0,
+        "dbh": 0.31,
         "dbhNormal": [
           0,
           0,
@@ -22245,7 +22245,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -22336,7 +22336,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.3,
+        "dbh": 0.083,
         "dbhNormal": [
           0,
           0,
@@ -22433,7 +22433,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 28.999999999999996,
+        "dbh": 0.29,
         "dbhNormal": [
           0,
           0,
@@ -22515,7 +22515,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 32.0,
+        "dbh": 0.32,
         "dbhNormal": [
           0,
           0,
@@ -22600,7 +22600,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 7.000000000000001,
+        "dbh": 0.07,
         "dbhNormal": [
           0,
           0,
@@ -22693,7 +22693,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -22809,7 +22809,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 22.0,
+        "dbh": 0.22,
         "dbhNormal": [
           0,
           0,
@@ -22899,7 +22899,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 7.200000000000001,
+        "dbh": 0.07200000000000001,
         "dbhNormal": [
           0,
           0,
@@ -22990,7 +22990,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.4,
+        "dbh": 0.054000000000000006,
         "dbhNormal": [
           0,
           0,
@@ -23078,7 +23078,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.7,
+        "dbh": 0.057,
         "dbhNormal": [
           0,
           0,
@@ -23169,7 +23169,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 15.9,
+        "dbh": 0.159,
         "dbhNormal": [
           0,
           0,
@@ -23269,7 +23269,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.4,
+        "dbh": 0.054000000000000006,
         "dbhNormal": [
           0,
           0,
@@ -23371,7 +23371,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 23.5,
+        "dbh": 0.235,
         "dbhNormal": [
           0,
           0,
@@ -23479,7 +23479,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 74.0,
+        "dbh": 0.74,
         "dbhNormal": [
           0,
           0,
@@ -23586,7 +23586,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 24.5,
+        "dbh": 0.245,
         "dbhNormal": [
           0,
           0,
@@ -23696,7 +23696,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 21.0,
+        "dbh": 0.21,
         "dbhNormal": [
           0,
           0,
@@ -23773,7 +23773,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.9,
+        "dbh": 0.059000000000000004,
         "dbhNormal": [
           0,
           0,
@@ -23875,7 +23875,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.8,
+        "dbh": 0.098,
         "dbhNormal": [
           0,
           0,
@@ -23957,7 +23957,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 13.0,
+        "dbh": 0.13,
         "dbhNormal": [
           0,
           0,
@@ -24056,7 +24056,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 13.8,
+        "dbh": 0.138,
         "dbhNormal": [
           0,
           0,
@@ -24149,7 +24149,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -24283,7 +24283,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 53.0,
+        "dbh": 0.53,
         "dbhNormal": [
           0,
           0,
@@ -24398,7 +24398,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.3,
+        "dbh": 0.063,
         "dbhNormal": [
           0,
           0,
@@ -24496,7 +24496,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.1,
+        "dbh": 0.051,
         "dbhNormal": [
           0,
           0,
@@ -24586,7 +24586,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.800000000000001,
+        "dbh": 0.068,
         "dbhNormal": [
           0,
           0,
@@ -24686,7 +24686,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.0,
+        "dbh": 0.09,
         "dbhNormal": [
           0,
           0,
@@ -24810,7 +24810,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 17.0,
+        "dbh": 0.17,
         "dbhNormal": [
           0,
           0,
@@ -24910,7 +24910,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.0,
+        "dbh": 0.08,
         "dbhNormal": [
           0,
           0,
@@ -25002,7 +25002,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.1,
+        "dbh": 0.051,
         "dbhNormal": [
           0,
           0,
@@ -25096,7 +25096,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.5,
+        "dbh": 0.075,
         "dbhNormal": [
           0,
           0,
@@ -25186,7 +25186,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -25296,7 +25296,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 47.5,
+        "dbh": 0.475,
         "dbhNormal": [
           0,
           0,
@@ -25380,7 +25380,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.3,
+        "dbh": 0.053,
         "dbhNormal": [
           0,
           0,
@@ -25526,7 +25526,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 95.0,
+        "dbh": 0.95,
         "dbhNormal": [
           0,
           0,
@@ -25617,7 +25617,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.6,
+        "dbh": 0.055999999999999994,
         "dbhNormal": [
           0,
           0,
@@ -25706,7 +25706,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.7,
+        "dbh": 0.077,
         "dbhNormal": [
           0,
           0,
@@ -25830,7 +25830,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 57.99999999999999,
+        "dbh": 0.58,
         "dbhNormal": [
           0,
           0,
@@ -25916,7 +25916,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.3,
+        "dbh": 0.09300000000000001,
         "dbhNormal": [
           0,
           0,
@@ -26012,7 +26012,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.000000000000001,
+        "dbh": 0.07,
         "dbhNormal": [
           0,
           0,
@@ -26104,7 +26104,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 11.5,
+        "dbh": 0.115,
         "dbhNormal": [
           0,
           0,
@@ -26196,7 +26196,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.6,
+        "dbh": 0.096,
         "dbhNormal": [
           0,
           0,
@@ -26285,7 +26285,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.2,
+        "dbh": 0.062,
         "dbhNormal": [
           0,
           0,
@@ -26382,7 +26382,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -26474,7 +26474,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.5,
+        "dbh": 0.105,
         "dbhNormal": [
           0,
           0,
@@ -26571,7 +26571,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.5,
+        "dbh": 0.095,
         "dbhNormal": [
           0,
           0,
@@ -26695,7 +26695,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 23.0,
+        "dbh": 0.23,
         "dbhNormal": [
           0,
           0,
@@ -26788,7 +26788,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.5,
+        "dbh": 0.075,
         "dbhNormal": [
           0,
           0,
@@ -26885,7 +26885,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.200000000000001,
+        "dbh": 0.07200000000000001,
         "dbhNormal": [
           0,
           0,
@@ -26962,7 +26962,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 11.1,
+        "dbh": 0.111,
         "dbhNormal": [
           0,
           0,
@@ -27063,7 +27063,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 53.0,
+        "dbh": 0.53,
         "dbhNormal": [
           0,
           0,
@@ -27179,7 +27179,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 36.5,
+        "dbh": 0.365,
         "dbhNormal": [
           0,
           0,
@@ -27280,7 +27280,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.2,
+        "dbh": 0.062,
         "dbhNormal": [
           0,
           0,
@@ -27382,7 +27382,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 19.0,
+        "dbh": 0.19,
         "dbhNormal": [
           0,
           0,
@@ -27475,7 +27475,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.8,
+        "dbh": 0.078,
         "dbhNormal": [
           0,
           0,
@@ -27561,7 +27561,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.2,
+        "dbh": 0.052000000000000005,
         "dbhNormal": [
           0,
           0,
@@ -27660,7 +27660,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -27767,7 +27767,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 33.0,
+        "dbh": 0.33,
         "dbhNormal": [
           0,
           0,
@@ -27854,7 +27854,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.9,
+        "dbh": 0.069,
         "dbhNormal": [
           0,
           0,
@@ -27942,7 +27942,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.3,
+        "dbh": 0.053,
         "dbhNormal": [
           0,
           0,
@@ -28050,7 +28050,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 63.0,
+        "dbh": 0.63,
         "dbhNormal": [
           0,
           0,
@@ -28142,7 +28142,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -28228,7 +28228,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.5,
+        "dbh": 0.075,
         "dbhNormal": [
           0,
           0,
@@ -28356,7 +28356,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 34.1,
+        "dbh": 0.341,
         "dbhNormal": [
           0,
           0,
@@ -28455,7 +28455,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 11.8,
+        "dbh": 0.11800000000000001,
         "dbhNormal": [
           0,
           0,
@@ -28549,7 +28549,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -28637,7 +28637,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.1,
+        "dbh": 0.061,
         "dbhNormal": [
           0,
           0,
@@ -28744,7 +28744,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 40.0,
+        "dbh": 0.4,
         "dbhNormal": [
           0,
           0,
@@ -28856,7 +28856,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 21.0,
+        "dbh": 0.21,
         "dbhNormal": [
           0,
           0,
@@ -28945,7 +28945,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -29039,7 +29039,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.3,
+        "dbh": 0.073,
         "dbhNormal": [
           0,
           0,
@@ -29124,7 +29124,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -29213,7 +29213,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.2,
+        "dbh": 0.062,
         "dbhNormal": [
           0,
           0,
@@ -29293,7 +29293,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -29397,7 +29397,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 41.0,
+        "dbh": 0.41,
         "dbhNormal": [
           0,
           0,
@@ -29481,7 +29481,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 8.3,
+        "dbh": 0.083,
         "dbhNormal": [
           0,
           0,
@@ -29582,7 +29582,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.1,
+        "dbh": 0.061,
         "dbhNormal": [
           0,
           0,
@@ -29676,7 +29676,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.3,
+        "dbh": 0.063,
         "dbhNormal": [
           0,
           0,
@@ -29771,7 +29771,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 12.4,
+        "dbh": 0.124,
         "dbhNormal": [
           0,
           0,
@@ -29877,7 +29877,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 61.0,
+        "dbh": 0.61,
         "dbhNormal": [
           0,
           0,
@@ -29971,7 +29971,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 34.4,
+        "dbh": 0.344,
         "dbhNormal": [
           0,
           0,
@@ -30066,7 +30066,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.000000000000001,
+        "dbh": 0.07,
         "dbhNormal": [
           0,
           0,
@@ -30163,7 +30163,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.2,
+        "dbh": 0.062,
         "dbhNormal": [
           0,
           0,
@@ -30262,7 +30262,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.8,
+        "dbh": 0.08800000000000001,
         "dbhNormal": [
           0,
           0,
@@ -30366,7 +30366,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.2,
+        "dbh": 0.062,
         "dbhNormal": [
           0,
           0,
@@ -30466,7 +30466,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 15.5,
+        "dbh": 0.155,
         "dbhNormal": [
           0,
           0,
@@ -30585,7 +30585,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 61.5,
+        "dbh": 0.615,
         "dbhNormal": [
           0,
           0,
@@ -30693,7 +30693,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 36.0,
+        "dbh": 0.36,
         "dbhNormal": [
           0,
           0,
@@ -30805,7 +30805,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 65.0,
+        "dbh": 0.65,
         "dbhNormal": [
           0,
           0,
@@ -30903,7 +30903,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 84.0,
+        "dbh": 0.84,
         "dbhNormal": [
           0,
           0,
@@ -31020,7 +31020,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.4,
+        "dbh": 0.084,
         "dbhNormal": [
           0,
           0,
@@ -31122,7 +31122,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -31248,7 +31248,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 44.0,
+        "dbh": 0.44,
         "dbhNormal": [
           0,
           0,
@@ -31354,7 +31354,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 81.0,
+        "dbh": 0.81,
         "dbhNormal": [
           0,
           0,
@@ -31434,7 +31434,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.1,
+        "dbh": 0.051,
         "dbhNormal": [
           0,
           0,
@@ -31544,7 +31544,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.0,
+        "dbh": 0.09,
         "dbhNormal": [
           0,
           0,
@@ -31639,7 +31639,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -31736,7 +31736,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.7,
+        "dbh": 0.057,
         "dbhNormal": [
           0,
           0,
@@ -31869,7 +31869,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 46.5,
+        "dbh": 0.465,
         "dbhNormal": [
           0,
           0,
@@ -31969,7 +31969,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.1,
+        "dbh": 0.061,
         "dbhNormal": [
           0,
           0,
@@ -32078,7 +32078,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.800000000000001,
+        "dbh": 0.068,
         "dbhNormal": [
           0,
           0,
@@ -32173,7 +32173,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.9,
+        "dbh": 0.08900000000000001,
         "dbhNormal": [
           0,
           0,
@@ -32291,7 +32291,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 121.9,
+        "dbh": 1.219,
         "dbhNormal": [
           0,
           0,
@@ -32406,7 +32406,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 45.0,
+        "dbh": 0.45,
         "dbhNormal": [
           0,
           0,
@@ -32502,7 +32502,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.2,
+        "dbh": 0.052000000000000005,
         "dbhNormal": [
           0,
           0,
@@ -32641,7 +32641,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 45.0,
+        "dbh": 0.45,
         "dbhNormal": [
           0,
           0,
@@ -32730,7 +32730,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.7,
+        "dbh": 0.077,
         "dbhNormal": [
           0,
           0,
@@ -32824,7 +32824,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.1,
+        "dbh": 0.061,
         "dbhNormal": [
           0,
           0,
@@ -32919,7 +32919,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.5,
+        "dbh": 0.085,
         "dbhNormal": [
           0,
           0,
@@ -33022,7 +33022,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 23.0,
+        "dbh": 0.23,
         "dbhNormal": [
           0,
           0,
@@ -33126,7 +33126,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.1,
+        "dbh": 0.051,
         "dbhNormal": [
           0,
           0,
@@ -33209,7 +33209,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.9,
+        "dbh": 0.059000000000000004,
         "dbhNormal": [
           0,
           0,
@@ -33321,7 +33321,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 52.0,
+        "dbh": 0.52,
         "dbhNormal": [
           0,
           0,
@@ -33434,7 +33434,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 45.8,
+        "dbh": 0.45799999999999996,
         "dbhNormal": [
           0,
           0,
@@ -33521,7 +33521,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.5,
+        "dbh": 0.105,
         "dbhNormal": [
           0,
           0,
@@ -33628,7 +33628,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 52.0,
+        "dbh": 0.52,
         "dbhNormal": [
           0,
           0,
@@ -33726,7 +33726,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.6,
+        "dbh": 0.055999999999999994,
         "dbhNormal": [
           0,
           0,
@@ -33827,7 +33827,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.3,
+        "dbh": 0.063,
         "dbhNormal": [
           0,
           0,
@@ -33924,7 +33924,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.2,
+        "dbh": 0.052000000000000005,
         "dbhNormal": [
           0,
           0,
@@ -34059,7 +34059,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 85.0,
+        "dbh": 0.85,
         "dbhNormal": [
           0,
           0,
@@ -34143,7 +34143,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 13.0,
+        "dbh": 0.13,
         "dbhNormal": [
           0,
           0,
@@ -34250,7 +34250,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.5,
+        "dbh": 0.085,
         "dbhNormal": [
           0,
           0,
@@ -34337,7 +34337,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.7,
+        "dbh": 0.067,
         "dbhNormal": [
           0,
           0,
@@ -34453,7 +34453,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 22.5,
+        "dbh": 0.225,
         "dbhNormal": [
           0,
           0,
@@ -34538,7 +34538,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.5,
+        "dbh": 0.075,
         "dbhNormal": [
           0,
           0,
@@ -34656,7 +34656,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.1,
+        "dbh": 0.071,
         "dbhNormal": [
           0,
           0,
@@ -34747,7 +34747,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.3,
+        "dbh": 0.073,
         "dbhNormal": [
           0,
           0,
@@ -34834,7 +34834,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 8.3,
+        "dbh": 0.083,
         "dbhNormal": [
           0,
           0,
@@ -34911,7 +34911,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 39.0,
+        "dbh": 0.39,
         "dbhNormal": [
           0,
           0,
@@ -35007,7 +35007,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -35096,7 +35096,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.1,
+        "dbh": 0.051,
         "dbhNormal": [
           0,
           0,
@@ -35200,7 +35200,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 54.0,
+        "dbh": 0.54,
         "dbhNormal": [
           0,
           0,
@@ -35282,7 +35282,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 24.0,
+        "dbh": 0.24,
         "dbhNormal": [
           0,
           0,
@@ -35384,7 +35384,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.000000000000001,
+        "dbh": 0.07,
         "dbhNormal": [
           0,
           0,
@@ -35506,7 +35506,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 52.0,
+        "dbh": 0.52,
         "dbhNormal": [
           0,
           0,
@@ -35610,7 +35610,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 87.5,
+        "dbh": 0.875,
         "dbhNormal": [
           0,
           0,
@@ -35687,7 +35687,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 52.0,
+        "dbh": 0.52,
         "dbhNormal": [
           0,
           0,
@@ -35806,7 +35806,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.6,
+        "dbh": 0.106,
         "dbhNormal": [
           0,
           0,
@@ -35891,7 +35891,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -35991,7 +35991,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.7,
+        "dbh": 0.087,
         "dbhNormal": [
           0,
           0,
@@ -36084,7 +36084,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -36183,7 +36183,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.7,
+        "dbh": 0.067,
         "dbhNormal": [
           0,
           0,
@@ -36285,7 +36285,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -36399,7 +36399,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 14.499999999999998,
+        "dbh": 0.145,
         "dbhNormal": [
           0,
           0,
@@ -36486,7 +36486,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.5,
+        "dbh": 0.095,
         "dbhNormal": [
           0,
           0,
@@ -36585,7 +36585,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.5,
+        "dbh": 0.075,
         "dbhNormal": [
           0,
           0,
@@ -36679,7 +36679,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.2,
+        "dbh": 0.062,
         "dbhNormal": [
           0,
           0,
@@ -36814,7 +36814,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 67.0,
+        "dbh": 0.67,
         "dbhNormal": [
           0,
           0,
@@ -36909,7 +36909,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.5,
+        "dbh": 0.105,
         "dbhNormal": [
           0,
           0,
@@ -36986,7 +36986,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -37068,7 +37068,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -37203,7 +37203,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 85.3,
+        "dbh": 0.853,
         "dbhNormal": [
           0,
           0,
@@ -37287,7 +37287,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.1,
+        "dbh": 0.051,
         "dbhNormal": [
           0,
           0,
@@ -37371,7 +37371,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 6.9,
+        "dbh": 0.069,
         "dbhNormal": [
           0,
           0,
@@ -37482,7 +37482,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 51.0,
+        "dbh": 0.51,
         "dbhNormal": [
           0,
           0,
@@ -37572,7 +37572,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.6,
+        "dbh": 0.076,
         "dbhNormal": [
           0,
           0,
@@ -37677,7 +37677,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -37775,7 +37775,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 11.3,
+        "dbh": 0.113,
         "dbhNormal": [
           0,
           0,
@@ -37866,7 +37866,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -37953,7 +37953,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 43.0,
+        "dbh": 0.43,
         "dbhNormal": [
           0,
           0,
@@ -38047,7 +38047,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.000000000000001,
+        "dbh": 0.07,
         "dbhNormal": [
           0,
           0,
@@ -38167,7 +38167,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 40.0,
+        "dbh": 0.4,
         "dbhNormal": [
           0,
           0,
@@ -38266,7 +38266,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -38354,7 +38354,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 14.499999999999998,
+        "dbh": 0.145,
         "dbhNormal": [
           0,
           0,
@@ -38439,7 +38439,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.4,
+        "dbh": 0.054000000000000006,
         "dbhNormal": [
           0,
           0,
@@ -38528,7 +38528,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.5,
+        "dbh": 0.095,
         "dbhNormal": [
           0,
           0,
@@ -38626,7 +38626,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -38724,7 +38724,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 42.0,
+        "dbh": 0.42,
         "dbhNormal": [
           0,
           0,
@@ -38808,7 +38808,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 14.000000000000002,
+        "dbh": 0.14,
         "dbhNormal": [
           0,
           0,
@@ -38900,7 +38900,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -39015,7 +39015,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 56.99999999999999,
+        "dbh": 0.57,
         "dbhNormal": [
           0,
           0,
@@ -39107,7 +39107,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.7,
+        "dbh": 0.067,
         "dbhNormal": [
           0,
           0,
@@ -39204,7 +39204,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -39306,7 +39306,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -39406,7 +39406,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.400000000000001,
+        "dbh": 0.07400000000000001,
         "dbhNormal": [
           0,
           0,
@@ -39501,7 +39501,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -39589,7 +39589,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -39712,7 +39712,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 78.0,
+        "dbh": 0.78,
         "dbhNormal": [
           0,
           0,
@@ -39815,7 +39815,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 62.5,
+        "dbh": 0.625,
         "dbhNormal": [
           0,
           0,
@@ -39931,7 +39931,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 50.0,
+        "dbh": 0.5,
         "dbhNormal": [
           0,
           0,
@@ -40027,7 +40027,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.4,
+        "dbh": 0.054000000000000006,
         "dbhNormal": [
           0,
           0,
@@ -40111,7 +40111,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 7.000000000000001,
+        "dbh": 0.07,
         "dbhNormal": [
           0,
           0,
@@ -40194,7 +40194,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.7,
+        "dbh": 0.057,
         "dbhNormal": [
           0,
           0,
@@ -40310,7 +40310,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 39.0,
+        "dbh": 0.39,
         "dbhNormal": [
           0,
           0,
@@ -40404,7 +40404,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.2,
+        "dbh": 0.052000000000000005,
         "dbhNormal": [
           0,
           0,
@@ -40497,7 +40497,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 16.0,
+        "dbh": 0.16,
         "dbhNormal": [
           0,
           0,
@@ -40593,7 +40593,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.3,
+        "dbh": 0.083,
         "dbhNormal": [
           0,
           0,
@@ -40688,7 +40688,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 102.70000000000002,
+        "dbh": 1.0270000000000001,
         "dbhNormal": [
           0,
           0,
@@ -40780,7 +40780,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -40875,7 +40875,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.4,
+        "dbh": 0.054000000000000006,
         "dbhNormal": [
           0,
           0,
@@ -40973,7 +40973,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 23.0,
+        "dbh": 0.23,
         "dbhNormal": [
           0,
           0,
@@ -41059,7 +41059,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.6,
+        "dbh": 0.055999999999999994,
         "dbhNormal": [
           0,
           0,
@@ -41147,7 +41147,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.7,
+        "dbh": 0.077,
         "dbhNormal": [
           0,
           0,
@@ -41273,7 +41273,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 38.0,
+        "dbh": 0.38,
         "dbhNormal": [
           0,
           0,
@@ -41367,7 +41367,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.200000000000001,
+        "dbh": 0.07200000000000001,
         "dbhNormal": [
           0,
           0,
@@ -41463,7 +41463,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.0,
+        "dbh": 0.1,
         "dbhNormal": [
           0,
           0,
@@ -41567,7 +41567,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 19.5,
+        "dbh": 0.195,
         "dbhNormal": [
           0,
           0,
@@ -41670,7 +41670,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 70.0,
+        "dbh": 0.7,
         "dbhNormal": [
           0,
           0,
@@ -41794,7 +41794,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 59.0,
+        "dbh": 0.59,
         "dbhNormal": [
           0,
           0,
@@ -41895,7 +41895,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.6000000000000005,
+        "dbh": 0.066,
         "dbhNormal": [
           0,
           0,
@@ -42004,7 +42004,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 46.0,
+        "dbh": 0.46,
         "dbhNormal": [
           0,
           0,
@@ -42112,7 +42112,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.2,
+        "dbh": 0.08199999999999999,
         "dbhNormal": [
           0,
           0,
@@ -42194,7 +42194,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.1,
+        "dbh": 0.051,
         "dbhNormal": [
           0,
           0,
@@ -42310,7 +42310,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -42405,7 +42405,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 12.0,
+        "dbh": 0.12,
         "dbhNormal": [
           0,
           0,
@@ -42494,7 +42494,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.0,
+        "dbh": 0.09,
         "dbhNormal": [
           0,
           0,
@@ -42604,7 +42604,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 71.0,
+        "dbh": 0.71,
         "dbhNormal": [
           0,
           0,
@@ -42707,7 +42707,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.9,
+        "dbh": 0.059000000000000004,
         "dbhNormal": [
           0,
           0,
@@ -42800,7 +42800,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.6,
+        "dbh": 0.055999999999999994,
         "dbhNormal": [
           0,
           0,
@@ -42908,7 +42908,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 30.0,
+        "dbh": 0.3,
         "dbhNormal": [
           0,
           0,
@@ -43017,7 +43017,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.1,
+        "dbh": 0.071,
         "dbhNormal": [
           0,
           0,
@@ -43109,7 +43109,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.5,
+        "dbh": 0.065,
         "dbhNormal": [
           0,
           0,
@@ -43205,7 +43205,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.0,
+        "dbh": 0.08,
         "dbhNormal": [
           0,
           0,
@@ -43300,7 +43300,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.2,
+        "dbh": 0.062,
         "dbhNormal": [
           0,
           0,
@@ -43405,7 +43405,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 25.5,
+        "dbh": 0.255,
         "dbhNormal": [
           0,
           0,
@@ -43513,7 +43513,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.3,
+        "dbh": 0.063,
         "dbhNormal": [
           0,
           0,
@@ -43618,7 +43618,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 12.8,
+        "dbh": 0.128,
         "dbhNormal": [
           0,
           0,
@@ -43708,7 +43708,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.3,
+        "dbh": 0.09300000000000001,
         "dbhNormal": [
           0,
           0,
@@ -43799,7 +43799,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.5,
+        "dbh": 0.065,
         "dbhNormal": [
           0,
           0,
@@ -43893,7 +43893,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 64.0,
+        "dbh": 0.64,
         "dbhNormal": [
           0,
           0,
@@ -43989,7 +43989,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -44089,7 +44089,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 15.0,
+        "dbh": 0.15,
         "dbhNormal": [
           0,
           0,
@@ -44178,7 +44178,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.1,
+        "dbh": 0.061,
         "dbhNormal": [
           0,
           0,
@@ -44281,7 +44281,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 59.0,
+        "dbh": 0.59,
         "dbhNormal": [
           0,
           0,
@@ -44368,7 +44368,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 13.0,
+        "dbh": 0.13,
         "dbhNormal": [
           0,
           0,
@@ -44475,7 +44475,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.0,
+        "dbh": 0.1,
         "dbhNormal": [
           0,
           0,
@@ -44555,7 +44555,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 6.5,
+        "dbh": 0.065,
         "dbhNormal": [
           0,
           0,
@@ -44642,7 +44642,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.1,
+        "dbh": 0.051,
         "dbhNormal": [
           0,
           0,
@@ -44739,7 +44739,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.3,
+        "dbh": 0.053,
         "dbhNormal": [
           0,
           0,
@@ -44844,7 +44844,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.4,
+        "dbh": 0.054000000000000006,
         "dbhNormal": [
           0,
           0,
@@ -44948,7 +44948,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.800000000000001,
+        "dbh": 0.068,
         "dbhNormal": [
           0,
           0,
@@ -45055,7 +45055,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.3,
+        "dbh": 0.073,
         "dbhNormal": [
           0,
           0,
@@ -45182,7 +45182,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 48.0,
+        "dbh": 0.48,
         "dbhNormal": [
           0,
           0,
@@ -45277,7 +45277,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.8,
+        "dbh": 0.08800000000000001,
         "dbhNormal": [
           0,
           0,
@@ -45377,7 +45377,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.3,
+        "dbh": 0.053,
         "dbhNormal": [
           0,
           0,
@@ -45499,7 +45499,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.8,
+        "dbh": 0.078,
         "dbhNormal": [
           0,
           0,
@@ -45591,7 +45591,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.7,
+        "dbh": 0.067,
         "dbhNormal": [
           0,
           0,
@@ -45689,7 +45689,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 20.5,
+        "dbh": 0.205,
         "dbhNormal": [
           0,
           0,
@@ -45790,7 +45790,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.2,
+        "dbh": 0.052000000000000005,
         "dbhNormal": [
           0,
           0,
@@ -45873,7 +45873,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.6,
+        "dbh": 0.055999999999999994,
         "dbhNormal": [
           0,
           0,
@@ -45977,7 +45977,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -46061,7 +46061,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -46156,7 +46156,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.7,
+        "dbh": 0.057,
         "dbhNormal": [
           0,
           0,
@@ -46268,7 +46268,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 31.5,
+        "dbh": 0.315,
         "dbhNormal": [
           0,
           0,
@@ -46346,7 +46346,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 44.0,
+        "dbh": 0.44,
         "dbhNormal": [
           0,
           0,
@@ -46447,7 +46447,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 18.0,
+        "dbh": 0.18,
         "dbhNormal": [
           0,
           0,
@@ -46534,7 +46534,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 47.0,
+        "dbh": 0.47,
         "dbhNormal": [
           0,
           0,
@@ -46623,7 +46623,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -46745,7 +46745,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 50.9,
+        "dbh": 0.509,
         "dbhNormal": [
           0,
           0,
@@ -46855,7 +46855,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 54.0,
+        "dbh": 0.54,
         "dbhNormal": [
           0,
           0,
@@ -46960,7 +46960,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 61.0,
+        "dbh": 0.61,
         "dbhNormal": [
           0,
           0,
@@ -47055,7 +47055,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.800000000000001,
+        "dbh": 0.068,
         "dbhNormal": [
           0,
           0,
@@ -47155,7 +47155,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.6,
+        "dbh": 0.076,
         "dbhNormal": [
           0,
           0,
@@ -47252,7 +47252,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.3,
+        "dbh": 0.083,
         "dbhNormal": [
           0,
           0,
@@ -47362,7 +47362,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 60.5,
+        "dbh": 0.605,
         "dbhNormal": [
           0,
           0,
@@ -47455,7 +47455,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.6,
+        "dbh": 0.055999999999999994,
         "dbhNormal": [
           0,
           0,
@@ -47558,7 +47558,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.000000000000001,
+        "dbh": 0.07,
         "dbhNormal": [
           0,
           0,
@@ -47649,7 +47649,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -47748,7 +47748,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.5,
+        "dbh": 0.065,
         "dbhNormal": [
           0,
           0,
@@ -47859,7 +47859,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 53.0,
+        "dbh": 0.53,
         "dbhNormal": [
           0,
           0,
@@ -47947,7 +47947,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -48058,7 +48058,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 15.0,
+        "dbh": 0.15,
         "dbhNormal": [
           0,
           0,
@@ -48141,7 +48141,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -48244,7 +48244,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -48333,7 +48333,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.4,
+        "dbh": 0.054000000000000006,
         "dbhNormal": [
           0,
           0,
@@ -48439,7 +48439,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 38.0,
+        "dbh": 0.38,
         "dbhNormal": [
           0,
           0,
@@ -48524,7 +48524,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 6.2,
+        "dbh": 0.062,
         "dbhNormal": [
           0,
           0,
@@ -48646,7 +48646,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 50.0,
+        "dbh": 0.5,
         "dbhNormal": [
           0,
           0,
@@ -48755,7 +48755,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.7,
+        "dbh": 0.067,
         "dbhNormal": [
           0,
           0,
@@ -48865,7 +48865,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 45.0,
+        "dbh": 0.45,
         "dbhNormal": [
           0,
           0,
@@ -48987,7 +48987,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 52.0,
+        "dbh": 0.52,
         "dbhNormal": [
           0,
           0,
@@ -49083,7 +49083,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -49194,7 +49194,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 11.8,
+        "dbh": 0.11800000000000001,
         "dbhNormal": [
           0,
           0,
@@ -49294,7 +49294,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.5,
+        "dbh": 0.065,
         "dbhNormal": [
           0,
           0,
@@ -49373,7 +49373,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 7.8,
+        "dbh": 0.078,
         "dbhNormal": [
           0,
           0,
@@ -49476,7 +49476,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 70.0,
+        "dbh": 0.7,
         "dbhNormal": [
           0,
           0,
@@ -49566,7 +49566,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.0,
+        "dbh": 0.08,
         "dbhNormal": [
           0,
           0,
@@ -49666,7 +49666,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -49785,7 +49785,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.8,
+        "dbh": 0.08800000000000001,
         "dbhNormal": [
           0,
           0,
@@ -49890,7 +49890,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.800000000000001,
+        "dbh": 0.068,
         "dbhNormal": [
           0,
           0,
@@ -49982,7 +49982,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 14.499999999999998,
+        "dbh": 0.145,
         "dbhNormal": [
           0,
           0,
@@ -50076,7 +50076,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.5,
+        "dbh": 0.075,
         "dbhNormal": [
           0,
           0,
@@ -50171,7 +50171,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.8,
+        "dbh": 0.08800000000000001,
         "dbhNormal": [
           0,
           0,
@@ -50261,7 +50261,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.0,
+        "dbh": 0.08,
         "dbhNormal": [
           0,
           0,
@@ -50356,7 +50356,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.5,
+        "dbh": 0.085,
         "dbhNormal": [
           0,
           0,
@@ -50455,7 +50455,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.5,
+        "dbh": 0.105,
         "dbhNormal": [
           0,
           0,
@@ -50576,7 +50576,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 56.00000000000001,
+        "dbh": 0.56,
         "dbhNormal": [
           0,
           0,
@@ -50667,7 +50667,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 16.0,
+        "dbh": 0.16,
         "dbhNormal": [
           0,
           0,
@@ -50767,7 +50767,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.200000000000001,
+        "dbh": 0.07200000000000001,
         "dbhNormal": [
           0,
           0,
@@ -50854,7 +50854,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 23.0,
+        "dbh": 0.23,
         "dbhNormal": [
           0,
           0,
@@ -50958,7 +50958,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.6,
+        "dbh": 0.055999999999999994,
         "dbhNormal": [
           0,
           0,
@@ -51060,7 +51060,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.4,
+        "dbh": 0.054000000000000006,
         "dbhNormal": [
           0,
           0,
@@ -51168,7 +51168,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 11.0,
+        "dbh": 0.11,
         "dbhNormal": [
           0,
           0,
@@ -51267,7 +51267,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.7,
+        "dbh": 0.09699999999999999,
         "dbhNormal": [
           0,
           0,
@@ -51386,7 +51386,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 62.0,
+        "dbh": 0.62,
         "dbhNormal": [
           0,
           0,
@@ -51504,7 +51504,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 25.5,
+        "dbh": 0.255,
         "dbhNormal": [
           0,
           0,
@@ -51596,7 +51596,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -51695,7 +51695,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.5,
+        "dbh": 0.105,
         "dbhNormal": [
           0,
           0,
@@ -51803,7 +51803,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.5,
+        "dbh": 0.065,
         "dbhNormal": [
           0,
           0,
@@ -51914,7 +51914,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 72.0,
+        "dbh": 0.72,
         "dbhNormal": [
           0,
           0,
@@ -51998,7 +51998,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.0,
+        "dbh": 0.08,
         "dbhNormal": [
           0,
           0,
@@ -52112,7 +52112,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 61.0,
+        "dbh": 0.61,
         "dbhNormal": [
           0,
           0,
@@ -52196,7 +52196,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.000000000000001,
+        "dbh": 0.07,
         "dbhNormal": [
           0,
           0,
@@ -52285,7 +52285,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.3,
+        "dbh": 0.09300000000000001,
         "dbhNormal": [
           0,
           0,
@@ -52376,7 +52376,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -52492,7 +52492,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 45.0,
+        "dbh": 0.45,
         "dbhNormal": [
           0,
           0,
@@ -52596,7 +52596,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.9,
+        "dbh": 0.099,
         "dbhNormal": [
           0,
           0,
@@ -52692,7 +52692,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -52791,7 +52791,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.5,
+        "dbh": 0.085,
         "dbhNormal": [
           0,
           0,
@@ -52891,7 +52891,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 7.400000000000001,
+        "dbh": 0.07400000000000001,
         "dbhNormal": [
           0,
           0,
@@ -52982,7 +52982,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.8,
+        "dbh": 0.10800000000000001,
         "dbhNormal": [
           0,
           0,
@@ -53083,7 +53083,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 28.499999999999996,
+        "dbh": 0.285,
         "dbhNormal": [
           0,
           0,
@@ -53178,7 +53178,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -53286,7 +53286,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.2,
+        "dbh": 0.052000000000000005,
         "dbhNormal": [
           0,
           0,
@@ -53401,7 +53401,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 69.0,
+        "dbh": 0.69,
         "dbhNormal": [
           0,
           0,
@@ -53501,7 +53501,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 39.0,
+        "dbh": 0.39,
         "dbhNormal": [
           0,
           0,
@@ -53581,7 +53581,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.2,
+        "dbh": 0.052000000000000005,
         "dbhNormal": [
           0,
           0,
@@ -53670,7 +53670,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.0,
+        "dbh": 0.09,
         "dbhNormal": [
           0,
           0,
@@ -53774,7 +53774,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.0,
+        "dbh": 0.08,
         "dbhNormal": [
           0,
           0,
@@ -53862,7 +53862,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.5,
+        "dbh": 0.105,
         "dbhNormal": [
           0,
           0,
@@ -53950,7 +53950,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.1,
+        "dbh": 0.061,
         "dbhNormal": [
           0,
           0,
@@ -54061,7 +54061,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 8.8,
+        "dbh": 0.08800000000000001,
         "dbhNormal": [
           0,
           0,
@@ -54171,7 +54171,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 28.000000000000004,
+        "dbh": 0.28,
         "dbhNormal": [
           0,
           0,
@@ -54268,7 +54268,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.800000000000001,
+        "dbh": 0.068,
         "dbhNormal": [
           0,
           0,
@@ -54389,7 +54389,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 69.5,
+        "dbh": 0.695,
         "dbhNormal": [
           0,
           0,
@@ -54469,7 +54469,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.7,
+        "dbh": 0.057,
         "dbhNormal": [
           0,
           0,
@@ -54634,7 +54634,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 75.0,
+        "dbh": 0.75,
         "dbhNormal": [
           0,
           0,
@@ -54730,7 +54730,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -54820,7 +54820,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -54924,7 +54924,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 16.0,
+        "dbh": 0.16,
         "dbhNormal": [
           0,
           0,
@@ -55013,7 +55013,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.4,
+        "dbh": 0.054000000000000006,
         "dbhNormal": [
           0,
           0,
@@ -55117,7 +55117,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -55232,7 +55232,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -55321,7 +55321,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -55448,7 +55448,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 25.0,
+        "dbh": 0.25,
         "dbhNormal": [
           0,
           0,
@@ -55537,7 +55537,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.9,
+        "dbh": 0.059000000000000004,
         "dbhNormal": [
           0,
           0,
@@ -55640,7 +55640,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.800000000000001,
+        "dbh": 0.068,
         "dbhNormal": [
           0,
           0,
@@ -55743,7 +55743,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -55843,7 +55843,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.0,
+        "dbh": 0.06,
         "dbhNormal": [
           0,
           0,
@@ -55946,7 +55946,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.4,
+        "dbh": 0.064,
         "dbhNormal": [
           0,
           0,
@@ -56056,7 +56056,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -56145,7 +56145,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 17.0,
+        "dbh": 0.17,
         "dbhNormal": [
           0,
           0,
@@ -56238,7 +56238,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 11.0,
+        "dbh": 0.11,
         "dbhNormal": [
           0,
           0,
@@ -56328,7 +56328,7 @@
         ],
         "crownVoxelCountShared": null,
         "crownVoxelSize": 0.5,
-        "dbh": 5.7,
+        "dbh": 0.057,
         "dbhNormal": [
           0,
           0,
@@ -56454,7 +56454,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 39.0,
+        "dbh": 0.39,
         "dbhNormal": [
           0,
           0,
@@ -56554,7 +56554,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 53.0,
+        "dbh": 0.53,
         "dbhNormal": [
           0,
           0,
@@ -56659,7 +56659,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 63.5,
+        "dbh": 0.635,
         "dbhNormal": [
           0,
           0,
@@ -56744,7 +56744,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 15.0,
+        "dbh": 0.15,
         "dbhNormal": [
           0,
           0,
@@ -56872,7 +56872,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 104.1,
+        "dbh": 1.041,
         "dbhNormal": [
           0,
           0,
@@ -56961,7 +56961,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.5,
+        "dbh": 0.055,
         "dbhNormal": [
           0,
           0,
@@ -57049,7 +57049,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.8,
+        "dbh": 0.057999999999999996,
         "dbhNormal": [
           0,
           0,
@@ -57135,7 +57135,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.9,
+        "dbh": 0.059000000000000004,
         "dbhNormal": [
           0,
           0,
@@ -57247,7 +57247,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 50.5,
+        "dbh": 0.505,
         "dbhNormal": [
           0,
           0,
@@ -57343,7 +57343,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.7,
+        "dbh": 0.057,
         "dbhNormal": [
           0,
           0,
@@ -57468,7 +57468,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 44.0,
+        "dbh": 0.44,
         "dbhNormal": [
           0,
           0,
@@ -57558,7 +57558,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.0,
+        "dbh": 0.05,
         "dbhNormal": [
           0,
           0,
@@ -57657,7 +57657,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 134.6,
+        "dbh": 1.3459999999999999,
         "dbhNormal": [
           0,
           0,
@@ -57756,7 +57756,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.2,
+        "dbh": 0.092,
         "dbhNormal": [
           0,
           0,
@@ -57845,7 +57845,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.2,
+        "dbh": 0.062,
         "dbhNormal": [
           0,
           0,
@@ -57941,7 +57941,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 10.8,
+        "dbh": 0.10800000000000001,
         "dbhNormal": [
           0,
           0,
@@ -58039,7 +58039,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.5,
+        "dbh": 0.065,
         "dbhNormal": [
           0,
           0,
@@ -58142,7 +58142,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.2,
+        "dbh": 0.062,
         "dbhNormal": [
           0,
           0,
@@ -58243,7 +58243,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.6000000000000005,
+        "dbh": 0.066,
         "dbhNormal": [
           0,
           0,
@@ -58343,7 +58343,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 5.7,
+        "dbh": 0.057,
         "dbhNormal": [
           0,
           0,
@@ -58442,7 +58442,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 6.4,
+        "dbh": 0.064,
         "dbhNormal": [
           0,
           0,
@@ -58542,7 +58542,7 @@
           }
         ],
         "crownVoxelSize": 0.5,
-        "dbh": 9.5,
+        "dbh": 0.095,
         "dbhNormal": [
           0,
           0,
