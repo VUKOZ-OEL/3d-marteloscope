@@ -1,0 +1,54 @@
+{
+  "abbreviation": "crmo",
+  "color": [0.5, 0.7, 0.2],
+  "czech": "Hloh jednosemenný",
+  "genus": "Crataegus",
+  "id": 47,
+  "latin": "Crataegus monogyna",
+  "species": "monogyna"
+},
+{
+  "abbreviation": "eueu",
+  "color": [0.7, 0.5, 0.2],
+  "czech": "Brslen evropský",
+  "genus": "Euonymus",
+  "id": 48,
+  "latin": "Euonymus europaeus",
+  "species": "europaeus"
+},
+{
+  "abbreviation": "fran",
+  "color": [0.3, 0.6, 0.3],
+  "czech": "Jasan úzkolistý",
+  "genus": "Fraxinus",
+  "id": 49,
+  "latin": "Fraxinus angustifolia",
+  "species": "angustifolia"
+},
+{
+  "abbreviation": "prsp",
+  "color": [0.6, 0.2, 0.2],
+  "czech": "Trnka obecná",
+  "genus": "Prunus",
+  "id": 50,
+  "latin": "Prunus spinosa",
+  "species": "spinosa"
+},
+{
+  "abbreviation": "pyco",
+  "color": [0.7, 0.6, 0.2],
+  "czech": "Hrušeň obecná",
+  "genus": "Pyrus",
+  "id": 51,
+  "latin": "Pyrus communis",
+  "species": "communis"
+},
+{
+  "abbreviation": "sani",
+  "color": [0.4, 0.3, 0.6],
+  "czech": "Bez černý",
+  "genus": "Sambucus",
+  "id": 52,
+  "latin": "Sambucus nigra",
+  "species": "nigra"
+}
