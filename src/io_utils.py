@@ -242,48 +242,23 @@ def _is_hex_color(x: Any) -> bool:
     return isinstance(x, str) and len(x) == 7 and x.startswith("#")
 
 
-def _rgb_to_hex01(c01: List[float]) -> str:
-    """c01 = [r,g,b] v rozsahu 0..1 → '#RRGGBB'"""
-    r = max(0, min(255, int(round(c01[0] * 255))))
-    g = max(0, min(255, int(round(c01[1] * 255))))
-    b = max(0, min(255, int(round(c01[2] * 255))))
-    return f"#{r:02X}{g:02X}{b:02X}"
+def _rgb_to_hex01(c):
+    return "#{:02X}{:02X}{:02X}".format(
+        int(c[0]*255),
+        int(c[1]*255),
+        int(c[2]*255),
+    )
 
 
-def _to_color01(value: Any) -> List[float] | None:
-    """
-    Přijme '#RRGGBB' nebo [r,g,b] v 0..1 či 0..255 a vrátí [r,g,b] v 0..1.
-    """
-    if value is None:
-        return None
-
-    # hex řetězec
-    if _is_hex_color(value):
-        hs = value[1:]
-        try:
-            r = int(hs[0:2], 16) / 255.0
-            g = int(hs[2:4], 16) / 255.0
-            b = int(hs[4:6], 16) / 255.0
-            return [r, g, b]
-        except Exception:
-            return None
-
-    # seznam/tuple čísel
+def _to_color01(value):
     if isinstance(value, (list, tuple)) and len(value) == 3:
         try:
-            r, g, b = float(value[0]), float(value[1]), float(value[2])
-        except Exception:
+            return [float(x) for x in value]
+        except:
             return None
-        # 0..1 nebo 0..255?
-        if max(r, g, b) <= 1.0:
-            return [max(0.0, min(1.0, r)), max(0.0, min(1.0, g)), max(0.0, min(1.0, b))]
-        else:
-            return [
-                max(0.0, min(1.0, r / 255.0)),
-                max(0.0, min(1.0, g / 255.0)),
-                max(0.0, min(1.0, b / 255.0)),
-            ]
     return None
+
+
 
 
 def _to_hex(value: Any) -> str | None:

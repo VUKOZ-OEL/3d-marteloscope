@@ -33,6 +33,10 @@ if "trees" not in st.session_state:
 
 df: pd.DataFrame = st.session_state.trees.copy()
 
+
+
+
+
 # ---------- HELPERS ----------
 def _is_num(x) -> bool:
     try:

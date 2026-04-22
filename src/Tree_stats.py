@@ -45,7 +45,6 @@ STAT_MIN = "Min"
 # --------------------------------------------------------------------------------------
 st.markdown(f"### {t('explore_tree_statistics')}")
 
-df_raw: pd.DataFrame = st.session_state.trees.copy()
 
 # -------------------------------------------------
 # Merge user attributes (from SQLite)
